@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { Roles } from "../middleware/auth";
+import { Roles } from "../../middleware/auth";
 
 export interface Iuser {
     _id: Types.ObjectId;
