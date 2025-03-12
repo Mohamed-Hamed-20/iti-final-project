@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import app from "./app.controller";
-import { database } from "./config/database";
+import { database } from "./DB/database";
 import cookieParser from "cookie-parser";
 import redis from "./utils/redis";
 import { ApiDocumentation, PORT } from "./config/env";
@@ -37,6 +37,6 @@ database
   .then(() => {
     app.listen(port, () => console.log(`Server is running on port ${port}!`));
   })
-  .catch((err) => {
-    console.error("Database connection failed:", err);
+  .catch((err:Error) => {
+    console.error("Database connection failed:", err.message);
   });

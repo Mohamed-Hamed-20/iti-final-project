@@ -1,5 +1,5 @@
 import mongoose, { ConnectOptions } from "mongoose";
-import { databaseConfigration } from "./env";
+import { databaseConfigration } from "../config/env";
 
 class Database {
   private static instance: Database;

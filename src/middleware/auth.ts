@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler, CustomError } from "../utils/errorHandling";
 import { verifyToken } from "../utils/tokens";
-import userModel from "../models/user.model";
+import userModel from "../DB/models/user.model";
 import { Document, Types } from "mongoose";
 import { Iuser } from "../interfaces/user.interface";
 
