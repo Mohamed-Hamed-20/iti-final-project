@@ -7,4 +7,5 @@ router.get("/", (req:Request, res:Response, next:NextFunction):any=>{
         messgae:"hellow mr.Mohamed"
     })
 })
+
 export default router;

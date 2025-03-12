@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { Iuser } from "../interfaces/user.interface";
 
 enum Roles {
   User = "user",
@@ -6,16 +7,7 @@ enum Roles {
   Guest = "guest",
 }
 
-interface Iuser extends Document {
-  name: string;
-  email: string;
-  password: string;
-  age?: number;
-  phone?: string;
-  role: Roles;
-  isConfirmed: boolean;
-  avatar: string;
-}
+
 
 const userSchema = new Schema<Iuser>(
   {

@@ -1,15 +1,8 @@
-import dotenv from "dotenv";
 import nodemailer, { Transporter } from "nodemailer";
-dotenv.config({ path: "../.env" });
+import { EmailSendConfigration } from "../config/env";
+import { IEmail } from "../DB/interfaces/Email.interface";
 
-interface IEmail {
-  from?: string;
-  to: string | string[];
-  subject?: string;
-  text?: string;
-  html: string;
-  message: string;
-}
+
 class EmailService implements IEmail {
   from: string;
   to: string | string[];
@@ -41,8 +34,8 @@ class EmailService implements IEmail {
         port: 465,
         secure: true,
         auth: {
-          user: process.env.EMAIL,
-          pass: process.env.PASSWORD,
+          user: EmailSendConfigration.EMAIL,
+          pass: EmailSendConfigration.PASSWORD,
         },
       });
     }

@@ -1,16 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler, CustomError } from "../utils/errorHandling";
-import { verifyToken } from "../utils/tokens";
+import { TokenService } from "../utils/tokens";
 import userModel from "../DB/models/user.model";
 import { Document, Types } from "mongoose";
 import { Iuser } from "../DB/interfaces/user.interface";
+import { TokenConfigration } from "../config/env";
 
 export enum Roles {
   User = "user",
   Admin = "admin",
   Guest = "guest",
 }
-
 
 declare global {
   namespace Express {
@@ -31,10 +31,10 @@ export const isAuth = (roles: Array<Roles>) => {
 
       let decodedToken;
 
-      decodedToken = verifyToken(
-        accessToken,
-        String(process.env.ACCESS_TOKEN_SECRET)
-      );
+      decodedToken = new TokenService(
+        TokenConfigration.ACCESS_TOKEN_SECRET as string
+      ).verifyToken(accessToken);
+
       const { userId } = decodedToken;
 
       const finduser = await userModel.findById(new Types.ObjectId(userId), {
