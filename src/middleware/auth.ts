@@ -3,7 +3,7 @@ import { asyncHandler, CustomError } from "../utils/errorHandling";
 import { verifyToken } from "../utils/tokens";
 import userModel from "../DB/models/user.model";
 import { Document, Types } from "mongoose";
-import { Iuser } from "../interfaces/user.interface";
+import { Iuser } from "../DB/interfaces/user.interface";
 
 export enum Roles {
   User = "user",
