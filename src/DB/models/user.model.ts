@@ -1,21 +1,23 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { Iuser } from "../interfaces/user.interface";
+import { Iuser, Roles } from "../interfaces/user.interface";
 
-enum Roles {
-  User = "user",
-  Admin = "admin",
-  Guest = "guest",
-}
+
 
 
 
 const userSchema = new Schema<Iuser>(
   {
-    name: {
+    firstName: {
       type: String,
       required: true,
-      minlength: [3, "name Must be at least 3, got {VALUE}"],
-      maxlength: [30, "name Must be at most 30, got {VALUE}"],
+      minlength: [3, "firstName Must be at least 3, got {VALUE}"],
+      maxlength: [30, "firstName Must be at most 30, got {VALUE}"],
+    },
+    lastName: {
+      type: String,
+      required: true,
+      minlength: [3, "last Name Must be at least 3, got {VALUE}"],
+      maxlength: [30, "last Name Must be at most 30, got {VALUE}"],
     },
     email: {
       type: String,

@@ -1,9 +1,15 @@
 import { Document, Types } from "mongoose";
-import { Roles } from "../../middleware/auth";
+
+export enum Roles {
+  User = "user",
+  Admin = "admin",
+  Instructor = "instructor",
+}
 
 export interface Iuser extends Document {
   _id: Types.ObjectId;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   age?: number;
@@ -12,3 +18,5 @@ export interface Iuser extends Document {
   isConfirmed: boolean;
   avatar?: string;
 }
+
+

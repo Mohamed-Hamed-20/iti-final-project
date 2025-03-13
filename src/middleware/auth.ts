@@ -2,15 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import { asyncHandler, CustomError } from "../utils/errorHandling";
 import { TokenService } from "../utils/tokens";
 import userModel from "../DB/models/user.model";
-import { Document, Types } from "mongoose";
-import { Iuser } from "../DB/interfaces/user.interface";
+import { Types } from "mongoose";
+import { Iuser, Roles } from "../DB/interfaces/user.interface";
 import { TokenConfigration } from "../config/env";
-
-export enum Roles {
-  User = "user",
-  Admin = "admin",
-  Guest = "guest",
-}
 
 declare global {
   namespace Express {

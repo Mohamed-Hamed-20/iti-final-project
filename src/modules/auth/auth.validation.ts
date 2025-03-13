@@ -2,15 +2,16 @@ import joi from "joi";
 import { generalFields } from "../../middleware/validation";
 
 // name, email, password, age, phone
+
 export const registerSchema = {
   body: joi
     .object({
-      name: joi.string().trim().min(3).max(33).required(),
+      firstName : joi.string().trim().min(3).max(33).required(),
+      lastName : joi.string().trim().min(3).max(33).required(),
       email: generalFields.email.required(),
       password: generalFields.password.required(),
       confirmPassword: joi.valid(joi.ref("password")).required(),
-      age: joi.number().min(5).max(140).required(),
-      phone: generalFields.PhoneNumber.required(),
+      role: joi.string().valid("user", "instructor").required(),
     })
     .required(),
 };

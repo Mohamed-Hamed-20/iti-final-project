@@ -17,8 +17,11 @@ export const ApiDocumentation = process.env.ApiDocumentation || "https://www.you
 
 
 export const TokenConfigration = {
-  ACCESS_TOKEN_SECRET : process.env.ACCESS_TOKEN_SECRET, 
-}
+  ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
+  REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
+  ACCESS_EXPIRE: process.env.ACCESS_EXPIRE,
+  REFRESH_EXPIRE: process.env.REFRESH_EXPIRE,
+};
 
 
 export const EmailSendConfigration = {
