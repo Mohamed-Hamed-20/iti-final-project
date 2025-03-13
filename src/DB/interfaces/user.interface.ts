@@ -8,14 +8,14 @@ export enum Roles {
 
 export interface Iuser extends Document {
   _id: Types.ObjectId;
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string;
   age?: number;
   phone?: string;
-  role: Roles;
-  isConfirmed: boolean;
+  role?: Roles;
+  isConfirmed?: boolean;
   avatar?: string;
 }
 

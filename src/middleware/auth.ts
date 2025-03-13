@@ -35,12 +35,12 @@ export const isAuth = (roles: Array<Roles>) => {
         password: 0,
         __v: 0,
       });
-      if (!finduser) {
+      if (!finduser || !finduser.role) {
         return next(new CustomError("User not found", 404));
       }
 
       // chk authorized
-      if (!roles.includes(finduser.role))
+      if (!roles.includes(finduser?.role))
         return next(new CustomError("Unauthorized user", 401));
 
       req.user = finduser as Iuser;

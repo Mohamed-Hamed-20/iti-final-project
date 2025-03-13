@@ -1,6 +1,12 @@
 import { RequestHandler, Router } from "express";
 import * as authServices from "./services/auth.service";
-import { loginSchema, registerSchema } from "./auth.validation";
+import {
+  confirmEmailSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+  sendForgetPasswordSchema,
+} from "./auth.validation";
 import { valid } from "../../middleware/validation";
 import { asyncHandler } from "../../utils/errorHandling";
 
@@ -18,6 +24,22 @@ router.post(
   asyncHandler(authServices.login)
 );
 
+router.post(
+  "/send/forget/password",
+  valid(sendForgetPasswordSchema) as RequestHandler,
+  asyncHandler(authServices.sendForgetPasswordEmail)
+);
 
+router.post(
+  "/reset/password",
+  valid(resetPasswordSchema) as RequestHandler,
+  asyncHandler(authServices.resetPassword)
+);
+
+router.get(
+  "/confirm/email/:token",
+  valid(confirmEmailSchema) as RequestHandler,
+  asyncHandler(authServices.confirmEmail)
+);
 
 export default router;

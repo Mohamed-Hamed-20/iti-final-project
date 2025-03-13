@@ -6,8 +6,8 @@ import { generalFields } from "../../middleware/validation";
 export const registerSchema = {
   body: joi
     .object({
-      firstName : joi.string().trim().min(3).max(33).required(),
-      lastName : joi.string().trim().min(3).max(33).required(),
+      firstName: joi.string().trim().min(3).max(33).required(),
+      lastName: joi.string().trim().min(3).max(33).required(),
       email: generalFields.email.required(),
       password: generalFields.password.required(),
       confirmPassword: joi.valid(joi.ref("password")).required(),
@@ -28,7 +28,7 @@ export const loginSchema = {
 export const confirmEmailSchema = {
   params: joi
     .object({
-      token: joi.string().required(),
+      token: generalFields.token.required(),
     })
     .required(),
 };
@@ -44,6 +44,24 @@ export const cokkiesSchema = {
         .string()
         .pattern(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/)
         .required(),
+    })
+    .required(),
+};
+
+export const sendForgetPasswordSchema = {
+  body: joi
+    .object({
+      email: generalFields.email.required(),
+    })
+    .required(),
+};
+
+export const resetPasswordSchema = {
+  body: joi
+    .object({
+      token: generalFields.token.required(),
+      password: generalFields.password.required(),
+      confirmPassword: joi.string().valid(joi.ref("password")).required(),
     })
     .required(),
 };

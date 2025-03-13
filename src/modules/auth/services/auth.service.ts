@@ -1,13 +1,10 @@
-import { Types } from "mongoose";
-
 import { Request, Response, NextFunction } from "express";
 import userModel from "../../../DB/models/user.model";
 import { CustomError } from "../../../utils/errorHandling";
 import bcrypt, { compare } from "bcryptjs";
-import { encrypt } from "../../../utils/crpto";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import { TokenService } from "../../../utils/tokens";
-import { TokenConfigration } from "../../../config/env";
+import { TokenConfigration, FRONTEND, SALT_ROUND } from "../../../config/env";
 import emailQueue from "../../../utils/email.Queue";
 import { SignUpTemplet } from "../../../utils/htmlTemplet";
 import { cokkiesOptions } from "../../../utils/cookies";
@@ -22,10 +19,7 @@ export const register = async (
   const chkemail = await userModel.findOne({ email }).select("email");
   if (chkemail) return next(new CustomError("Email is Already Exist", 404));
 
-  const hashpassword = await bcrypt.hash(
-    password,
-    Number(process.env.SALT_ROUND)
-  );
+  const hashpassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
   const result = new userModel({
     firstName,
@@ -44,6 +38,7 @@ export const register = async (
     userId: response._id,
     role: response.role,
   });
+  console.log(`${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`);
 
   await emailQueue.add(
     {
@@ -51,15 +46,17 @@ export const register = async (
       subject: "message to confirm your Email",
       text: "Welcome to Out courses App! 🎉",
       html: SignUpTemplet(
-        `${req.protocol}://${req.headers.host}/api/v1/auth/confirm/${token}/email`
+        `${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`
       ),
       message: "Please confirm ur email",
     },
-    { attempts: 3, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+    { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
   );
 
   return res.status(201).json({
     message: "user Data Added successfully",
+    success: true,
+    statusCode: 201,
     user: sanatizeUser(response),
   });
 };
@@ -114,7 +111,112 @@ export const login = async (
   );
 
   res.cookie("refreshToken", refreshToken, cokkiesOptions(7 * 24 * 3600000));
-  return res
-    .status(200)
-    .json({ message: "Login successful", user: sanatizeUser(findUser) });
+  return res.status(200).json({
+    message: "Login successful",
+    success: true,
+    statusCode: 200,
+    user: sanatizeUser(findUser),
+  });
+};
+
+export const sendForgetPasswordEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { email } = req.body;
+
+  const user = await userModel
+    .findOne({ email })
+    .select("firstName lastName email")
+    .lean();
+
+  if (!user) return next(new CustomError("user not found :-(!", 404));
+
+  const token = new TokenService(
+    String(TokenConfigration.ACCESS_TOKEN_SECRET),
+    TokenConfigration.ACCESS_EXPIRE
+  ).generateToken({ userId: user?._id, role: user?.role });
+
+  await emailQueue.add(
+    {
+      to: user?.email,
+      subject: "this message to Reset your Password",
+      text: "Welcome to Out courses App! 🎉",
+      html: SignUpTemplet(
+        `${FRONTEND.BASE_URL}/${FRONTEND.RESET_PASSWORD_URL}/${token}`
+      ),
+      message: "Please Reset ur Password",
+    },
+    { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+  );
+
+  return res.status(200).json({
+    message: "Reset Password Email Send Successfully",
+    success: true,
+    statusCode: 200,
+    user: sanatizeUser(user),
+  });
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { token, password } = req.body;
+  const { userId } = new TokenService(
+    String(TokenConfigration.ACCESS_TOKEN_SECRET)
+  ).verifyToken(token);
+  const passwordHash = await bcrypt.hash(password, Number(SALT_ROUND));
+  const updateUser = await userModel
+    .findByIdAndUpdate(
+      { _id: userId },
+      { $set: { password: passwordHash } },
+      { new: true }
+    )
+    .lean();
+
+  if (!updateUser) {
+    return next(new CustomError("user Not found Update password faild", 400));
+  }
+
+  return res.status(200).json({
+    message: "password reset successfully",
+    statusCode: 200,
+    success: true,
+    user: sanatizeUser(updateUser),
+  });
+};
+
+export const confirmEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { token } = req.params;
+
+  const { userId } = new TokenService(
+    String(TokenConfigration.ACCESS_TOKEN_SECRET)
+  ).verifyToken(token);
+
+  const updateUser = await userModel
+    .findByIdAndUpdate(
+      { _id: userId },
+      { $set: { isConfirmed: true } },
+      { new: true }
+    )
+    .select("firstName lastName email isConfirmed role")
+    .lean();
+
+  if (!updateUser) {
+    return next(new CustomError("Falid to confirm Your Email :-(", 404));
+  }
+
+  return res.status(200).json({
+    message: "Email Confirmed successfully",
+    statusCode: 200,
+    success: true,
+    user: sanatizeUser(updateUser),
+  });
 };

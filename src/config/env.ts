@@ -2,19 +2,16 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-
-
 export const databaseConfigration = {
-    DB_URL: process.env.DB_URL || "mongodb://localhost:27017/app",
-}
+  DB_URL: process.env.DB_URL || "mongodb://localhost:27017/app",
+};
 
 export const NODE_ENV = process.env.NODE_ENV || "development";
 
-
 export const PORT = Number(process.env.PORT) || 5000;
 
-export const ApiDocumentation = process.env.ApiDocumentation || "https://www.youtube.com/watch?v=tpv35Uia4tc";
-
+export const ApiDocumentation =
+  process.env.ApiDocumentation || "https://www.youtube.com/watch?v=tpv35Uia4tc";
 
 export const TokenConfigration = {
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
@@ -23,8 +20,16 @@ export const TokenConfigration = {
   REFRESH_EXPIRE: process.env.REFRESH_EXPIRE,
 };
 
-
 export const EmailSendConfigration = {
   EMAIL: process.env.EMAIL,
   PASSWORD: process.env.PASSWORD,
 };
+
+export const FRONTEND = {
+  RESET_PASSWORD_URL: process.env.RESET_PASSWORD_URL,
+  BASE_URL: process.env.BASE_URL,
+  CONFIRM_EMAIL: process.env.CONFIRM_EMAIL,
+};
+
+
+export const SALT_ROUND = process.env.SALT_ROUND;
