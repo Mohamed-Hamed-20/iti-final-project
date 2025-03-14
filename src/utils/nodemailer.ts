@@ -17,7 +17,7 @@ class EmailService implements IEmail {
     subject = "No Subject",
     text = "",
     html = "<p>No Content</p>",
-    message = "Please confirm your email",
+    message = "Mentora",
   }: Partial<IEmail> & { to: string | string[] }) {
     this.from = String(process.env.EMAIL);
     this.to = to;

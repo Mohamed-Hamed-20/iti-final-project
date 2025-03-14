@@ -16,7 +16,7 @@ const router = Router();
 
 router.get("/", (req: Request, res: Response, next: NextFunction): any => {
   return res.status(200).json({
-    messgae: "hellow mr.Mohamed",
+    message: "hello mr.Mohamed",
   });
 });
 

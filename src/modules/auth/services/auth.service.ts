@@ -44,18 +44,18 @@ export const register = async (
   await emailQueue.add(
     {
       to: response.email,
-      subject: "message to confirm your Email",
+      subject: "Verify your email",
       text: "Welcome to Out courses App! 🎉",
       html: SignUpTemplet(
         `${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`
       ),
-      message: "Please confirm ur email",
+      message: "Mentora",
     },
     { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
   );
 
   return res.status(201).json({
-    message: "user Data Added successfully",
+    message: "Please check your email for verification",
     success: true,
     statusCode: 201,
     user: sanatizeUser(response),

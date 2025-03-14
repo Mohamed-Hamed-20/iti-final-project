@@ -1,10 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { Iuser, Roles } from "../interfaces/user.interface";
 
-
-
-
-
 const userSchema = new Schema<Iuser>(
   {
     firstName: {

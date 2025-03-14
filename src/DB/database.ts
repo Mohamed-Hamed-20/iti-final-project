@@ -27,7 +27,7 @@ class Database {
       this.isConnected = connection.connection.readyState === 1;
       console.log("Database connected :)");
     } catch (error: any) {
-      console.log("ERROR IN CONNECTION :(", error?.messsage || error);
+      console.log("ERROR IN CONNECTION :(", error?.message || error);
     }
   }
 }
