@@ -31,7 +31,7 @@ router.post(
 );
 
 router.post(
-  "/reset/password",
+  "/reset/password/:token",
   valid(resetPasswordSchema) as RequestHandler,
   asyncHandler(authServices.resetPassword)
 );

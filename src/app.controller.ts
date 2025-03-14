@@ -5,12 +5,14 @@ import redis from "./utils/redis";
 import apiRouter from "./index.Routes";
 import { ApiDocumentation, PORT } from "./config/env";
 import { Request, Response, NextFunction } from "express";
-
+import cors from "cors";
 import path from "path";
+
 
 const app: Application = express();
 app.use(cookieParser());
 app.use(express.json());
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 
 

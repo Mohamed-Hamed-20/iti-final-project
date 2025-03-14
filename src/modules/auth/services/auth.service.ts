@@ -26,6 +26,7 @@ export const register = async (
     lastName,
     email,
     password: hashpassword,
+    role
   });
 
   const response = await result.save();
@@ -131,6 +132,7 @@ export const sendForgetPasswordEmail = async (
     .select("firstName lastName email")
     .lean();
 
+
   if (!user) return next(new CustomError("user not found :-(!", 404));
 
   const token = new TokenService(
@@ -138,13 +140,15 @@ export const sendForgetPasswordEmail = async (
     TokenConfigration.ACCESS_EXPIRE
   ).generateToken({ userId: user?._id, role: user?.role });
 
+  // ${FRONTEND.BASE_URL}/${FRONTEND.RESET_PASSWORD_URL} ==> in SignUpTemplet
+
   await emailQueue.add(
     {
       to: user?.email,
       subject: "this message to Reset your Password",
       text: "Welcome to Out courses App! 🎉",
       html: SignUpTemplet(
-        `${FRONTEND.BASE_URL}/${FRONTEND.RESET_PASSWORD_URL}/${token}`
+        `${FRONTEND.BASE_URL}/resetPassword/${token}`
       ),
       message: "Please Reset ur Password",
     },
@@ -164,7 +168,8 @@ export const resetPassword = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { token, password } = req.body;
+  const {token} = req.params;
+  const { password } = req.body;
   const { userId } = new TokenService(
     String(TokenConfigration.ACCESS_TOKEN_SECRET)
   ).verifyToken(token);
