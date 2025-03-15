@@ -3,22 +3,34 @@ import { NextFunction, Request, Response } from "express";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import userModel from "../../../DB/models/user.model";
 
+
 export const profile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void | any> => {
-  const user = req.user;
-  if (!user) {
-    return next(new CustomError("user not found ERROR", 500));
+  try {
+    const user = req.user; 
+    if (!user) {
+      return next(new CustomError("user not found ERROR", 500));
+    }
+    
+    return res.status(200).json({
+      message: "user data fetched successfully",
+      statusCode: 200,
+      success: true,
+      user: sanatizeUser(user),
+    });
+  } catch (error) {
+    next(
+      new CustomError(
+        `Failed to fetch user profile: ${(error as Error).message}`,
+        500
+      )
+    );
   }
-  return res.status(200).json({
-    message: "user data fetched successfully",
-    statusCode: 200,
-    success: true,
-    user: sanatizeUser(user),
-  });
 };
+
 
 export const instructors = async (
   req: Request,
@@ -29,6 +41,7 @@ export const instructors = async (
     const users = await userModel
       .find({ role: "instructor" })
       .select("-password")
+      .populate("courses") 
       .lean();
 
     return res.status(200).json({
@@ -45,3 +58,7 @@ export const instructors = async (
     );
   }
 };
+
+
+
+

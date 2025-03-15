@@ -62,5 +62,16 @@ const userSchema = new Schema<Iuser>(
   },
   { timestamps: true }
 );
+
+userSchema.virtual('courses', {
+  ref: 'course',
+  localField: '_id',
+  foreignField: 'instructorId',
+});
+
+// Ensure virtual fields are included when converting documents to JSON or Objects
+userSchema.set('toObject', { virtuals: true });
+userSchema.set('toJSON', { virtuals: true });
+
 const userModel = mongoose.model<Iuser>("user", userSchema);
 export default userModel;
