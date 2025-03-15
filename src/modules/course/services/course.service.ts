@@ -136,11 +136,11 @@ export const searchCollection = async (
   try {
     const { collectionName, searchFilters } = req.body;
 
-    if (!collectionName || !searchFilters || typeof searchFilters !== "object") {
+    if (!collectionName || !searchFilters) {
       return next(new CustomError("Collection name and valid search filters are required", 400));
     }
 
-    let model: Model<any>
+    let model: Model<any>;
     let searchQuery: Record<string, any> = {};
 
     if (collectionName === "courses") {
@@ -171,10 +171,13 @@ export const searchCollection = async (
 
     console.log("Search Query:", JSON.stringify(searchQuery, null, 2));
 
-    const result = await model
-      .find(searchQuery)
-      .populate(collectionName === "courses" ? "instructorId" : "", "firstName lastName avatar")
-      .lean();
+    const query = model.find(searchQuery).lean();
+
+    if (collectionName === "courses") {
+      query.populate("instructorId", "firstName lastName avatar");
+    }
+
+    const result = await query.setOptions({ strictPopulate: false });
 
     return res.status(200).json({
       message: "Search completed successfully",
