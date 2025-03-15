@@ -26,4 +26,12 @@ router.get(
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
   asyncHandler(userServices.profile)
 );
+
+router.get(
+  "/instructors",
+  
+  asyncHandler(userServices.instructors)
+);
+
+
 export default router;
