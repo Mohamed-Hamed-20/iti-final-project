@@ -146,61 +146,33 @@ export const searchCollection = async (
       return next(new CustomError("Collection name and valid search filters are required", 400));
     }
 
-    let model: Model<any>;
+    let model: Model<any>
     let searchQuery: Record<string, any> = {};
 
     if (collectionName === "courses") {
-      model = courseModel;
-
-      if (searchFilters.keyword && typeof searchFilters.keyword === "string") {
-        searchQuery = {
-          $or: [
-            { title: { $regex: searchFilters.keyword, $options: "i" } },
-            { description: { $regex: searchFilters.keyword, $options: "i" } }
-          ]
-        };
-      }
+      const courses = await courseModel.find({
+        $or: [
+          { title: { $regex: searchFilters, $options: "i" } },
+          { description: { $regex: searchFilters, $options: "i" } }
+        ]
+      }).populate("instructorId")
+      res.status(200).json({status: "success" , data: courses})
     } else if (collectionName === "instructors") {
-      model = userModel;
-
-      if (searchFilters.keyword && typeof searchFilters.keyword === "string") {
-        searchQuery = {
-          $or: [
-            { firstName: { $regex: searchFilters.keyword, $options: "i" } },
-            { lastName: { $regex: searchFilters.keyword, $options: "i" } }
-          ]
-        };
-      }
+      const searchFilters2 = "^" + searchFilters;
+      const courses = await userModel.find({
+        firstName: { $regex: searchFilters2, $options: "i" }
+        // $or: [
+        //   { firstName: { $regex: searchFilters, $options: "i" } },
+        //   { lastName: { $regex: searchFilters, $options: "i" } }
+        // ]
+      })
+      res.status(200).json({status: "success" , data: courses})
     } else {
       return next(new CustomError("Invalid collection name", 400));
     }
 
-    console.log("Search Query:", JSON.stringify(searchQuery, null, 2));
-
-    const query = model.find(searchQuery).lean();
-
-    if (collectionName === "courses") {
-      query.populate("instructorId", "firstName lastName avatar");
-    }
-
-    const result = await query.setOptions({ strictPopulate: false });
-
-    return res.status(200).json({
-      message: "Search completed successfully",
-      statusCode: 200,
-      success: true,
-      result,
-    });
   } catch (error) {
     console.error("Search Error:", error);
     return next(new CustomError(`Failed to search: ${(error as Error).message}`, 500));
   }
 };
-
-
-
-
-
-
-
-
