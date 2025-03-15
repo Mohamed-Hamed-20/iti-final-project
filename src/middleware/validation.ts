@@ -84,7 +84,7 @@ export const generalFields = {
     .max(44)
     .messages({
       "string.pattern.base":
-        "Password Must be at least 8 characher , contain number and letters",
+        "Password Must be at least 8 characters , contain number and letters",
     })
     .messages(customMessages),
 

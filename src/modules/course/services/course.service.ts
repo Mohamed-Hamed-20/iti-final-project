@@ -4,29 +4,34 @@ import userModel from "../../../DB/models/user.model";
 import { CustomError } from "../../../utils/errorHandling";
 import { Model } from "mongoose";
 
+
 export const addCourse = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { title, description, price, thumbnail, access_type, instructorId } = req.body;
+    const { title, description, price, access_type, categoryId } = req.body;
+    const instructorId = req.user?._id; 
 
-    if (!title || !price || !thumbnail || !access_type || !instructorId) {
+    if (!title || !price || !access_type || !categoryId || !req.file) {
       return next(new CustomError("Missing required fields", 400));
     }
+
+    const thumbnail = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
     const newCourse = new courseModel({
       title,
       description,
       price,
-      thumbnail,
       access_type,
       instructorId,
+      categoryId,
+      thumbnail
     });
 
     const savedCourse = await newCourse.save();
-    
+
     return res.status(201).json({
       message: "Course added successfully",
       statusCode: 201,
@@ -37,6 +42,7 @@ export const addCourse = async (
     return next(new CustomError(`Failed to add course: ${(error as Error).message}`, 500));
   }
 };
+
 export const getAllCourses = async (
   req: Request,
   res: Response,

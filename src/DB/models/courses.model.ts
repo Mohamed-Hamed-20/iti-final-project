@@ -24,6 +24,11 @@ const CourseSchema = new Schema<ICourse>(
       enum: ["free", "paid", "prime"],
       required: true,
     },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: "category",
+      required: true,
+    },
     instructorId: { type: Schema.Types.ObjectId, ref: "user", required: true },
   },
   { timestamps: true }

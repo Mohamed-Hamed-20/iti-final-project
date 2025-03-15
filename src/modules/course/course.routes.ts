@@ -6,15 +6,18 @@ import { asyncHandler } from "../../utils/errorHandling";
 import { isAuth } from "../../middleware/auth";
 import { Roles } from "./../../DB/interfaces/user.interface";
 import { cokkiesSchema } from "../auth/auth.validation";
+import { configureMulter } from "../../utils/multer";
 
 
 const router = Router();
+const upload = configureMulter();
 
 // Add Course (Only Instructors & Admins)
 router.post(
   "/add",
-  valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
+  upload.single("thumbnail"),
+  valid(cokkiesSchema) as RequestHandler,
   valid(addCourseSchema) as RequestHandler,
   asyncHandler(courseServices.addCourse)
 );
@@ -53,8 +56,6 @@ router.post(
   "/search",
   asyncHandler(courseServices.searchCollection)
 );
-
-
 
 
 export default router;

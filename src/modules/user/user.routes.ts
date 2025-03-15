@@ -29,9 +29,7 @@ router.get(
 
 router.get(
   "/instructors",
-  
   asyncHandler(userServices.instructors)
 );
-
 
 export default router;
