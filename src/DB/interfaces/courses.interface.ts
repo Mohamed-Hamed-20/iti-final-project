@@ -7,4 +7,5 @@ export interface ICourse extends Document {
   thumbnail: string;
   access_type: "free" | "paid" | "prime";
   instructorId: mongoose.Types.ObjectId;
+  categoryId: mongoose.Types.ObjectId;
 }

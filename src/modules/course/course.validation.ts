@@ -7,9 +7,8 @@ export const addCourseSchema = {
       title: joi.string().trim().min(3).max(100).required(),
       description: joi.string().trim().allow(null, ''),
       price: joi.number().min(0).required(),
-      thumbnail: joi.string().trim().uri().required(),
       access_type: joi.string().valid("free", "paid", "prime").required(),
-      instructorId: joi.string().required(),  
+      categoryId: joi.string().required(),  
     })
     .required(),
 };
