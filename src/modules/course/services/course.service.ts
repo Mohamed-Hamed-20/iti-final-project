@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import courseModel from "../../../DB/models/courses.model";
+import userModel from "../../../DB/models/user.model";
 import { CustomError } from "../../../utils/errorHandling";
+import { Model } from "mongoose";
 
 export const addCourse = async (
   req: Request,
@@ -35,7 +37,6 @@ export const addCourse = async (
     return next(new CustomError(`Failed to add course: ${(error as Error).message}`, 500));
   }
 };
-
 export const getAllCourses = async (
   req: Request,
   res: Response,
@@ -126,4 +127,71 @@ export const deleteCourse = async (
     return next(new CustomError(`Failed to delete course: ${(error as Error).message}`, 500));
   }
 };
+
+export const searchCollection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { collectionName, searchFilters } = req.body;
+
+    if (!collectionName || !searchFilters || typeof searchFilters !== "object") {
+      return next(new CustomError("Collection name and valid search filters are required", 400));
+    }
+
+    let model: Model<any>
+    let searchQuery: Record<string, any> = {};
+
+    if (collectionName === "courses") {
+      model = courseModel;
+
+      if (searchFilters.keyword && typeof searchFilters.keyword === "string") {
+        searchQuery = {
+          $or: [
+            { title: { $regex: searchFilters.keyword, $options: "i" } },
+            { description: { $regex: searchFilters.keyword, $options: "i" } }
+          ]
+        };
+      }
+    } else if (collectionName === "instructors") {
+      model = userModel;
+
+      if (searchFilters.keyword && typeof searchFilters.keyword === "string") {
+        searchQuery = {
+          $or: [
+            { firstName: { $regex: searchFilters.keyword, $options: "i" } },
+            { lastName: { $regex: searchFilters.keyword, $options: "i" } }
+          ]
+        };
+      }
+    } else {
+      return next(new CustomError("Invalid collection name", 400));
+    }
+
+    console.log("Search Query:", JSON.stringify(searchQuery, null, 2));
+
+    const result = await model
+      .find(searchQuery)
+      .populate(collectionName === "courses" ? "instructorId" : "", "firstName lastName avatar")
+      .lean();
+
+    return res.status(200).json({
+      message: "Search completed successfully",
+      statusCode: 200,
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Search Error:", error);
+    return next(new CustomError(`Failed to search: ${(error as Error).message}`, 500));
+  }
+};
+
+
+
+
+
+
+
 

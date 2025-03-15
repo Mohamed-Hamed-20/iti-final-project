@@ -49,4 +49,12 @@ router.delete(
   asyncHandler(courseServices.deleteCourse)
 );
 
+router.post(
+  "/search",
+  asyncHandler(courseServices.searchCollection)
+);
+
+
+
+
 export default router;
