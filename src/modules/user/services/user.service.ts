@@ -3,7 +3,6 @@ import { NextFunction, Request, Response } from "express";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import userModel from "../../../DB/models/user.model";
 
-
 export const profile = async (
   req: Request,
   res: Response,
@@ -30,8 +29,6 @@ export const profile = async (
     );
   }
 };
-
-
 export const instructors = async (
   req: Request,
   res: Response,
@@ -53,6 +50,52 @@ export const instructors = async (
     next(
       new CustomError(
         `Failed to fetch instructors: ${(error as Error).message}`,
+        500
+      )
+    );
+  }
+};
+
+export const uploadImage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      next(new CustomError("No file uploaded", 400));
+      return;
+    }
+
+    const imagePath = req.file.path;
+
+    const userId = req.user?._id;
+    if (!userId) {
+      next(new CustomError("Unauthorized", 401));
+      return;
+    }
+
+    const user = await userModel.findByIdAndUpdate(
+      userId,
+      { avatar: imagePath },
+      { new: true }
+    );
+
+    if (!user) {
+      next(new CustomError("User not found", 404));
+      return;
+    }
+
+    res.status(200).json({
+      message: "Image uploaded successfully",
+      statusCode: 200,
+      success: true,
+      imagePath: user.avatar,
+    });
+  } catch (error) {
+    next(
+      new CustomError(
+        `Failed to add image: ${(error as Error).message}`,
         500
       )
     );
