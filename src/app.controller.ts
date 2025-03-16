@@ -12,7 +12,10 @@ import path from "path";
 const app: Application = express();
 app.use(cookieParser());
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin: "http://localhost:5173"
+}));
 app.use(express.urlencoded({ extended: true }));
 
 redis
