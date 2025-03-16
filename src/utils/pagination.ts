@@ -1,5 +1,5 @@
 
-export function paginate(page: number = 1, size: number = 2): { limit: number; skip: number } {
+export function paginate(page: number = 1, size: number = 10): { limit: number; skip: number } {
 
     const validPage = Math.max(page, 1);
     const validSize = Math.max(size, 1);

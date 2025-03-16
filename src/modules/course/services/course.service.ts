@@ -185,3 +185,4 @@ export const searchCollection = async (
     return next(new CustomError(`Failed to search: ${(error as Error).message}`, 500));
   }
 };
+

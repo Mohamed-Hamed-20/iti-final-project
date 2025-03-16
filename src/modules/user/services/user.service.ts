@@ -215,4 +215,30 @@ export const updateProfile = async (
   }
 };
 
+export const deleteAccount = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(new CustomError("Unauthorized", 401));
+    } 
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(400).json({ status: "Something went wrong during db action" });
+    } 
+    
+    if (user.role === "admin") {
+      return res.status(403).json({ status: "Failed", message: "Admin accounts cannot be deleted" });
+    }
+
+    await userModel.findByIdAndDelete(userId);
+
+    res.status(200).json({ status: "success", data: "Account deleted successfully" });
+  } catch (err) {
+    res.status(400).json({ status: "Failed", error: err });
+  }
+}
+
+
 

@@ -56,4 +56,10 @@ isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
 asyncHandler(userServices.updateProfile)
 )
 
+router.delete(
+"/:id", 
+isAuth([Roles.Instructor,Roles.User]),
+asyncHandler(userServices.deleteAccount)
+)
+
 export default router;
