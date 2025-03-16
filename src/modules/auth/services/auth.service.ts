@@ -200,7 +200,8 @@ export const confirmEmail = async (
   next: NextFunction
 ) => {
   const { token } = req.params;
-
+  console.log(token);
+  
   const { userId } = new TokenService(
     String(TokenConfigration.ACCESS_TOKEN_SECRET)
   ).verifyToken(token);
