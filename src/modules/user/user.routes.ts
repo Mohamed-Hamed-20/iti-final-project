@@ -50,4 +50,10 @@ isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
 asyncHandler(userServices.changePassword)
 )
 
+router.put(
+"/updateProfile", 
+isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
+asyncHandler(userServices.updateProfile)
+)
+
 export default router;

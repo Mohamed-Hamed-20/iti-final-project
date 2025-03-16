@@ -53,6 +53,10 @@ const userSchema = new Schema<Iuser>(
       required: false,
       default: false,
     },
+    isOnline:{
+      type: Boolean,
+      default: false
+    },
     avatar: {
       type: String,
       required: false,

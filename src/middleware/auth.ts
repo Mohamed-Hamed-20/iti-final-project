@@ -49,3 +49,4 @@ export const isAuth = (roles: Array<Roles>) => {
     }
   );
 };
+

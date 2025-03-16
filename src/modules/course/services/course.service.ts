@@ -149,10 +149,7 @@ export const searchCollection = async (
     if (!collectionName || !searchFilters) {
       return next(new CustomError("Collection name and valid search filters are required", 400));
     }
-
-    let model: Model<any>
-    let searchQuery: Record<string, any> = {};
-
+    
     if (collectionName === "courses") {
       const courses = await courseModel.find({
         $or: [
@@ -170,6 +167,10 @@ export const searchCollection = async (
         //   { lastName: { $regex: searchFilters, $options: "i" } }
         // ]
       })
+      .select("-password -email")
+      .populate("courses")
+      .lean();
+
       res.status(200).json({status: "success" , data: courses})
     } else {
       return next(new CustomError("Invalid collection name", 400));

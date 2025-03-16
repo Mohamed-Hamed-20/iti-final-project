@@ -39,7 +39,7 @@ export const instructors = async (
   try {
     const users = await userModel
       .find({ role: "instructor" })
-      .select("-password")
+      .select("-password -email")
       .populate("courses") 
       .lean();
 
@@ -67,7 +67,7 @@ export const getInstructorById = async (
     const { id } = req.params;
 
     const instructor = await userModel.findById(id)
-    .select("-password")
+    .select("-password -email")
     .populate("courses")
     .lean();
 
@@ -176,5 +176,43 @@ export const changePassword = async (
   }
 };
 
+export const updateProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { firstName, lastName, phone } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(new CustomError("Unauthorized", 401));
+    }
+
+    const updateUser = await userModel.findByIdAndUpdate(
+      userId,
+      { firstName, lastName, phone },
+      { new: true }
+    );
+
+    if (!updateUser) {
+      return next(new CustomError("User not found during update", 404));
+    }
+
+     res.status(200).json({
+      message: "User data updated successfully",
+      statusCode: 200,
+      success: true,
+      user: sanatizeUser(updateUser),
+    });
+  } catch (error) {
+    next(
+      new CustomError(
+        `Failed to update user profile: ${(error as Error).message}`,
+        500
+      )
+    );
+  }
+};
 
 
