@@ -34,7 +34,6 @@ router.get(
   asyncHandler(courseServices.getCourseById)
 );
 
-
 // Update Course (Only Instructors & Admins)
 router.put(
   "/:id",

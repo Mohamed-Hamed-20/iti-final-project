@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
 import { CustomError } from "../../../utils/errorHandling";
-import { Model } from "mongoose";
+import { paginate } from '../../../utils/pagination'; 
 
 
 export const addCourse = async (
@@ -49,8 +49,13 @@ export const getAllCourses = async (
   next: NextFunction
 ) => {
   try {
+    const { page, size } = req.query;
+    const { limit, skip } = paginate(Number(page), Number(size));
+
     const courses = await courseModel
     .find()
+    .skip(skip)
+    .limit(limit)
     .populate("instructorId", "firstName lastName avatar")
     .populate("categoryId", "title")
     .lean();
@@ -149,14 +154,12 @@ export const searchCollection = async (
     if (!collectionName || !searchFilters) {
       return next(new CustomError("Collection name and valid search filters are required", 400));
     }
-    
     if (collectionName === "courses") {
       const courses = await courseModel.find({
-        $or: [
-          { title: { $regex: searchFilters, $options: "i" } },
-          { description: { $regex: searchFilters, $options: "i" } }
-        ]
-      }).populate("instructorId")
+         title: { $regex: searchFilters, $options: "i" }
+        })
+      .populate("instructorId", "firstName lastName")
+      .populate("categoryId", "title")
       res.status(200).json({status: "success" , data: courses})
     } else if (collectionName === "instructors") {
       const searchFilters2 = "^" + searchFilters;
