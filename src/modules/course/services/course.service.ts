@@ -151,21 +151,15 @@ export const searchCollection = async (
     }
     
     if (collectionName === "courses") {
+      const searchFilters3 = "^" + searchFilters;
       const courses = await courseModel.find({
-        $or: [
-          { title: { $regex: searchFilters, $options: "i" } },
-          { description: { $regex: searchFilters, $options: "i" } }
-        ]
-      }).populate("instructorId")
+        title: { $regex: searchFilters3, $options: "i" }
+      }).populate("instructorId");
       res.status(200).json({status: "success" , data: courses})
     } else if (collectionName === "instructors") {
       const searchFilters2 = "^" + searchFilters;
       const courses = await userModel.find({
         firstName: { $regex: searchFilters2, $options: "i" }
-        // $or: [
-        //   { firstName: { $regex: searchFilters, $options: "i" } },
-        //   { lastName: { $regex: searchFilters, $options: "i" } }
-        // ]
       })
       .select("-password -email")
       .populate("courses")
