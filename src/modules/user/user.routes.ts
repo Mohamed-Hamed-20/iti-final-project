@@ -12,16 +12,12 @@ import * as userServices from "./services/user.service";
 import { cokkiesSchema } from "../auth/auth.validation";
 import { isAuth } from "../../middleware/auth";
 import { configureMulter } from "../../utils/multer";
+import { changePassSchema } from "./user.validation";
 
 
 const router = Router();
 const upload = configureMulter();
 
-router.get("/", (req: Request, res: Response, next: NextFunction): any => {
-  return res.status(200).json({
-    message: "hello mr.Mohamed",
-  });
-});
 
 router.get(
   "/profile",
@@ -47,5 +43,11 @@ upload.single("image"),
 asyncHandler(userServices.uploadImage)
 );
 
+router.put(
+"/changePass", 
+valid(changePassSchema) as RequestHandler,
+isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
+asyncHandler(userServices.changePassword)
+)
 
 export default router;

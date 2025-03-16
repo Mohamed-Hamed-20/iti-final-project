@@ -2,6 +2,7 @@ import { CustomError } from "./../../../utils/errorHandling";
 import { NextFunction, Request, Response } from "express";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import userModel from "../../../DB/models/user.model";
+import bcrypt, { compare } from "bcryptjs";
 
 export const profile = async (
   req: Request,
@@ -84,6 +85,7 @@ export const getInstructorById = async (
     return next(new CustomError(`Failed to fetch course: ${(error as Error).message}`, 500));
   }
 };
+
 export const uploadImage = async (
   req: Request,
   res: Response,
@@ -130,6 +132,49 @@ export const uploadImage = async (
   }
 };
 
+export const changePassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(new CustomError("Unauthorized", 401));
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return next(new CustomError("User not found", 404));
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, String(user.password)
+  );
+    if (!isMatch) {
+      return next(new CustomError("Current password is incorrect", 400));
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({
+      message: "Password changed successfully",
+      statusCode: 200,
+      success: true,
+    });
+  } catch (error) {
+    next(
+      new CustomError(
+        `Failed to change password: ${(error as Error).message}`,
+        500
+      )
+    );
+  }
+};
 
 
 

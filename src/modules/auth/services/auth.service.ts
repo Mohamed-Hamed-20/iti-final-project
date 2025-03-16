@@ -45,7 +45,7 @@ export const register = async (
     {
       to: response.email,
       subject: "Verify your email",
-      text: "Welcome to Out courses App! 🎉",
+      text: "Welcome to our courses App! 🎉",
       html: SignUpTemplet(
         `${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`
       ),

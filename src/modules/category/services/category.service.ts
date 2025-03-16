@@ -30,7 +30,7 @@ export const addCategory = async (
     }
   };
 
-  export const getAllCategories = async (
+export const getAllCategories = async (
     req: Request,
     res: Response,
     next: NextFunction
