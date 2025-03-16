@@ -35,6 +35,11 @@ router.get(
   asyncHandler(userServices.instructors)
 );
 
+router.get(
+  "/:id",
+  asyncHandler(userServices.getInstructorById)
+);
+
 router.post(
 "/image",
 isAuth([Roles.Admin,Roles.Instructor,Roles.User]),

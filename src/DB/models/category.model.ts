@@ -10,7 +10,6 @@ const CategorySchema = new Schema<ICategory>(
     thumbnail: {
       type: String,
       required: true,
-      default: "http://google.com",
     },
   },
   { timestamps: true }

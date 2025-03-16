@@ -30,6 +30,25 @@ export const addCategory = async (
     }
   };
 
+  export const getAllCategories = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const courses = await categoryModel.find().lean();
+  
+      return res.status(200).json({
+        message: "Categories fetched successfully",
+        statusCode: 200,
+        success: true,
+        courses,
+      });
+    } catch (error) {
+      return next(new CustomError(`Failed to fetch categories: ${(error as Error).message}`, 500));
+    }
+  };
+
 
 
 

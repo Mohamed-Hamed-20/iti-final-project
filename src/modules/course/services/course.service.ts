@@ -49,7 +49,11 @@ export const getAllCourses = async (
   next: NextFunction
 ) => {
   try {
-    const courses = await courseModel.find().populate("instructorId", "firstName lastName avatar").lean();
+    const courses = await courseModel
+    .find()
+    .populate("instructorId", "firstName lastName avatar")
+    .populate("categoryId", "title")
+    .lean();
 
     return res.status(200).json({
       message: "Courses fetched successfully",

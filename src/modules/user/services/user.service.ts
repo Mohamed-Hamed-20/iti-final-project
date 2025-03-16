@@ -29,6 +29,7 @@ export const profile = async (
     );
   }
 };
+
 export const instructors = async (
   req: Request,
   res: Response,
@@ -56,6 +57,33 @@ export const instructors = async (
   }
 };
 
+export const getInstructorById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const instructor = await userModel.findById(id)
+    .select("-password")
+    .populate("courses")
+    .lean();
+
+    if (!instructor) {
+      return next(new CustomError("Instructor not found", 404));
+    }
+
+    return res.status(200).json({
+      message: "Instructor fetched successfully",
+      statusCode: 200,
+      success: true,
+      instructor,
+    });
+  } catch (error) {
+    return next(new CustomError(`Failed to fetch course: ${(error as Error).message}`, 500));
+  }
+};
 export const uploadImage = async (
   req: Request,
   res: Response,

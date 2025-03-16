@@ -19,4 +19,9 @@ router.post(
   asyncHandler(categoryServices.addCategory)
 );
 
+router.get(
+  "/all",
+  asyncHandler(categoryServices.getAllCategories)
+);
+
 export default router;
