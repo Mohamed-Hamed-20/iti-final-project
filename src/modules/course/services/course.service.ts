@@ -155,26 +155,27 @@ export const searchCollection = async (
       return next(new CustomError("Collection name and valid search filters are required", 400));
     }
     if (collectionName === "courses") {
-      const searchFilters3 = "^" + searchFilters;
+      const searchFilters2 = "^" + searchFilters;
       const courses = await courseModel.find({
-         title: { $regex: searchFilters, $options: "i" }
-         title: { $regex: searchFilters, $options: "i" }
+         title: { $regex: searchFilters2, $options: "i" }
         })
       .populate("instructorId", "firstName lastName")
       .populate("categoryId", "title")
-        title: { $regex: searchFilters3, $options: "i" }
-      }).populate("instructorId");
       res.status(200).json({status: "success" , data: courses})
     } else if (collectionName === "instructors") {
       const searchFilters2 = "^" + searchFilters;
-      const courses = await userModel.find({
+      const instructors = await userModel.find({
         firstName: { $regex: searchFilters2, $options: "i" }
+        // $or: [
+        //   { firstName: { $regex: searchFilters, $options: "i" } },
+        //   { lastName: { $regex: searchFilters, $options: "i" } }
+        // ]
       })
       .select("-password -email")
       .populate("courses")
       .lean();
 
-      res.status(200).json({status: "success" , data: courses})
+      res.status(200).json({status: "success" , data: instructors})
     } else {
       return next(new CustomError("Invalid collection name", 400));
     }
