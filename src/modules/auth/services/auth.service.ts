@@ -71,7 +71,7 @@ export const login = async (
 
   const findUser = await userModel
     .findOne({ email })
-    .select("firstName lastName email password role avatar isConfirmed ")
+    .select("firstName lastName email password role avatar isConfirmed")
     .lean();
 
   if (!findUser) return next(new CustomError("Invalid Email or Password", 404));

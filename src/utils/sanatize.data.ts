@@ -15,6 +15,7 @@ export const sanatizeUser = (user: Iuser) => {
       : undefined,
     role: user?.role,
     avatar: user?.avatar,
+    isConfirmed: user?.isConfirmed
   };
 
   return _.omitBy(sanitized, _.isNil);
