@@ -24,11 +24,11 @@ router.post(
   asyncHandler(authServices.login)
 );
 
-router.post(
-  "/send/forget/password",
-  valid(sendForgetPasswordSchema) as RequestHandler,
-  asyncHandler(authServices.sendForgetPasswordEmail)
-);
+// router.post(
+//   "/send/forget/password",
+//   valid(sendForgetPasswordSchema) as RequestHandler,
+//   asyncHandler(authServices.sendForgetPasswordEmail)
+// );
 
 router.post(
   "/reset/password/:token",

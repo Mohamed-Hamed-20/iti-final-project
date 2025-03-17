@@ -9,6 +9,9 @@ export const addJob = async (
   ) => {
     try {
       const { title } = req.body;
+
+      const jobTitle = await jobModel.findOne({ title: { $regex: new RegExp(`^${title}$`, "i") } }).select("title");
+        if (jobTitle) return next(new CustomError("Job Title is Already Exist", 404));
   
       const newJob = new jobModel({ title });
       const savedJob = await newJob.save();
@@ -23,7 +26,6 @@ export const addJob = async (
       return next(new CustomError(`Failed to add job: ${(error as Error).message}`, 500));
     }
   };
-
 export const getAllJobs = async (
     req: Request,
     res: Response,

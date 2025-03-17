@@ -6,8 +6,10 @@ import { sanatizeUser } from "../../../utils/sanatize.data";
 import { TokenService } from "../../../utils/tokens";
 import { TokenConfigration, FRONTEND, SALT_ROUND } from "../../../config/env";
 import emailQueue from "../../../utils/email.Queue";
-import { SignUpTemplet } from "../../../utils/htmlTemplet";
+import { customAlphabet } from "nanoid";
 import { cokkiesOptions } from "../../../utils/cookies";
+import fs from 'fs';
+import path from 'path';
 
 export const register = async (
   req: Request,
@@ -39,16 +41,18 @@ export const register = async (
     userId: response._id,
     role: response.role,
   });
-  console.log(`${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`);
+  const link = `${req.protocol}://${req.headers.host}/api/v1/auth/confirm/email/${token}`;
+
+  const emailTemplatePath = path.join(__dirname, "./emailTemplates/email.html");
+  let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
+  emailTemplate = emailTemplate.replace("{{link}}", link);
 
   await emailQueue.add(
     {
       to: response.email,
       subject: "Verify your email",
-      text: "Welcome to our courses App! 🎉",
-      html: SignUpTemplet(
-        `${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`
-      ),
+      text: "Welcome to Mentora! 🎉",
+      html: emailTemplate,
       message: "Mentora",
     },
     { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
@@ -120,48 +124,64 @@ export const login = async (
   });
 };
 
-export const sendForgetPasswordEmail = async (
+export const confirmEmail = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void | any> => {
-  const { email } = req.body;
+) => {
+  try {
+    const { token } = req.params;
 
-  const user = await userModel
-    .findOne({ email })
-    .select("firstName lastName email")
-    .lean();
+    const { userId } = new TokenService(
+      String(TokenConfigration.ACCESS_TOKEN_SECRET)
+    ).verifyToken(token);
 
+    if (!userId) {
+      return res.sendFile(
+        path.join(__dirname, "./emailTemplates/email-failed.html")
+      );
+    }
 
-  if (!user) return next(new CustomError("user not found :-(!", 404));
+    const user = await userModel.findById(userId).select("isConfirmed");
 
-  const token = new TokenService(
-    String(TokenConfigration.ACCESS_TOKEN_SECRET),
-    TokenConfigration.ACCESS_EXPIRE
-  ).generateToken({ userId: user?._id, role: user?.role });
+    if (!user) {
+      return res.sendFile(
+        path.join(__dirname, "./emailTemplates/email-failed.html")
+      );
+    }
 
-  // ${FRONTEND.BASE_URL}/${FRONTEND.RESET_PASSWORD_URL} ==> in SignUpTemplet
+    // If the email is already confirmed
+    if (user.isConfirmed) {
+      return res.redirect("http://localhost:5173/login"); 
+    }
 
-  await emailQueue.add(
-    {
-      to: user?.email,
-      subject: "this message to Reset your Password",
-      text: "Welcome to Out courses App! 🎉",
-      html: SignUpTemplet(
-        `${FRONTEND.BASE_URL}/resetPassword/${token}`
-      ),
-      message: "Please Reset ur Password",
-    },
-    { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
-  );
+    const updateUser = await userModel
+      .findByIdAndUpdate(
+        userId,
+        { $set: { isConfirmed: true } },
+        { new: true }
+      )
+      .select("firstName lastName email isConfirmed role")
+      .lean();
 
-  return res.status(200).json({
-    message: "Reset Password Email Send Successfully",
-    success: true,
-    statusCode: 200,
-    user: sanatizeUser(user),
-  });
+    if (!updateUser) {
+      return res.sendFile(
+        path.join(__dirname, "./emailTemplates/email-failed.html")
+      );
+    }
+
+    return res.sendFile(
+      path.join(__dirname, "./emailTemplates/email-success.html")
+    );
+  } catch (error: any) {
+    res.status(500).json({
+      message: "catch error",
+      error: error.message,
+      stack: error.stack,
+    });
+  }
 };
+
 
 export const resetPassword = async (
   req: Request,
@@ -194,35 +214,79 @@ export const resetPassword = async (
   });
 };
 
-export const confirmEmail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const { token } = req.params;
-  console.log(token);
-  
-  const { userId } = new TokenService(
-    String(TokenConfigration.ACCESS_TOKEN_SECRET)
-  ).verifyToken(token);
+// export const sendForgetPasswordEmail = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void | any> => {
+//   const { email } = req.body;
 
-  const updateUser = await userModel
-    .findByIdAndUpdate(
-      { _id: userId },
-      { $set: { isConfirmed: true } },
-      { new: true }
-    )
-    .select("firstName lastName email isConfirmed role")
-    .lean();
+//   const user = await userModel
+//     .findOne({ email })
+//     .select("firstName lastName email")
+//     .lean();
 
-  if (!updateUser) {
-    return next(new CustomError("Falid to confirm Your Email :-(", 404));
-  }
 
-  return res.status(200).json({
-    message: "Email Confirmed successfully",
-    statusCode: 200,
-    success: true,
-    user: sanatizeUser(updateUser),
-  });
-};
+//   if (!user) return next(new CustomError("user not found :-(!", 404));
+
+//   const token = new TokenService(
+//     String(TokenConfigration.ACCESS_TOKEN_SECRET),
+//     TokenConfigration.ACCESS_EXPIRE
+//   ).generateToken({ userId: user?._id, role: user?.role });
+
+//   // ${FRONTEND.BASE_URL}/${FRONTEND.RESET_PASSWORD_URL} ==> in SignUpTemplet
+
+//   await emailQueue.add(
+//     {
+//       to: user?.email,
+//       subject: "this message to Reset your Password",
+//       text: "Welcome to Out courses App! 🎉",
+//       html: SignUpTemplet(
+//         `${FRONTEND.BASE_URL}/resetPassword/${token}`
+//       ),
+//       message: "Please Reset ur Password",
+//     },
+//     { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+//   );
+
+//   return res.status(200).json({
+//     message: "Reset Password Email Send Successfully",
+//     success: true,
+//     statusCode: 200,
+//     user: sanatizeUser(user),
+//   });
+// };
+
+
+// export const sendCode = async(
+//   req: Request, res: Response, next: NextFunction) => {
+//     const { email } = req.body;
+
+//     const user = await userModel.findOne({ email }).select("email");
+
+//     if (!user) {
+//       return next(new Error("You have to register first"));
+//     }
+
+//     const generateOTP = customAlphabet("1234567890", 8);
+//     const OTPCode = generateOTP();
+
+//     await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
+
+//     const emailTemplatePath = path.join(
+//       __dirname,
+//       "./emailTemplates/email-code.html"
+//     );
+
+//     let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
+//     emailTemplate = emailTemplate.replace(/{{code}}/g, OTPCode);
+
+//     console.log("Generated OTP:", OTPCode);
+//     console.log("Email Template After Replacement:", emailTemplate);
+
+//     const result = await sendEmail(email, "Password Reset Request", emailTemplate);
+
+//     res.json({
+//       message: "Please check your email for a message with your code",
+//     });
+//   }

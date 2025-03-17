@@ -51,9 +51,15 @@ asyncHandler(userServices.changePassword)
 )
 
 router.put(
-"/updateProfile", 
-isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
-asyncHandler(userServices.updateProfile)
+"/userProfile", 
+isAuth([Roles.User]),
+asyncHandler(userServices.userProfile)
+)
+
+router.put(
+"/instructorData", 
+isAuth([Roles.Admin,Roles.Instructor]),
+asyncHandler(userServices.instructorData)
 )
 
 router.delete(
@@ -61,5 +67,17 @@ router.delete(
 isAuth([Roles.Instructor,Roles.User]),
 asyncHandler(userServices.deleteAccount)
 )
+
+router.post(
+  "/checkPass",
+  isAuth([Roles.Instructor,Roles.User]),
+  asyncHandler(userServices.checkPass)
+);
+
+router.post(
+  "/logout",
+   isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
+   asyncHandler(userServices.logout)
+);
 
 export default router;

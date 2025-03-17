@@ -57,6 +57,12 @@ const userSchema = new Schema<Iuser>(
       type: Boolean,
       default: false
     },
+    code:{
+      type: String,
+    },
+    jobTitle:{
+      type: String,
+    },
     avatar: {
       type: String,
       required: false,

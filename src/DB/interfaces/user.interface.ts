@@ -18,6 +18,8 @@ export interface Iuser extends Document {
   isConfirmed?: boolean;
   isOnline?: boolean;
   avatar?: string;
+  jobTitle?: string;
+  code?:number;
 }
 
 
