@@ -25,7 +25,14 @@ type ControllerFunction = (
 
 export const asyncHandler = (controller: ControllerFunction) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    controller(req, res, next).catch(next);
+    controller(req, res, next).catch((err) => {
+      res.status(500).json({
+        success: false,
+        message: err.message,
+        stack: err.stack,
+        statusCode: 500,
+      });
+    });
   };
 };
 

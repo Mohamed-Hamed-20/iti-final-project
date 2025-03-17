@@ -8,39 +8,31 @@ import { Roles } from "./../../DB/interfaces/user.interface";
 import { cokkiesSchema } from "../auth/auth.validation";
 import { configureMulter } from "../../utils/multer";
 
-
 const router = Router();
 const upload = configureMulter();
 
 // Add Course (Only Instructors & Admins)
 router.post(
   "/add",
-  isAuth([Roles.Instructor, Roles.Admin]),
-  upload.single("thumbnail"),
   valid(cokkiesSchema) as RequestHandler,
   valid(addCourseSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  upload.single("thumbnail"),
   asyncHandler(courseServices.addCourse)
 );
 
 // Get All Courses
-router.get(
-  "/all",
-  asyncHandler(courseServices.getAllCourses)
-);
+router.get("/all", asyncHandler(courseServices.getAllCourses));
 
 // Get Course By ID
-router.get(
-  "/:id",
-  asyncHandler(courseServices.getCourseById)
-);
-
+router.get("/:id", asyncHandler(courseServices.getCourseById));
 
 // Update Course (Only Instructors & Admins)
 router.put(
   "/:id",
   valid(cokkiesSchema) as RequestHandler,
-  isAuth([Roles.Instructor, Roles.Admin]),
   valid(updateCourseSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(courseServices.updateCourse)
 );
 
@@ -52,10 +44,6 @@ router.delete(
   asyncHandler(courseServices.deleteCourse)
 );
 
-router.post(
-  "/search",
-  asyncHandler(courseServices.searchCollection)
-);
-
+router.post("/search", asyncHandler(courseServices.searchCollection));
 
 export default router;

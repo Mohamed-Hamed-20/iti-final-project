@@ -12,6 +12,12 @@ declare global {
       user?: Iuser;
     }
   }
+  namespace Multer {
+    interface File {
+      folder?: string;
+      folderKey?: string;
+    }
+  }
 }
 
 export const isAuth = (roles: Array<Roles>) => {
@@ -20,7 +26,7 @@ export const isAuth = (roles: Array<Roles>) => {
       const { accessToken: accessTokenPrefix } = req.cookies;
 
       const accessToken = accessTokenPrefix.split(
-        process.env.ACCESS_TOKEN_START_WITH || "Bearer "
+        TokenConfigration.ACCESS_TOKEN_START_WITH || "Bearer "
       )[1];
 
       let decodedToken;

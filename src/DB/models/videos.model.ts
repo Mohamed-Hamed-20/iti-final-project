@@ -1,22 +1,37 @@
 import mongoose, { Schema } from "mongoose";
-import { IVideo } from "../interfaces/videos.interface";
+import { Isection, IVideo } from "../interfaces/videos.interface";
+
+const sectionSchema = new mongoose.Schema<Isection>(
+  {
+    courseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "course",
+      required: true,
+    },
+    title: { type: String, required: true },
+    order: { type: Number, required: false },
+  },
+  { timestamps: true }
+);
 
 const VideoSchema = new Schema<IVideo>(
   {
-    courseId: {
+    sectionId: {
       type: Schema.Types.ObjectId,
-      ref: "course",
+      ref: "section",
       required: true,
+      index: true,
     },
     title: {
       type: String,
       required: true,
     },
-    video_url: {
+    video_key: {
       type: String,
       required: true,
     },
-    thumbnail_url: {
+    order: { type: Number, required: false },
+    thumbnail_key: {
       type: String,
       required: true,
     },
@@ -25,5 +40,6 @@ const VideoSchema = new Schema<IVideo>(
 );
 
 const videoModel = mongoose.model<IVideo>("video", VideoSchema);
+const sectionModel = mongoose.model("section", sectionSchema);
 
-export default videoModel;
+export { videoModel, sectionModel };

@@ -1,10 +1,12 @@
-
 import { Iuser } from "../DB/interfaces/user.interface";
 
 declare global {
-  namespace Express {
-    interface Request {
+  declare namespace Express {
+    export interface Request {
       user?: Iuser;
     }
   }
 }
+
+
+

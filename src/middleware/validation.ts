@@ -72,13 +72,13 @@ export const customMessages = {
 export const generalFields = {
   email: joi
     .string()
-    .email({ tlds: { allow: ["com", "net", "org","pro"] } })
+    .email({ tlds: { allow: ["com", "net", "org", "pro"] } })
     .trim()
     .messages(customMessages),
 
   password: joi
     .string()
-    .regex(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[~!@#$%^&*()]).{8,}$/)
+    .regex(/^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9]).{8,}$/)
     .trim()
     .min(8)
     .max(44)

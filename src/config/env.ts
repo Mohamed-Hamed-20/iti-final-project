@@ -14,6 +14,7 @@ export const ApiDocumentation =
   process.env.ApiDocumentation || "https://www.youtube.com/watch?v=tpv35Uia4tc";
 
 export const TokenConfigration = {
+  ACCESS_TOKEN_START_WITH: process.env.ACCESS_TOKEN_START_WITH,
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
   ACCESS_EXPIRE: process.env.ACCESS_EXPIRE,
@@ -31,5 +32,12 @@ export const FRONTEND = {
   CONFIRM_EMAIL: process.env.CONFIRM_EMAIL,
 };
 
-
 export const SALT_ROUND = process.env.SALT_ROUND;
+
+export const AWS_S3Keys = {
+  BUCKET_NAME: process.env.BUCKET_NAME,
+  REGION: process.env.REGION,
+  ENDPOINT_URL: process.env.ENDPOINT_URL,
+  ACCESS_KEY: process.env.ACCESS_KEY,
+  SECRET_KEY: process.env.SECRET_KEY,
+};

@@ -30,7 +30,32 @@ export const configureMulter = (
     if (allowedFileTypes.includes(file.mimetype)) {
       callback(null, true);
     } else {
-      callback(new CustomError(`Invalid file type: ${file.mimetype}.`, 400), false);
+      callback(
+        new CustomError(`Invalid file type: ${file.mimetype}.`, 400),
+        false
+      );
+    }
+  };
+
+  const limits = { fileSize };
+
+  return multer({ storage, fileFilter, limits });
+};
+
+export const multerMemory = (
+  fileSize: number = 5 * 1024 * 1024,
+  allowedFileTypes: Array<string> = FileType.Images
+) => {
+  const storage = multer.memoryStorage();
+
+  const fileFilter = (req: Request, file: any, callback: any) => {
+    if (allowedFileTypes.includes(file.mimetype)) {
+      callback(null, true);
+    } else {
+      callback(
+        new CustomError(`Invalid file type: ${file.mimetype}.`, 400),
+        false
+      );
     }
   };
 
