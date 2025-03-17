@@ -4,9 +4,9 @@ import { CustomError } from "../../../utils/errorHandling";
 import bcrypt, { compare } from "bcryptjs";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import { TokenService } from "../../../utils/tokens";
-import { TokenConfigration, FRONTEND, SALT_ROUND } from "../../../config/env";
+import { TokenConfigration, SALT_ROUND } from "../../../config/env";
 import emailQueue from "../../../utils/email.Queue";
-import { customAlphabet } from "nanoid";
+import { v4 as uuidv4 } from "uuid";
 import { cokkiesOptions } from "../../../utils/cookies";
 import fs from 'fs';
 import path from 'path';
@@ -200,12 +200,15 @@ export const sendCode = async (
       return next(new CustomError("You have to register first", 404));
     }
 
-    const generateOTP = customAlphabet("1234567890", 8);
+    const generateOTP = () => {
+      const uuid = uuidv4().replace(/\D/g, "").slice(0, 8);
+      return uuid;
+    };
+
     const OTPCode = generateOTP();
 
     await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
 
-    // Read and prepare the email template
     const emailTemplatePath = path.join(__dirname, "./emailTemplates/email-code.html");
     let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
     emailTemplate = emailTemplate.replace(/{{code}}/g, OTPCode);
@@ -230,7 +233,6 @@ export const sendCode = async (
     return next(new CustomError(`Failed to send code: ${(error as Error).message}`, 500));
   }
 };
-
 export const forgetPassword = async (
   req: Request,
   res: Response,
