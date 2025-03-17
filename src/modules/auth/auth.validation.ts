@@ -59,7 +59,8 @@ export const sendForgetPasswordSchema = {
 export const resetPasswordSchema = {
   body: joi
     .object({
-      // token: generalFields.token.required(),
+      email: generalFields.email.required(),
+      code: joi.string().required(),
       password: generalFields.password.required(),
       confirmPassword: joi.string().valid(joi.ref("password")).required(),
     })

@@ -182,111 +182,96 @@ export const confirmEmail = async (
   }
 };
 
-
-export const resetPassword = async (
+export const sendCode = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const {token} = req.params;
-  const { password } = req.body;
-  const { userId } = new TokenService(
-    String(TokenConfigration.ACCESS_TOKEN_SECRET)
-  ).verifyToken(token);
-  const passwordHash = await bcrypt.hash(password, Number(SALT_ROUND));
-  const updateUser = await userModel
-    .findByIdAndUpdate(
-      { _id: userId },
-      { $set: { password: passwordHash } },
-      { new: true }
-    )
-    .lean();
+  try {
+    const { email } = req.body;
 
-  if (!updateUser) {
-    return next(new CustomError("user Not found Update password faild", 400));
+    if (!email) {
+      return next(new CustomError("Email is required", 400));
+    }
+
+    const user = await userModel.findOne({ email }).select("email");
+
+    if (!user) {
+      return next(new CustomError("You have to register first", 404));
+    }
+
+    const generateOTP = customAlphabet("1234567890", 8);
+    const OTPCode = generateOTP();
+
+    await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
+
+    // Read and prepare the email template
+    const emailTemplatePath = path.join(__dirname, "./emailTemplates/email-code.html");
+    let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
+    emailTemplate = emailTemplate.replace(/{{code}}/g, OTPCode);
+
+    await emailQueue.add(
+      {
+        to: user.email,
+        subject: "Password Reset Request",
+        text: "Here is your password reset code",
+        html: emailTemplate,
+        message: "Mentora",
+      },
+      { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+    );
+
+    return res.status(200).json({
+      message: "Please check your email for a message with your code",
+      success: true,
+      statusCode: 200,
+    });
+  } catch (error) {
+    return next(new CustomError(`Failed to send code: ${(error as Error).message}`, 500));
   }
-
-  return res.status(200).json({
-    message: "password reset successfully",
-    statusCode: 200,
-    success: true,
-    user: sanatizeUser(updateUser),
-  });
 };
 
-// export const sendForgetPasswordEmail = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ): Promise<void | any> => {
-//   const { email } = req.body;
+export const forgetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email, code, password } = req.body;
 
-//   const user = await userModel
-//     .findOne({ email })
-//     .select("firstName lastName email")
-//     .lean();
+    if (!code) {
+      return next(new CustomError("Code is not valid", 400));
+    }
 
+    const user = await userModel.findOne({ email, code });
 
-//   if (!user) return next(new CustomError("user not found :-(!", 404));
+    if (!user) {
+      return next(new CustomError("Email or code is not valid", 400));
+    }
 
-//   const token = new TokenService(
-//     String(TokenConfigration.ACCESS_TOKEN_SECRET),
-//     TokenConfigration.ACCESS_EXPIRE
-//   ).generateToken({ userId: user?._id, role: user?.role });
+    const hashedPassword = await bcrypt.hash(
+      password,
+      Number(SALT_ROUND)
+    );
 
-//   // ${FRONTEND.BASE_URL}/${FRONTEND.RESET_PASSWORD_URL} ==> in SignUpTemplet
+    const updatedUser = await userModel.findByIdAndUpdate(
+      user._id,
+      { code: null, password: hashedPassword },
+      { new: true }
+    );
 
-//   await emailQueue.add(
-//     {
-//       to: user?.email,
-//       subject: "this message to Reset your Password",
-//       text: "Welcome to Out courses App! 🎉",
-//       html: SignUpTemplet(
-//         `${FRONTEND.BASE_URL}/resetPassword/${token}`
-//       ),
-//       message: "Please Reset ur Password",
-//     },
-//     { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
-//   );
+    if (!updatedUser) {
+      return next(new CustomError("Failed to update password", 500));
+    }
 
-//   return res.status(200).json({
-//     message: "Reset Password Email Send Successfully",
-//     success: true,
-//     statusCode: 200,
-//     user: sanatizeUser(user),
-//   });
-// };
+    res.status(200).json({
+      message: "Password changed successfully",
+      success: true,
+      statusCode: 200,
+      user: updatedUser,
+    });
+  } catch (error) {
+    return next(new CustomError(`Failed to reset password: ${(error as Error).message}`, 500));
+  }
+};
 
-
-// export const sendCode = async(
-//   req: Request, res: Response, next: NextFunction) => {
-//     const { email } = req.body;
-
-//     const user = await userModel.findOne({ email }).select("email");
-
-//     if (!user) {
-//       return next(new Error("You have to register first"));
-//     }
-
-//     const generateOTP = customAlphabet("1234567890", 8);
-//     const OTPCode = generateOTP();
-
-//     await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
-
-//     const emailTemplatePath = path.join(
-//       __dirname,
-//       "./emailTemplates/email-code.html"
-//     );
-
-//     let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
-//     emailTemplate = emailTemplate.replace(/{{code}}/g, OTPCode);
-
-//     console.log("Generated OTP:", OTPCode);
-//     console.log("Email Template After Replacement:", emailTemplate);
-
-//     const result = await sendEmail(email, "Password Reset Request", emailTemplate);
-
-//     res.json({
-//       message: "Please check your email for a message with your code",
-//     });
-//   }

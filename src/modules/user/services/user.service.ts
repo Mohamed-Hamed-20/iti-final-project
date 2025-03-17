@@ -341,6 +341,3 @@ export const logout = async (
     return next(new CustomError(`Logout failed: ${(err as Error).message}`, 500));
   }
 };
-
-
-
