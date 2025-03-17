@@ -39,7 +39,7 @@ export const instructors = async (
   try {
     const users = await userModel
       .find({ role: "instructor" })
-      .select("-password")
+      .select("-password -email")
       .populate("courses") 
       .lean();
 
@@ -67,7 +67,7 @@ export const getInstructorById = async (
     const { id } = req.params;
 
     const instructor = await userModel.findById(id)
-    .select("-password")
+    .select("-password -email")
     .populate("courses")
     .lean();
 
@@ -176,5 +176,168 @@ export const changePassword = async (
   }
 };
 
+export const userProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { firstName, lastName, phone } = req.body;
+    const userId = req.user?._id;
 
+    if (!userId) {
+      return next(new CustomError("Unauthorized", 401));
+    }
 
+    const updateUser = await userModel.findByIdAndUpdate(
+      userId,
+      { firstName, lastName, phone },
+      { new: true }
+    );
+
+    if (!updateUser) {
+      return next(new CustomError("User not found during update", 404));
+    }
+
+     res.status(200).json({
+      message: "User data updated successfully",
+      statusCode: 200,
+      success: true,
+      user: sanatizeUser(updateUser),
+    });
+  } catch (error) {
+    next(
+      new CustomError(
+        `Failed to update user profile: ${(error as Error).message}`,
+        500
+      )
+    );
+  }
+};
+
+export const instructorData = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { firstName, lastName, phone, jobTitle } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(new CustomError("Unauthorized", 401));
+    }
+
+    const updateUser = await userModel.findByIdAndUpdate(
+      userId,
+      { firstName, lastName, phone, jobTitle },
+      { new: true }
+    );
+
+    if (!updateUser) {
+      return next(new CustomError("User not found during update", 404));
+    }
+
+     res.status(200).json({
+      message: "User data updated successfully",
+      statusCode: 200,
+      success: true,
+      user: sanatizeUser(updateUser),
+    });
+  } catch (error) {
+    next(
+      new CustomError(
+        `Failed to update user profile: ${(error as Error).message}`,
+        500
+      )
+    );
+  }
+};
+
+export const deleteAccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(new CustomError("Unauthorized", 401));
+    } 
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(400).json({ status: "Something went wrong during db action" });
+    } 
+    
+    if (user.role === "admin") {
+      return res.status(403).json({ status: "Failed", message: "Admin accounts cannot be deleted" });
+    }
+
+    await userModel.findByIdAndDelete(userId);
+
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    res.status(200).json({ status: "success", data: "Account deleted successfully" });
+  } catch (err) {
+    res.status(400).json({ status: "Failed", error: err });
+  }
+}
+
+export const checkPass = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  try {
+    const { password } = req.body;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return next(new CustomError("Unauthorized", 401));
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(400).json({ status: "Something went wrong during db action" });
+    }
+
+    const chkPassword: boolean = await compare(
+      password,
+      String(user.password)
+    );
+
+    if (!chkPassword) {
+      return next(new CustomError("Invalid Password", 404));
+    }
+
+    return res.status(200).json({
+      message: "Password is correct",
+      success: true,
+      statusCode: 200,
+    });
+  } catch (err) {
+    return next(new CustomError(`Error checking password: ${(err as Error).message}`, 500));
+  }
+};
+
+export const logout = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  try {
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    return res.status(200).json({
+      message: "Logout successful",
+      success: true,
+      statusCode: 200,
+    });
+  } catch (err) {
+    return next(new CustomError(`Logout failed: ${(err as Error).message}`, 500));
+  }
+};

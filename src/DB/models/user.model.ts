@@ -53,6 +53,16 @@ const userSchema = new Schema<Iuser>(
       required: false,
       default: false,
     },
+    isOnline:{
+      type: Boolean,
+      default: false
+    },
+    code:{
+      type: String,
+    },
+    jobTitle:{
+      type: String,
+    },
     avatar: {
       type: String,
       required: false,

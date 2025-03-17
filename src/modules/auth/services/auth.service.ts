@@ -4,10 +4,12 @@ import { CustomError } from "../../../utils/errorHandling";
 import bcrypt, { compare } from "bcryptjs";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import { TokenService } from "../../../utils/tokens";
-import { TokenConfigration, FRONTEND, SALT_ROUND } from "../../../config/env";
+import { TokenConfigration, SALT_ROUND } from "../../../config/env";
 import emailQueue from "../../../utils/email.Queue";
-import { SignUpTemplet } from "../../../utils/htmlTemplet";
+import { v4 as uuidv4 } from "uuid";
 import { cokkiesOptions } from "../../../utils/cookies";
+import fs from 'fs';
+import path from 'path';
 
 export const register = async (
   req: Request,
@@ -39,16 +41,18 @@ export const register = async (
     userId: response._id,
     role: response.role,
   });
-  console.log(`${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`);
+  const link = `${req.protocol}://${req.headers.host}/api/v1/auth/confirm/email/${token}`;
+
+  const emailTemplatePath = path.join(__dirname, "./emailTemplates/email.html");
+  let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
+  emailTemplate = emailTemplate.replace("{{link}}", link);
 
   await emailQueue.add(
     {
       to: response.email,
       subject: "Verify your email",
-      text: "Welcome to our courses App! 🎉",
-      html: SignUpTemplet(
-        `${FRONTEND.BASE_URL}${FRONTEND.CONFIRM_EMAIL}/${token}`
-      ),
+      text: "Welcome to Mentora! 🎉",
+      html: emailTemplate,
       message: "Mentora",
     },
     { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
@@ -120,109 +124,162 @@ export const login = async (
   });
 };
 
-export const sendForgetPasswordEmail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void | any> => {
-  const { email } = req.body;
-
-  const user = await userModel
-    .findOne({ email })
-    .select("firstName lastName email")
-    .lean();
-
-
-  if (!user) return next(new CustomError("user not found :-(!", 404));
-
-  const token = new TokenService(
-    String(TokenConfigration.ACCESS_TOKEN_SECRET),
-    TokenConfigration.ACCESS_EXPIRE
-  ).generateToken({ userId: user?._id, role: user?.role });
-
-  // ${FRONTEND.BASE_URL}/${FRONTEND.RESET_PASSWORD_URL} ==> in SignUpTemplet
-
-  await emailQueue.add(
-    {
-      to: user?.email,
-      subject: "this message to Reset your Password",
-      text: "Welcome to Out courses App! 🎉",
-      html: SignUpTemplet(
-        `${FRONTEND.BASE_URL}/resetPassword/${token}`
-      ),
-      message: "Please Reset ur Password",
-    },
-    { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
-  );
-
-  return res.status(200).json({
-    message: "Reset Password Email Send Successfully",
-    success: true,
-    statusCode: 200,
-    user: sanatizeUser(user),
-  });
-};
-
-export const resetPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const {token} = req.params;
-  const { password } = req.body;
-  const { userId } = new TokenService(
-    String(TokenConfigration.ACCESS_TOKEN_SECRET)
-  ).verifyToken(token);
-  const passwordHash = await bcrypt.hash(password, Number(SALT_ROUND));
-  const updateUser = await userModel
-    .findByIdAndUpdate(
-      { _id: userId },
-      { $set: { password: passwordHash } },
-      { new: true }
-    )
-    .lean();
-
-  if (!updateUser) {
-    return next(new CustomError("user Not found Update password faild", 400));
-  }
-
-  return res.status(200).json({
-    message: "password reset successfully",
-    statusCode: 200,
-    success: true,
-    user: sanatizeUser(updateUser),
-  });
-};
-
 export const confirmEmail = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { token } = req.params;
-  console.log(token);
-  
-  const { userId } = new TokenService(
-    String(TokenConfigration.ACCESS_TOKEN_SECRET)
-  ).verifyToken(token);
+  try {
+    const { token } = req.params;
 
-  const updateUser = await userModel
-    .findByIdAndUpdate(
-      { _id: userId },
-      { $set: { isConfirmed: true } },
-      { new: true }
-    )
-    .select("firstName lastName email isConfirmed role")
-    .lean();
+    const { userId } = new TokenService(
+      String(TokenConfigration.ACCESS_TOKEN_SECRET)
+    ).verifyToken(token);
 
-  if (!updateUser) {
-    return next(new CustomError("Falid to confirm Your Email :-(", 404));
+    if (!userId) {
+      return res.sendFile(
+        path.join(__dirname, "./emailTemplates/email-failed.html")
+      );
+    }
+
+    const user = await userModel.findById(userId).select("isConfirmed");
+
+    if (!user) {
+      return res.sendFile(
+        path.join(__dirname, "./emailTemplates/email-failed.html")
+      );
+    }
+
+    // If the email is already confirmed
+    if (user.isConfirmed) {
+      return res.redirect("http://localhost:5173/login"); 
+    }
+
+    const updateUser = await userModel
+      .findByIdAndUpdate(
+        userId,
+        { $set: { isConfirmed: true } },
+        { new: true }
+      )
+      .select("firstName lastName email isConfirmed role")
+      .lean();
+
+    if (!updateUser) {
+      return res.sendFile(
+        path.join(__dirname, "./emailTemplates/email-failed.html")
+      );
+    }
+
+    return res.sendFile(
+      path.join(__dirname, "./emailTemplates/email-success.html")
+    );
+  } catch (error: any) {
+    res.status(500).json({
+      message: "catch error",
+      error: error.message,
+      stack: error.stack,
+    });
   }
-
-  return res.status(200).json({
-    message: "Email Confirmed successfully",
-    statusCode: 200,
-    success: true,
-    user: sanatizeUser(updateUser),
-  });
 };
+
+export const sendCode = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return next(new CustomError("Email is required", 400));
+    }
+
+    const user = await userModel.findOne({ email }).select("email");
+
+    if (!user) {
+      return next(new CustomError("You have to register first", 404));
+    }
+
+    const generateOTP = () => {
+      const uuid = uuidv4().replace(/\D/g, "").slice(0, 8);
+      return uuid;
+    };
+
+    const OTPCode = generateOTP();
+
+    await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
+
+    const emailTemplatePath = path.join(__dirname, "./emailTemplates/email-code.html");
+    let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
+    emailTemplate = emailTemplate.replace(/{{code}}/g, OTPCode);
+
+    await emailQueue.add(
+      {
+        to: user.email,
+        subject: "Password Reset Request",
+        text: "Here is your password reset code",
+        html: emailTemplate,
+        message: "Mentora",
+      },
+      { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+    );
+
+    return res.status(200).json({
+      message: "Please check your email for a message with your code",
+      success: true,
+      statusCode: 200,
+    });
+  } catch (error) {
+    return next(new CustomError(`Failed to send code: ${(error as Error).message}`, 500));
+  }
+};
+
+export const forgetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email, code, password } = req.body;
+
+    if (!code || code === null || code === undefined) {
+      return next(new CustomError("Code is required and cannot be null", 400));
+    }
+
+    const user = await userModel.findOne({ email, code });
+
+    if (!user) {
+      return next(new CustomError("Email or code is not valid", 400));
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      password,
+      Number(SALT_ROUND)
+    );
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      user._id,
+      { 
+        $unset: { code: "" },
+        password: hashedPassword 
+      },
+      { new: true }
+    );
+    
+
+    if (!updatedUser) {
+      return next(new CustomError("Failed to update password", 500));
+    }
+
+    res.status(200).json({
+      message: "Password changed successfully",
+      success: true,
+      statusCode: 200,
+      user: updatedUser,
+    });
+  } catch (error) {
+    return next(new CustomError(`Failed to reset password: ${(error as Error).message}`, 500));
+  }
+};
+
+

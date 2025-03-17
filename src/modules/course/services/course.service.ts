@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
 import { CustomError } from "../../../utils/errorHandling";
-import { Model } from "mongoose";
+import { paginate } from '../../../utils/pagination'; 
 
 
 export const addCourse = async (
@@ -49,8 +49,13 @@ export const getAllCourses = async (
   next: NextFunction
 ) => {
   try {
+    const { page, size } = req.query;
+    const { limit, skip } = paginate(Number(page), Number(size));
+
     const courses = await courseModel
     .find()
+    .skip(skip)
+    .limit(limit)
     .populate("instructorId", "firstName lastName avatar")
     .populate("categoryId", "title")
     .lean();
@@ -149,28 +154,28 @@ export const searchCollection = async (
     if (!collectionName || !searchFilters) {
       return next(new CustomError("Collection name and valid search filters are required", 400));
     }
-
-    let model: Model<any>
-    let searchQuery: Record<string, any> = {};
-
     if (collectionName === "courses") {
+      const searchFilters2 = "^" + searchFilters;
       const courses = await courseModel.find({
-        $or: [
-          { title: { $regex: searchFilters, $options: "i" } },
-          { description: { $regex: searchFilters, $options: "i" } }
-        ]
-      }).populate("instructorId")
+         title: { $regex: searchFilters2, $options: "i" }
+        })
+      .populate("instructorId", "firstName lastName")
+      .populate("categoryId", "title")
       res.status(200).json({status: "success" , data: courses})
     } else if (collectionName === "instructors") {
       const searchFilters2 = "^" + searchFilters;
-      const courses = await userModel.find({
+      const instructors = await userModel.find({
         firstName: { $regex: searchFilters2, $options: "i" }
         // $or: [
         //   { firstName: { $regex: searchFilters, $options: "i" } },
         //   { lastName: { $regex: searchFilters, $options: "i" } }
         // ]
       })
-      res.status(200).json({status: "success" , data: courses})
+      .select("-password -email")
+      .populate("courses")
+      .lean();
+
+      res.status(200).json({status: "success" , data: instructors})
     } else {
       return next(new CustomError("Invalid collection name", 400));
     }
@@ -180,3 +185,4 @@ export const searchCollection = async (
     return next(new CustomError(`Failed to search: ${(error as Error).message}`, 500));
   }
 };
+

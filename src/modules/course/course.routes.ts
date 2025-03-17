@@ -25,7 +25,10 @@ router.post(
 router.get("/all", asyncHandler(courseServices.getAllCourses));
 
 // Get Course By ID
-router.get("/:id", asyncHandler(courseServices.getCourseById));
+router.get(
+  "/:id",
+  asyncHandler(courseServices.getCourseById)
+);
 
 // Update Course (Only Instructors & Admins)
 router.put(

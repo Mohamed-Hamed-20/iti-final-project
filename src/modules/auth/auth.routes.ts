@@ -24,22 +24,22 @@ router.post(
   asyncHandler(authServices.login)
 );
 
-router.post(
-  "/send/forget/password",
-  valid(sendForgetPasswordSchema) as RequestHandler,
-  asyncHandler(authServices.sendForgetPasswordEmail)
-);
-
-router.post(
-  "/reset/password/:token",
-  valid(resetPasswordSchema) as RequestHandler,
-  asyncHandler(authServices.resetPassword)
-);
-
 router.get(
   "/confirm/email/:token",
   valid(confirmEmailSchema) as RequestHandler,
   asyncHandler(authServices.confirmEmail)
+);
+
+router.post(
+  "/sendCode",
+  valid(sendForgetPasswordSchema) as RequestHandler,
+  asyncHandler(authServices.sendCode)
+);
+
+router.post(
+  "/reset",
+  valid(resetPasswordSchema) as RequestHandler,
+  asyncHandler(authServices.forgetPassword)
 );
 
 export default router;
