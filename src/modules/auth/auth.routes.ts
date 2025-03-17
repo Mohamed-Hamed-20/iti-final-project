@@ -42,6 +42,4 @@ router.post(
   asyncHandler(authServices.forgetPassword)
 );
 
-
-
 export default router;

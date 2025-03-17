@@ -233,6 +233,7 @@ export const sendCode = async (
     return next(new CustomError(`Failed to send code: ${(error as Error).message}`, 500));
   }
 };
+
 export const forgetPassword = async (
   req: Request,
   res: Response,
@@ -241,8 +242,8 @@ export const forgetPassword = async (
   try {
     const { email, code, password } = req.body;
 
-    if (!code) {
-      return next(new CustomError("Code is not valid", 400));
+    if (!code || code === null || code === undefined) {
+      return next(new CustomError("Code is required and cannot be null", 400));
     }
 
     const user = await userModel.findOne({ email, code });
@@ -258,9 +259,13 @@ export const forgetPassword = async (
 
     const updatedUser = await userModel.findByIdAndUpdate(
       user._id,
-      { code: null, password: hashedPassword },
+      { 
+        $unset: { code: "" },
+        password: hashedPassword 
+      },
       { new: true }
     );
+    
 
     if (!updatedUser) {
       return next(new CustomError("Failed to update password", 500));
@@ -276,4 +281,5 @@ export const forgetPassword = async (
     return next(new CustomError(`Failed to reset password: ${(error as Error).message}`, 500));
   }
 };
+
 
