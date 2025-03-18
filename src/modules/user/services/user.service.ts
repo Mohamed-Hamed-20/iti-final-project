@@ -191,13 +191,13 @@ export const userProfile = async (
     if (!user?._id) {
       return next(new CustomError("Unauthorized", 401));
     }
-    const encryptedPhone = encrypt(user.phone, String(process.env.SECRETKEY_CRYPTO));
+    // const encryptedPhone = encrypt(user.phone, String(process.env.SECRETKEY_CRYPTO));
 
     const updateUser = await userModel.findByIdAndUpdate(
       user._id,
       { firstName,
         lastName,
-        phone : encryptedPhone
+        phone 
        },
       { new: true }
     );
