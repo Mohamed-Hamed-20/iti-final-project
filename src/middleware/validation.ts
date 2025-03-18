@@ -9,28 +9,27 @@ export const valid = (schema: Record<ReqKey, Schema> | any) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const validationErrors: Array<any> = [];
 
-    req_FE.forEach((key: ReqKey) => {
-      if (schema[key]) {
-        const { error, value } = schema[key].validate(req[key], {
-          abortEarly: false,
-        });
+    // Check only 'headers' for tokens
+    if (schema.headers) {
+      const { error, value } = schema.headers.validate(req.headers, {
+        abortEarly: false,
+      });
 
-        if (error) {
-          error.details.forEach((errorDetail: any) => {
-            validationErrors.push({
-              message: errorDetail.message.replace(/\"/g, ""),
-              path: errorDetail?.path[0],
-              label: errorDetail.context?.label,
-              type: errorDetail.type,
-            });
+      if (error) {
+        error.details.forEach((errorDetail: any) => {
+          validationErrors.push({
+            message: errorDetail.message.replace(/\"/g, ""),
+            path: errorDetail?.path[0],
+            label: errorDetail.context?.label,
+            type: errorDetail.type,
           });
-        }
-
-        if (!error && req[key]) {
-          req[key] = value;
-        }
+        });
       }
-    });
+
+      if (!error && req.headers) {
+        req.headers = value; // Apply the validated headers
+      }
+    }
 
     if (validationErrors.length > 0) {
       return res.status(400).json({
