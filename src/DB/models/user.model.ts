@@ -45,8 +45,6 @@ const userSchema = new Schema<Iuser>(
     },
     phone: {
       type: String,
-      required: false,
-      message: "phone must be 11 number and start with 01",
     },
     isConfirmed: {
       type: Boolean,
