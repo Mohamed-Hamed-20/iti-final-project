@@ -1,11 +1,12 @@
 import Queue from "bull";
 import EmailService from "./nodemailer";
 import userModel from "../DB/models/user.model";
+import { REDIS } from "../config/env";
 
 const emailQueue = new Queue("emailQueue", {
   redis: {
-    host: "127.0.0.1",
-    port: 6379,
+    host: REDIS.HOST,
+    port: REDIS.PORT,
     maxRetriesPerRequest: null,
     retryStrategy(times) {
       return Math.min(times * 100, 3000);

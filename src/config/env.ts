@@ -41,3 +41,8 @@ export const AWS_S3Keys = {
   ACCESS_KEY: process.env.ACCESS_KEY,
   SECRET_KEY: process.env.SECRET_KEY,
 };
+
+export const REDIS = {
+  HOST: process.env.REDIS_HOST,
+  PORT: Number(process.env.REDIS_PORT),
+};

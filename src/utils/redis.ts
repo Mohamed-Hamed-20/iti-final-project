@@ -1,8 +1,9 @@
 import Redis from "ioredis";
+import { REDIS } from "../config/env";
 
 const redis = new Redis({
-  host: "127.0.0.1",
-  port: 6379,
+  host: REDIS.HOST,
+  port: REDIS.PORT,
   enableReadyCheck: true,
   maxRetriesPerRequest: null,
   retryStrategy(times) {

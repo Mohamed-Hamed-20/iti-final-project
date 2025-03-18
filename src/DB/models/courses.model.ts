@@ -5,10 +5,14 @@ const CourseSchema = new Schema<ICourse>(
   {
     title: {
       type: String,
+      minlength: 3,
+      maxlength: 220,
       required: true,
     },
     description: {
       type: String,
+      minlength: 10,
+      maxlength: 1000,
     },
     price: {
       type: Number,
@@ -17,7 +21,31 @@ const CourseSchema = new Schema<ICourse>(
     thumbnail: {
       type: String,
       required: true,
-      default: "http://google.com",
+      default:
+        "https://info.latitudelearning.com/desktopmodules/digarticle/mediahandler.ashx?portalid=25&moduleid=4792&mediaid=706&width=800&height=350",
+    },
+    rating: {
+      type: Number,
+      default: 0,
+    },
+    totalSections: {
+      type: Number,
+      default: 0,
+    },
+    totalVideos: {
+      type: Number,
+      default: 0,
+    },
+    totalDuration: {
+      type: Number,
+      default: 0,
+    },
+    purchaseCount: {
+      type: Number,
+      default: 0,
+    },
+    learningPoints: {
+      type: [String],
     },
     access_type: {
       type: String,
