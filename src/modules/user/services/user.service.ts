@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import userModel from "../../../DB/models/user.model";
 import bcrypt, { compare } from "bcryptjs";
+import { encrypt } from "../../../utils/crpto";
 
 export const profile = async (
   req: Request,
@@ -11,6 +12,7 @@ export const profile = async (
 ): Promise<void | any> => {
   try {
     const user = req.user; 
+    console.log("User object before sanitization:", user); 
     if (!user) {
       return next(new CustomError("user not found ERROR", 500));
     }
@@ -183,15 +185,20 @@ export const userProfile = async (
 ): Promise<void> => {
   try {
     const { firstName, lastName, phone } = req.body;
-    const userId = req.user?._id;
 
-    if (!userId) {
+    const user = req.user;
+
+    if (!user?._id) {
       return next(new CustomError("Unauthorized", 401));
     }
+    const encryptedPhone = encrypt(user.phone, String(process.env.SECRETKEY_CRYPTO));
 
     const updateUser = await userModel.findByIdAndUpdate(
-      userId,
-      { firstName, lastName, phone },
+      user._id,
+      { firstName,
+        lastName,
+        phone : encryptedPhone
+       },
       { new: true }
     );
 
