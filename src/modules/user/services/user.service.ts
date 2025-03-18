@@ -185,20 +185,20 @@ export const userProfile = async (
 ): Promise<void> => {
   try {
     const { firstName, lastName, phone } = req.body;
-
     const user = req.user;
 
     if (!user?._id) {
       return next(new CustomError("Unauthorized", 401));
     }
-    const encryptedPhone = encrypt(user.phone, String(process.env.SECRETKEY_CRYPTO));
+
+    const encryptedPhone = phone ? encrypt(phone, String(process.env.SECRETKEY_CRYPTO)) : undefined;
+
+    const updateData: any = { firstName, lastName };
+    if (encryptedPhone) updateData.phone = encryptedPhone;
 
     const updateUser = await userModel.findByIdAndUpdate(
       user._id,
-      { firstName,
-        lastName,
-        phone : encryptedPhone
-       },
+      updateData,
       { new: true }
     );
 
@@ -206,7 +206,7 @@ export const userProfile = async (
       return next(new CustomError("User not found during update", 404));
     }
 
-     res.status(200).json({
+    res.status(200).json({
       message: "User data updated successfully",
       statusCode: 200,
       success: true,
