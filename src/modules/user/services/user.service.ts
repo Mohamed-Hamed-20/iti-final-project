@@ -99,7 +99,9 @@ export const uploadImage = async (
       return;
     }
 
-    const imagePath = req.file.path;
+    // const imagePath = req.file.path;
+    const imagePath = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
 
     const userId = req.user?._id;
     if (!userId) {
@@ -122,7 +124,7 @@ export const uploadImage = async (
       message: "Image uploaded successfully",
       statusCode: 200,
       success: true,
-      imagePath: user.avatar,
+      user: sanatizeUser(user)
     });
   } catch (error) {
     next(

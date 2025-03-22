@@ -77,7 +77,7 @@ export const generalFields = {
 
   password: joi
     .string()
-    .regex(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/)
+    .regex(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[~!@#$%^&*()]).{8,}$/)
     .trim()
     .min(8)
     .max(44)

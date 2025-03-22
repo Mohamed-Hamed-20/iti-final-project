@@ -37,9 +37,9 @@ router.get(
 );
 
 router.post(
-"/image",
+"/avatar",
 isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
-upload.single("image"),
+upload.single("avatar"),
 asyncHandler(userServices.uploadImage)
 );
 
