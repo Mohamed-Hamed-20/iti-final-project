@@ -44,8 +44,9 @@ export const cokkiesSchema = {
         .string()
         .pattern(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/)
         .required(),
-    })
-    .required(),
+      mp_d7f79c10b89f9fa3026f2fb08d3cf36d_mixpanel: joi
+        .string()
+    }).required(),
 };
 
 export const sendForgetPasswordSchema = {

@@ -26,11 +26,11 @@ type ControllerFunction = (
 export const asyncHandler = (controller: ControllerFunction) => {
   return (req: Request, res: Response, next: NextFunction) => {
     controller(req, res, next).catch((err) => {
-      // return next(new Error(err));
-      res.json({ err });
+      next(err);
     });
   };
 };
+
 
 // Multer error handler
 export const multerErrorHandler = (

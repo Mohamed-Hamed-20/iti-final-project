@@ -52,6 +52,11 @@ const CourseSchema = new Schema<ICourse>(
       enum: ["free", "paid", "prime"],
       required: true,
     },
+    level: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced"],
+      required: true,
+    },
     subTitle: { type: String, required: false },
     requirements: { type: [String], required: false },
     categoryId: {
