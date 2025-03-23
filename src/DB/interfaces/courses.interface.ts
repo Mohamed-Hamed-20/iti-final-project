@@ -15,6 +15,7 @@ export interface ICourse extends Document {
   subTitle?: string;
   requirements?: string[];
   access_type: "free" | "paid" | "prime";
+  level: "beginner" | "intermediate" | "advanced";
   instructorId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId;
   url?: string;

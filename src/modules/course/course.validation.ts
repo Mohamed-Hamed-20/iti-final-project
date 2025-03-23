@@ -10,6 +10,7 @@ export const addCourseSchema = {
       description: joi.string().trim().min(3).max(5000).allow(null, ""),
       price: joi.number().min(0).required(),
       access_type: joi.string().valid("free", "paid", "prime").required(),
+      level: joi.string().valid("beginner", "intermediate", "advanced").required(),
       categoryId: generalFields._id.required(),
       requirements: joi
         .array()

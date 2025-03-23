@@ -24,18 +24,9 @@ export const addCourse = async (
     learningPoints,
     subTitle,
     requirements,
+    level,
   } = req.body;
   const instructorId = req.user?._id;
-  console.log({
-    title,
-    description,
-    price,
-    access_type,
-    categoryId,
-    learningPoints,
-    subTitle,
-    requirements,
-  });
 
   if (!req.file) {
     return next(new CustomError("Missing required fields", 400));
@@ -51,6 +42,7 @@ export const addCourse = async (
     learningPoints,
     subTitle,
     requirements,
+    level,
   });
 
   const folder = await courseKey(
@@ -66,12 +58,12 @@ export const addCourse = async (
   req.file.folder = folder;
   newCourse.thumbnail = req.file.folder;
 
-  const [uploadImgae, savedCourse] = await Promise.all([
+  const [uploadImage, savedCourse] = await Promise.all([
     new S3Instance().uploadLargeFile(req.file),
     newCourse.save(),
   ]);
 
-  if (uploadImgae instanceof Error) {
+  if (uploadImage instanceof Error) {
     await courseModel.deleteOne({ _id: newCourse._id });
     return next(new CustomError("Error Uploading Image Server Error!", 500));
   }
