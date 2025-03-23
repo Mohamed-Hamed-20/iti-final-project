@@ -1,4 +1,4 @@
-import { PipelineStage, Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import { Request, Response, NextFunction } from "express";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
@@ -9,6 +9,7 @@ import S3Instance from "../../../utils/aws.sdk.s3";
 import ApiPipeline from "../../../utils/apiFeacture";
 import { forEach } from "lodash";
 import { ICourse } from "../../../DB/interfaces/courses.interface";
+import { sectionModel, videoModel } from "../../../DB/models/videos.model";
 
 export const addCourse = async (
   req: Request,
@@ -98,7 +99,11 @@ const defaultFields = [
   "subTitle",
   "requirements",
   "instructor",
-  "categoryId",
+  "category",
+  "access_type",
+  "level",
+  "createdAt",
+  "updatedAt",
 ];
 
 // get all courses from
@@ -124,6 +129,67 @@ export const getAllCourses = async (
         avatar: 1,
       }
     )
+    .lookUp(
+      {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+        isArray: false,
+      },
+      {
+        title: 1,
+      }
+    )
+    .match({
+      fields: allowSearchFields,
+      search: search?.toString() || "",
+      op: "$or",
+    })
+    .sort(sort?.toString() || "")
+    .paginate(Number(page) || 1, Number(size) || 10)
+    .projection({
+      allowFields: defaultFields,
+      defaultFields: defaultFields,
+      select: select?.toString() || "",
+    })
+    .build();
+
+  const courses = await courseModel.aggregate(pipeline).exec();
+
+  await Promise.all(
+    courses.map(async (course) => {
+      if (course?.thumbnail) {
+        const url = await new S3Instance().getFile(course.thumbnail);
+        course.url = url;
+      }
+    })
+  );
+
+  return res.status(200).json({
+    message: "Courses fetched successfully",
+    statusCode: 200,
+    success: true,
+    courses,
+  });
+};
+
+// get all courses from
+export const getAllCoursesForInstructor = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { page, size, select, sort, search } = req.query;
+  const { access_type } = req.query;
+  console.log({ userId: req.user?._id });
+
+  const pipeline = new ApiPipeline()
+    .searchOnString("access_type", access_type as string)
+    .matchId({
+      Id: req.user?._id as Types.ObjectId,
+      field: "instructorId",
+    })
     .lookUp(
       {
         from: "categories",
@@ -349,10 +415,51 @@ export const deleteCourse = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
-  const deletedCourse = await courseModel.findByIdAndDelete(id).lean();
+  const session = await mongoose.startSession();
 
-  if (!deletedCourse) {
-    return next(new CustomError("Course not found", 404));
+  try {
+    session.startTransaction();
+
+    const [Course, sections, videos] = await Promise.all([
+      courseModel.findById(id).lean().session(session),
+      sectionModel.find({ courseId: id }).session(session),
+      videoModel.find({ courseId: id }).session(session),
+    ]);
+
+    if (!Course) {
+      await session.abortTransaction();
+      return next(new CustomError("Course not found", 404));
+    }
+
+    // add all keys to delete
+    let keys = [];
+    keys.push(Course.thumbnail);
+    keys.push(
+      videos.map((video) => {
+        return video.video_key;
+      })
+    );
+
+    const [deleteCourse, filesDelete] = await Promise.all([
+      courseModel.deleteOne({ _id: id }).session(session),
+      new S3Instance().deleteFiles(keys as Array<string>),
+    ]);
+
+    if (
+      deleteCourse.deletedCount < 0 ||
+      !filesDelete ||
+      filesDelete.length <= 0
+    ) {
+      await session.abortTransaction();
+      return next(
+        new CustomError("Error when delete course Server Error", 500)
+      );
+    }
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw new Error(error as any);
   }
 
   return res.status(200).json({
