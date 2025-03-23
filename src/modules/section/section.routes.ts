@@ -12,15 +12,37 @@ router.post(
   "/add",
   valid(cokkiesSchema) as RequestHandler,
   valid(addsectionSchema) as RequestHandler,
-  isAuth([Roles.Instructor]),
-  asyncHandler(sectionService.addsection)
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(sectionService.addSection)
+);
+
+router.put(
+  "/:sectionId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(sectionService.updateSection)
+);
+
+router.put(
+  "/reorder",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(sectionService.reorderSections)
+);
+
+
+router.delete(
+  "/:sectionId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(sectionService.deleteSection)
 );
 
 router.get(
   "/",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
-  asyncHandler(sectionService.getSection)
+  asyncHandler(sectionService.getSections)
 );
 
 router.get(
@@ -29,4 +51,5 @@ router.get(
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(sectionService.searchSectionBycourse)
 );
+
 export default router;
