@@ -10,7 +10,10 @@ export const addCourseSchema = {
       description: joi.string().trim().min(3).max(5000).allow(null, ""),
       price: joi.number().min(0).required(),
       access_type: joi.string().valid("free", "paid", "prime").required(),
-      level: joi.string().valid("beginner", "intermediate", "advanced").required(),
+      level: joi
+        .string()
+        .valid("beginner", "intermediate", "advanced")
+        .required(),
       categoryId: generalFields._id.required(),
       requirements: joi
         .array()
@@ -48,6 +51,18 @@ export const searchCoursesScheam = {
       size: generalFields.size,
       select: generalFields.select,
       search: generalFields.search,
+    })
+    .required(),
+};
+
+export const searchCoursesInstructorScheam = {
+  query: joi
+    .object({
+      page: generalFields.page,
+      size: generalFields.size,
+      select: generalFields.select,
+      search: generalFields.search,
+      access_type: joi.string().valid("free", "paid", "prime").optional(),
     })
     .required(),
 };

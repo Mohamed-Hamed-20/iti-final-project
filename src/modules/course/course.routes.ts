@@ -3,6 +3,7 @@ import * as courseServices from "./services/course.service";
 import {
   addCourseSchema,
   getCourseByIdSchema,
+  searchCoursesInstructorScheam,
   searchCoursesScheam,
   updateCourseSchema,
 } from "./course.validation";
@@ -11,7 +12,7 @@ import { asyncHandler } from "../../utils/errorHandling";
 import { isAuth } from "../../middleware/auth";
 import { Roles } from "./../../DB/interfaces/user.interface";
 import { cokkiesSchema } from "../auth/auth.validation";
-import {  multerMemory } from "../../utils/multer";
+import { multerMemory } from "../../utils/multer";
 import { FileType } from "../../utils/files.allowed";
 
 const router = Router();
@@ -32,6 +33,15 @@ router.get(
   "/all",
   valid(searchCoursesScheam) as RequestHandler,
   asyncHandler(courseServices.getAllCourses)
+);
+
+//get instrctor course
+router.get(
+  "/instrctor/courses",
+  valid(searchCoursesInstructorScheam) as RequestHandler,
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor]),
+  asyncHandler(courseServices.getAllCoursesForInstructor)
 );
 
 // Get Course By ID

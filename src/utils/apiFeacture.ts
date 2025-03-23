@@ -30,7 +30,7 @@ export type ProjectionParams = {
 };
 
 export type MatchIdParams = {
-  Id: Types.ObjectId;
+  Id: Types.ObjectId | string;
   field: string;
 };
 
@@ -68,6 +68,20 @@ export default class ApiPipeline {
       throw new Error("Invalid ObjectId");
     }
     this.pipeline.push({ $match: { [field]: new Types.ObjectId(Id) } });
+    return this;
+  }
+
+  searchOnString(field: string, searchValue: string): ApiPipeline {
+    if (!searchValue || !field) {
+      return this;
+    }
+    console.log(searchValue);
+
+    this.addStage({
+      $match: {
+        [field]: { $regex: searchValue, $options: "i" },
+      },
+    });
     return this;
   }
 
