@@ -16,16 +16,38 @@ export const addVideo = async (
   next: NextFunction
 ): Promise<Response | void> => {
   const { title, sectionId } = req.body;
+  const { courseId } = req.query;
 
   if (!req.file) {
     return next(new CustomError("No video file found", 400));
   }
 
   // Validate sectionId
-  const chkSection = await sectionModel.findById(sectionId);
-  if (!chkSection) {
+  const chkSection = await sectionModel
+    .findOne({
+      $or: [{ _id: sectionId }, { courseId }],
+    })
+    .populate({
+      path: "courseId",
+      select: "instructorId",
+    });
+
+  console.log(chkSection);
+
+  if (
+    !chkSection ||
+    !chkSection?.courseId ||
+    chkSection?.courseId?._id.toString() !== String(courseId)
+  ) {
     return next(new CustomError("Section not found", 404));
   }
+
+  // if (
+  //   chkSection.courseId?.instructorId == undefined ||
+  //   chkSection.courseId.instructorId?.toString() !== courseId?.toString()
+  // ) {
+  //   return next(new CustomError("Invaild Course", 400));
+  // }
 
   // Create video instance with a manually generated _id
   const videoId = new Types.ObjectId();
@@ -63,6 +85,15 @@ export const addVideo = async (
     message: "Video uploaded successfully!",
     video,
   });
+};
+
+export const updateVideo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { title, sectionId } = req.body;
+  const { videoId } = req.query;
 };
 
 export const getVideo = async (

@@ -22,6 +22,11 @@ const VideoSchema = new Schema<IVideo>(
       required: true,
       index: true,
     },
+    courseId: {
+      type: Schema.Types.ObjectId,
+      ref: "course",
+      required: true,
+    },
     title: {
       type: String,
       required: true,

@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 export interface IVideo extends Document {
   _id: mongoose.Types.ObjectId;
   sectionId: mongoose.Types.ObjectId;
+  courseId: mongoose.Types.ObjectId;
   title: string;
   video_key: string;
   order?: number;
