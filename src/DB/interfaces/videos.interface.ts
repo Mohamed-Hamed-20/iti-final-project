@@ -13,6 +13,7 @@ export interface IVideo extends Document {
 export interface Isection extends Document {
   _id: mongoose.Types.ObjectId;
   courseId: mongoose.Types.ObjectId;
+  totalVideos: number;
   title: string;
   order?: number;
 }

@@ -39,6 +39,11 @@ export const addSection = async (
 
     const section = await sectionModel.create({ title, courseId, order: nextOrder });
 
+    await courseModel.updateOne(
+      { _id: courseId },
+      { $inc: { totalSections: 1 } }
+    );
+
     return res.status(201).json({
       message: "Section created successfully",
       section,
@@ -107,6 +112,11 @@ export const deleteSection = async (
     }
 
     await sectionModel.findByIdAndDelete(sectionId);
+
+    await courseModel.updateOne(
+      { _id: section.courseId },
+      { $inc: { totalSections: -1 } }
+    );
 
     return res.status(200).json({
       message: "Section deleted successfully",

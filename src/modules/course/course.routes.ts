@@ -35,9 +35,9 @@ router.get(
   asyncHandler(courseServices.getAllCourses)
 );
 
-//get instrctor course
+//get instructor course
 router.get(
-  "/instrctor/courses",
+  "/instructor/courses",
   valid(searchCoursesInstructorScheam) as RequestHandler,
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor]),

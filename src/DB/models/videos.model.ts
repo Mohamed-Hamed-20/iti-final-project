@@ -8,6 +8,7 @@ const sectionSchema = new mongoose.Schema<Isection>(
       ref: "course",
       required: true,
     },
+    totalVideos: { type: Number, required: true, default: 0 },
     title: { type: String, required: true },
     order: { type: Number, required: false },
   },

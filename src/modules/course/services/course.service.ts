@@ -147,7 +147,7 @@ export const getAllCourses = async (
       op: "$or",
     })
     .sort(sort?.toString() || "")
-    .paginate(Number(page) || 1, Number(size) || 10)
+    .paginate(Number(page) || 1, Number(size) || 100)
     .projection({
       allowFields: defaultFields,
       defaultFields: defaultFields,
