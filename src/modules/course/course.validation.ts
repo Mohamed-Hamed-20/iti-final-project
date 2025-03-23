@@ -5,11 +5,24 @@ import { generalFields } from "../../middleware/validation";
 export const addCourseSchema = {
   body: joi
     .object({
-      title: joi.string().trim().min(3).max(100).required(),
-      description: joi.string().trim().allow(null, ""),
+      title: joi.string().trim().min(3).max(200).required(),
+      subTitle: joi.string().trim().min(3).max(150).optional(),
+      description: joi.string().trim().min(3).max(5000).allow(null, ""),
       price: joi.number().min(0).required(),
       access_type: joi.string().valid("free", "paid", "prime").required(),
-      categoryId: joi.string().required(),
+      categoryId: generalFields._id.required(),
+      requirements: joi
+        .array()
+        .items(joi.string().trim().min(2).max(150))
+        .min(1)
+        .max(20)
+        .required(),
+      learningPoints: joi
+        .array()
+        .items(joi.string().trim().min(2).max(150))
+        .min(1)
+        .max(20)
+        .required(),
     })
     .required(),
 };
@@ -18,12 +31,11 @@ export const addCourseSchema = {
 export const updateCourseSchema = {
   body: joi
     .object({
-      title: joi.string().trim().min(3).max(100),
-      description: joi.string().trim().allow(null, ""),
+      title: joi.string().trim().min(3).max(200),
+      description: joi.string().trim().min(3).max(5000).allow(null, ""),
       price: joi.number().min(0),
-      thumbnail: joi.string().trim().uri(),
       access_type: joi.string().valid("free", "paid", "prime"),
-      instructorId: joi.string(),
+      instructorId: generalFields._id,
     })
     .required(),
 };

@@ -13,13 +13,7 @@ const router = Router();
 
 router.post(
   "/add",
-  multerMemory(1024 * 1024 * 1024, [
-    ...FileType.Images,
-    ...FileType.Videos,
-  ]).fields([
-    { name: "thumbnail", maxCount: 1 },
-    { name: "video", maxCount: 1 },
-  ]),
+  multerMemory(1024 * 1024 * 1024, [...FileType.Videos]).single("video"),
   valid(cokkiesSchema) as RequestHandler,
   valid(addvideoSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),

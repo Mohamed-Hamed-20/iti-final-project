@@ -25,16 +25,14 @@ const VideoSchema = new Schema<IVideo>(
     title: {
       type: String,
       required: true,
+      minlength: 3,
+      maxlength: 300,
     },
     video_key: {
       type: String,
       required: true,
     },
-    order: { type: Number, required: false },
-    thumbnail_key: {
-      type: String,
-      required: true,
-    },
+    order: { type: Number, required: false, min: 0, max: 300 },
   },
   { timestamps: true }
 );

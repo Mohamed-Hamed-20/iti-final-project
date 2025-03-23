@@ -26,12 +26,8 @@ type ControllerFunction = (
 export const asyncHandler = (controller: ControllerFunction) => {
   return (req: Request, res: Response, next: NextFunction) => {
     controller(req, res, next).catch((err) => {
-      res.status(500).json({
-        success: false,
-        message: err.message,
-        stack: err.stack,
-        statusCode: 500,
-      });
+      // return next(new Error(err));
+      res.json({ err });
     });
   };
 };
@@ -139,8 +135,11 @@ export const errorHandler: ErrorRequestHandler | any = (
   } else if (err instanceof CustomError) {
     return customErrorHandler(err, req, res, next);
   } else if (
-    err instanceof (JsonWebTokenError || TokenExpiredError || NotBeforeError)
+    err instanceof (JsonWebTokenError || TokenExpiredError || NotBeforeError) ||
+    err.message.includes("jwt expired")
   ) {
+    console.log("eloowwwwwwwww");
+
     return tokenErrorHandler(err, req, res, next);
   } else {
     return generalErrorHandler(err, req, res, next);

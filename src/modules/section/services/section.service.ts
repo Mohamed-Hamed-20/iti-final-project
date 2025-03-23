@@ -18,7 +18,7 @@ export const addsection = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { title, courseId, order } = req.body;
+  const { title, courseId, order , sectionId } = req.body;
   const user = req.user;
 
   const course = await courseModel.findById(courseId);
@@ -26,6 +26,7 @@ export const addsection = async (
   if (!course) {
     return next(new CustomError("Course not found", 404));
   }
+
   if (course.instructorId.toString() !== user?._id.toString()) {
     return next(
       new CustomError("You are not allowed to add section to this course", 403)

@@ -12,6 +12,8 @@ export interface ICourse extends Document {
   totalDuration?: number;
   purchaseCount?: number;
   learningPoints?: string[];
+  subTitle?: string;
+  requirements?: string[];
   access_type: "free" | "paid" | "prime";
   instructorId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId;

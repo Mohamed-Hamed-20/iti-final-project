@@ -4,7 +4,7 @@ import { generalFields } from "../../middleware/validation";
 export const addsectionSchema = {
   body: joi
     .object({
-      title: joi.string().trim().min(3).max(33).required(),
+      title: joi.string().trim().min(3).max(100).required(),
       courseId: generalFields._id.required(),
       order: joi.number().min(0).max(100).optional(),
     })

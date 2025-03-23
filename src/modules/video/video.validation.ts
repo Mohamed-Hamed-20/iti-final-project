@@ -4,7 +4,7 @@ export const addvideoSchema = {
   body: joi
     .object({
       title: joi.string().required(),
-      courseId: generalFields._id.required(),
+      sectionId: generalFields._id.required(),
     })
     .required(),
 };

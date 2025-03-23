@@ -1,64 +1,62 @@
 import joi, { Schema } from "joi";
-import { Request, Response, NextFunction, RequestHandler } from "express";
+import { Request, Response, NextFunction } from "express";
 import { Types, isValidObjectId } from "mongoose";
 
 type ReqKey = "body" | "params" | "query" | "headers" | "cookies";
-const req_FE: Array<ReqKey> = ["body", "params", "query", "headers", "cookies"];
+const req_FE: ReqKey[] = ["body", "params", "query", "headers", "cookies"];
 
-export const valid = (schema: Record<ReqKey, Schema> | any) => {
+export const valid = (schema: Partial<Record<ReqKey, Schema>>) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const validationErrors: Array<any> = [];
+    const validationErrors: any[] = [];
 
-    // Check only 'headers' for tokens
-    if (schema.headers) {
-      const { error, value } = schema.headers.validate(req.headers, {
-        abortEarly: false,
-      });
-
-      if (error) {
-        error.details.forEach((errorDetail: any) => {
-          validationErrors.push({
-            message: errorDetail.message.replace(/\"/g, ""),
-            path: errorDetail?.path[0],
-            label: errorDetail.context?.label,
-            type: errorDetail.type,
-          });
+    req_FE.forEach((key) => {
+      if (schema[key]) {
+        const { error, value } = schema[key].validate(req[key], {
+          abortEarly: false,
         });
-      }
 
-      if (!error && req.headers) {
-        req.headers = value; // Apply the validated headers
+        if (error) {
+          error.details.forEach((errorDetail) => {
+            validationErrors.push({
+              message: errorDetail.message.replace(/\"/g, ""),
+              path: errorDetail.path?.[0] || key,
+              label: errorDetail.context?.label,
+              type: errorDetail.type,
+            });
+          });
+        } else {
+          req[key] = value;
+        }
       }
-    }
+    });
 
     if (validationErrors.length > 0) {
       return res.status(400).json({
         message: "Validation Error",
-        error_Message: validationErrors,
+        errors: validationErrors,
       });
     }
 
-    return next();
+    next();
   };
 };
 
-//============================= validatioObjectId =====================
-const validateObjectId = (value: Types.ObjectId, helper: any) => {
-  return isValidObjectId(value) ? value : helper.message("Invalid {#label} ");
+//============================= validateObjectId =====================
+const validateObjectId = (value: string, helper: any) => {
+  return isValidObjectId(value) ? value : helper.message("Invalid {#label}");
 };
 
-export const toLowerCase = (value: string, helper: any) => {
-  return value.toLowerCase();
-};
+//============================= Custom Transform Functions =====================
+export const toLowerCase = (value: string) => value.toLowerCase();
 
-// custom errors
+//============================= Custom Error Messages =====================
 export const customMessages = {
   "string.base": "{#label} must be a string",
   "string.min": "{#label} must be at least {#limit} characters",
   "string.max": "{#label} must be at most {#limit} characters",
   "number.base": "{#label} must be a number",
   "number.valid": "{#label} must be one of {#valids}",
-  "boolean.base": "{#label} must be a boolean True or false",
+  "boolean.base": "{#label} must be true or false",
   "array.base": "{#label} must be an array",
   "array.items": "Invalid item in {#label}",
   "_id.required": "{#label} is required",
@@ -67,7 +65,7 @@ export const customMessages = {
   "any.required": "{#label} is required",
 };
 
-//======================general Validation Fields========================
+//====================== General Validation Fields =========================
 export const generalFields = {
   email: joi
     .string()
@@ -77,26 +75,26 @@ export const generalFields = {
 
   password: joi
     .string()
-    .regex(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[~!@#$%^&*()]).{8,}$/)
+    .regex(/^(?=.*[A-Z])(?=.*[0-9]).{8,}$/)
     .trim()
     .min(8)
     .max(44)
     .messages({
       "string.pattern.base":
-        "Password Must be at least 8 characters , contain number and letters",
-    })
-    .messages(customMessages),
+        "Password must be at least 8 characters, contain numbers, uppercase letters, and symbols.",
+      ...customMessages,
+    }),
 
   _id: joi.string().trim().custom(validateObjectId).messages(customMessages),
 
-  PhoneNumber: joi
+  phoneNumber: joi
     .string()
-    .pattern(/^(01)[0-2 |5]{1}[0-9]{8}$/)
+    .pattern(/^(01)[0-2|5]{1}[0-9]{8}$/)
     .trim()
-    .messages(customMessages)
     .messages({
       "string.pattern.base":
-        "Invalid Phone Number , must contain 11 number and start with 01",
+        "Invalid Phone Number, must contain 11 digits and start with 01",
+      ...customMessages,
     }),
 
   gender: joi
@@ -123,7 +121,9 @@ export const generalFields = {
   file: joi.object({
     size: joi.number(),
   }),
+
   token: joi
     .string()
-    .pattern(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/),
+    .pattern(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/)
+    .messages(customMessages),
 };

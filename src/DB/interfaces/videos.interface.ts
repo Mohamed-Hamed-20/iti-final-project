@@ -6,7 +6,6 @@ export interface IVideo extends Document {
   sectionId: mongoose.Types.ObjectId;
   title: string;
   video_key: string;
-  thumbnail_key: string;
   order?: number;
 }
 

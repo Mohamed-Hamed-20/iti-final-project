@@ -1,4 +1,4 @@
-import { PipelineStage } from "mongoose";
+import { PipelineStage, Types } from "mongoose";
 import { Request, Response, NextFunction } from "express";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
@@ -8,15 +8,34 @@ import { courseKey, uploadFileToQueue } from "./courses.helper";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import ApiPipeline from "../../../utils/apiFeacture";
 import { forEach } from "lodash";
+import { ICourse } from "../../../DB/interfaces/courses.interface";
 
 export const addCourse = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { title, description, price, access_type, categoryId, learningPoints } =
-    req.body;
+  const {
+    title,
+    description,
+    price,
+    access_type,
+    categoryId,
+    learningPoints,
+    subTitle,
+    requirements,
+  } = req.body;
   const instructorId = req.user?._id;
+  console.log({
+    title,
+    description,
+    price,
+    access_type,
+    categoryId,
+    learningPoints,
+    subTitle,
+    requirements,
+  });
 
   if (!req.file) {
     return next(new CustomError("Missing required fields", 400));
@@ -30,6 +49,8 @@ export const addCourse = async (
     instructorId,
     categoryId,
     learningPoints,
+    subTitle,
+    requirements,
   });
 
   const folder = await courseKey(
@@ -82,86 +103,81 @@ const defaultFields = [
   "totalDuration",
   "purchaseCount",
   "learningPoints",
+  "subTitle",
+  "requirements",
   "instructor",
   "categoryId",
 ];
 
+// get all courses from
 export const getAllCourses = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  try {
-    const { page, size, select, sort, search } = req.query;
+  const { page, size, select, sort, search } = req.query;
 
-    const pipeline = new ApiPipeline()
-      .lookUp(
-        {
-          from: "users",
-          localField: "instructorId",
-          foreignField: "_id",
-          as: "instructor",
-          isArray: false,
-        },
-        {
-          firstName: 1,
-          lastName: 1,
-          avatar: 1,
-        }
-      )
-      .lookUp(
-        {
-          from: "categories",
-          localField: "categoryId",
-          foreignField: "_id",
-          as: "category",
-          isArray: false,
-        },
-        {
-          title: 1,
-        }
-      )
-      .match({
-        fields: allowSearchFields,
-        search: search?.toString() || "",
-        op: "$or",
-      })
-      .sort(sort?.toString() || "")
-      .paginate(Number(page) || 1, Number(size) || 10)
-      .projection({
-        allowFields: defaultFields,
-        defaultFields: defaultFields,
-        select: select?.toString() || "",
-      })
-      .build();
+  const pipeline = new ApiPipeline()
+    .lookUp(
+      {
+        from: "users",
+        localField: "instructorId",
+        foreignField: "_id",
+        as: "instructor",
+        isArray: false,
+      },
+      {
+        firstName: 1,
+        lastName: 1,
+        avatar: 1,
+      }
+    )
+    .lookUp(
+      {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+        isArray: false,
+      },
+      {
+        title: 1,
+      }
+    )
+    .match({
+      fields: allowSearchFields,
+      search: search?.toString() || "",
+      op: "$or",
+    })
+    .sort(sort?.toString() || "")
+    .paginate(Number(page) || 1, Number(size) || 10)
+    .projection({
+      allowFields: defaultFields,
+      defaultFields: defaultFields,
+      select: select?.toString() || "",
+    })
+    .build();
 
-    const courses = await courseModel.aggregate(pipeline).exec();
+  const courses = await courseModel.aggregate(pipeline).exec();
 
-    await Promise.all(
-      courses.map(async (course) => {
-        if (course?.thumbnail) {
-          const url = await new S3Instance().getFile(course.thumbnail);
-          course.url = url;
-        }
-      })
-    );
+  await Promise.all(
+    courses.map(async (course) => {
+      if (course?.thumbnail) {
+        const url = await new S3Instance().getFile(course.thumbnail);
+        course.url = url;
+      }
+    })
+  );
 
-    return res.status(200).json({
-      message: "Courses fetched successfully",
-      statusCode: 200,
-      success: true,
-      courses,
-    });
-  } catch (error) {
-    return next(
-      new CustomError(
-        `Failed to fetch courses: ${(error as Error).message}`,
-        500
-      )
-    );
-  }
+  return res.status(200).json({
+    message: "Courses fetched successfully",
+    statusCode: 200,
+    success: true,
+    courses,
+  });
 };
 
+// get single course
 export const getCourseById = async (
   req: Request,
   res: Response,
@@ -169,16 +185,122 @@ export const getCourseById = async (
 ) => {
   const { id } = req.params;
 
-  const course = await courseModel
-    .findById(id)
-    .populate("instructorId", "firstName lastName avatar")
-    .populate("categoryId", "title thumbnail")
-    .lean();
+  const pipeline = new ApiPipeline()
+    .matchId({ Id: id as any, field: "_id" })
+    .lookUp(
+      {
+        localField: "instructorId",
+        from: "users",
+        foreignField: "_id",
+        as: "instructor",
+        isArray: false,
+      },
+      {
+        firstName: 1,
+        lastName: 1,
+        age: 1,
+        phone: 1,
+        isOnline: 1,
+        avatar: 1,
+      }
+    )
+    .lookUp(
+      {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+        isArray: false,
+      },
+      {
+        title: 1,
+        thumbnail: 1,
+      }
+    )
+    .lookUp(
+      {
+        localField: "_id",
+        from: "sections",
+        foreignField: "courseId",
+        as: "sections",
+        isArray: true,
+      },
+      {
+        _id: 1,
+        title: 1,
+        order: 1,
+      }
+    )
+    .lookUp(
+      {
+        localField: "sections._id",
+        from: "videos",
+        foreignField: "sectionId",
+        as: "videos",
+        isArray: true,
+      },
+      {
+        _id: 1,
+        sectionId: 1,
+        title: 1,
+        order: 1,
+        video_key: 1,
+        thumbnail_key: 1,
+      }
+    )
+    .addStage({
+      $unwind: { path: "$sections", preserveNullAndEmptyArrays: true },
+    })
+    .addStage({
+      $lookup: {
+        from: "videos",
+        localField: "sections._id",
+        foreignField: "sectionId",
+        as: "sections.videos",
+      },
+    })
+    .addStage({
+      $group: {
+        _id: "$_id",
+        title: { $first: "$title" },
+        description: { $first: "$description" },
+        instructor: { $first: "$instructor" },
+        category: { $first: "$category" },
+        thumbnail: { $first: "$thumbnail" },
+        sections: {
+          $push: {
+            _id: "$sections._id",
+            title: "$sections.title",
+            order: "$sections.order",
+            videos: "$sections.videos",
+          },
+        },
+      },
+    })
+    .addStage({
+      $project: {
+        _id: 1,
+        title: 1,
+        description: 1,
+        instructor: 1,
+        category: 1,
+        thumbnail: 1,
+        sections: 1,
+      },
+    })
+    .build();
 
-  if (!course) {
+  const courseArray = await courseModel.aggregate(pipeline);
+
+  if (!courseArray.length) {
     return next(new CustomError("Course not found", 404));
   }
-  course.url = await new S3Instance().getFile(course.thumbnail);
+
+  let course = courseArray[0];
+
+  if (course.thumbnail) {
+    course.url = await new S3Instance().getFile(course.thumbnail);
+  }
 
   return res.status(200).json({
     message: "Course fetched successfully",
@@ -195,20 +317,29 @@ export const updateCourse = async (
 ) => {
   try {
     const { id } = req.params;
-    const updatedCourse = await courseModel.findByIdAndUpdate(id, req.body, {
-      new: true,
-      lean: true,
-    });
+    const {} = req.query;
+    const {
+      title,
+      description,
+      price,
+      rating,
+      learningPoints,
+      access_type,
+      categoryId,
+    } = req.body;
 
-    if (!updatedCourse) {
-      return next(new CustomError("Course not found", 404));
-    }
+    let courseUpdate: any = {};
+
+    if (title) courseUpdate.title = title;
+    if (description) courseUpdate.description = description;
+    if (price) courseUpdate.price = price;
+    if (access_type) courseUpdate.access_type = access_type;
 
     return res.status(200).json({
       message: "Course updated successfully",
       statusCode: 200,
       success: true,
-      course: updatedCourse,
+      course: [],
     });
   } catch (error) {
     return next(
@@ -255,6 +386,7 @@ export const searchCollection = async (
         )
       );
     }
+
     if (collectionName === "courses") {
       const searchFilters2 = "^" + searchFilters;
       const courses = await courseModel

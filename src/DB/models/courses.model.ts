@@ -12,7 +12,7 @@ const CourseSchema = new Schema<ICourse>(
     description: {
       type: String,
       minlength: 10,
-      maxlength: 1000,
+      maxlength: 5000,
     },
     price: {
       type: Number,
@@ -52,6 +52,8 @@ const CourseSchema = new Schema<ICourse>(
       enum: ["free", "paid", "prime"],
       required: true,
     },
+    subTitle: { type: String, required: false },
+    requirements: { type: [String], required: false },
     categoryId: {
       type: Schema.Types.ObjectId,
       ref: "category",
