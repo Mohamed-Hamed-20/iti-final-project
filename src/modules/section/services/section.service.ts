@@ -13,50 +13,172 @@ const allowFieldsSection = [
   "courseId.thumbnail",
   "courseId.price",
 ];
-export const addsection = async (
+export const addSection = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { title, courseId, order , sectionId } = req.body;
-  const user = req.user;
+  try {
+    const { title, courseId } = req.body;
+    const user = req.user;
 
-  const course = await courseModel.findById(courseId);
+    const course = await courseModel.findById(courseId);
 
-  if (!course) {
-    return next(new CustomError("Course not found", 404));
+    if (!course) {
+      return next(new CustomError("Course not found", 404));
+    }
+
+    if (course.instructorId.toString() !== user?._id.toString()) {
+      return next(
+        new CustomError("You are not allowed to add section to this course", 403)
+      );
+    }
+
+    const lastSection = await sectionModel.findOne({ courseId }).sort({ order: -1 });
+    const nextOrder = (lastSection?.order || 0) + 1;
+
+    const section = await sectionModel.create({ title, courseId, order: nextOrder });
+
+    return res.status(201).json({
+      message: "Section created successfully",
+      section,
+    });
+  } catch (error) {
+    return next(error);
   }
-
-  if (course.instructorId.toString() !== user?._id.toString()) {
-    return next(
-      new CustomError("You are not allowed to add section to this course", 403)
-    );
-  }
-
-  const section = await sectionModel.create({ title, courseId, order });
-
-  return res.status(201).json({
-    message: "Section created successfully",
-    section,
-  });
 };
 
-export const getSection = async (
+export const updateSection = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { sectionId } = req.params;
-  const section = await sectionModel.findById(sectionId);
+  try {
+    const { sectionId } = req.params;
+    const { title } = req.body;
+    const user = req.user;
 
-  if (!section) {
-    return next(new CustomError("Section not found", 404));
+    const section = await sectionModel.findById(sectionId);
+    if (!section) return next(new CustomError("Section not found", 404));
+
+    const course = await courseModel.findById(section.courseId);
+    if (!course) return next(new CustomError("Course not found", 404));
+
+    if (course.instructorId.toString() !== user?._id.toString()) {
+      return next(
+        new CustomError("You are not allowed to update this section", 403)
+      );
+    }
+
+    const updatedSection = await sectionModel.findByIdAndUpdate(
+      sectionId,
+      { title },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      message: "Section updated successfully",
+      section: updatedSection,
+    });
+  } catch (error) {
+    return next(error);
   }
+};
 
-  return res.status(200).json({
-    message: "Sections fetched successfully",
-    section,
-  });
+export const deleteSection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { sectionId } = req.params;
+    const user = req.user;
+
+    const section = await sectionModel.findById(sectionId);
+    if (!section) return next(new CustomError("Section not found", 404));
+
+    const course = await courseModel.findById(section.courseId);
+    if (!course) return next(new CustomError("Course not found", 404));
+
+    if (course.instructorId.toString() !== user?._id.toString()) {
+      return next(
+        new CustomError("You are not allowed to delete this section", 403)
+      );
+    }
+
+    await sectionModel.findByIdAndDelete(sectionId);
+
+    return res.status(200).json({
+      message: "Section deleted successfully",
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getSections = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { courseId } = req.params;
+
+    const sections = await sectionModel.find({ courseId });
+
+    if (!sections || sections.length === 0) {
+      return next(new CustomError("No sections found for this course", 404));
+    }
+
+    sections.sort((a, b) => Number(a.order) - Number(b.order));
+
+    return res.status(200).json({
+      message: "Sections fetched successfully",
+      sections,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const reorderSections = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { updatedSections } = req.body;
+    const user = req.user;
+
+    if (!updatedSections || !Array.isArray(updatedSections) || updatedSections.length === 0) {
+      return next(new CustomError("Provide an array of sections.", 400));
+    }
+
+    const firstSection = await sectionModel.findById(updatedSections[0]._id);
+    if (!firstSection) return next(new CustomError("Section not found", 404));
+
+    const course = await courseModel.findById(firstSection.courseId);
+    if (!course) return next(new CustomError("Course not found", 404));
+
+    if (course.instructorId.toString() !== user?._id.toString()) {
+      return next(
+        new CustomError("You are not allowed to reorder these sections", 403)
+      );
+    }
+
+    const updatedSectionsList = await Promise.all(
+      updatedSections.map((section: { _id: string }, index: number) =>
+        sectionModel.findByIdAndUpdate(section._id, { order: index + 1 }, { new: true })
+      )
+    );
+
+    return res.status(200).json({
+      message: "Sections reordered successfully.",
+      sections: updatedSectionsList
+    });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export const searchSectionBycourse = async (
