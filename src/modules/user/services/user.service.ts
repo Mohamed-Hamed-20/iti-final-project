@@ -68,10 +68,16 @@ export const getInstructorById = async (
   try {
     const { id } = req.params;
 
-    const instructor = await userModel.findById(id)
-    .select("-password -email")
-    .populate("courses")
-    .lean();
+    const instructor = await userModel
+      .findById(id)
+      .select("-password -email")
+      .populate({
+        path: "courses",
+        populate: {
+          path: "categoryId",
+        },
+      })
+      .lean();
 
     if (!instructor) {
       return next(new CustomError("Instructor not found", 404));
