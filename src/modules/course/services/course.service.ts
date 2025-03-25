@@ -7,8 +7,6 @@ import { paginate } from "../../../utils/pagination";
 import { courseKey, uploadFileToQueue } from "./courses.helper";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import ApiPipeline from "../../../utils/apiFeacture";
-import { forEach } from "lodash";
-import { ICourse } from "../../../DB/interfaces/courses.interface";
 import { sectionModel, videoModel } from "../../../DB/models/videos.model";
 
 export const addCourse = async (
