@@ -323,9 +323,21 @@ export const getCourseById = async (
         title: { $first: "$title" },
         description: { $first: "$description" },
         price: { $first: "$price" },
+        thumbnail: { $first: "$thumbnail" },
+        rating: { $first: "$rating" },
+        totalSections: { $first: "$totalSections" },
+        totalVideos: { $first: "$totalVideos" },
+        totalDuration: { $first: "$totalDuration" },
+        purchaseCount: { $first: "$purchaseCount" },
+        learningPoints: { $first: "$learningPoints" },
+        subTitle: { $first: "$subTitle" },
+        requirements: { $first: "$requirements" },
         instructor: { $first: "$instructor" },
         category: { $first: "$category" },
-        thumbnail: { $first: "$thumbnail" },
+        access_type: { $first: "$access_type" },
+        level: { $first: "$level" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
         sections: {
           $push: {
             _id: "$sections._id",
@@ -336,17 +348,10 @@ export const getCourseById = async (
         },
       },
     })
-    .addStage({
-      $project: {
-        _id: 1,
-        title: 1,
-        description: 1,
-        price: 1,
-        instructor: 1,
-        category: 1,
-        thumbnail: 1,
-        sections: 1,
-      },
+    .projection({
+      allowFields: defaultFields,
+      defaultFields: defaultFields,
+      select: undefined,
     })
     .build();
 
@@ -369,6 +374,7 @@ export const getCourseById = async (
     course,
   });
 };
+
 
 export const updateCourse = async (
   req: Request,
