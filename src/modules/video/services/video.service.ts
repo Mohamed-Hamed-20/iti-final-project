@@ -21,6 +21,7 @@ export const addVideo = async (
   if (!req.file) {
     return next(new CustomError("No video file found", 400));
   }
+  console.log({ sectionId });
 
   // Validate sectionId
   const chkSection = await sectionModel

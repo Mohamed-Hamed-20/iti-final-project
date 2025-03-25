@@ -373,7 +373,6 @@ export const getCourseById = async (
   });
 };
 
-
 export const updateCourse = async (
   req: Request,
   res: Response,
