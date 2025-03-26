@@ -151,7 +151,7 @@ export const getAllCourses = async (
     .build();
 
   const [total, courses] = await Promise.all([
-    courseModel.countDocuments(),
+    courseModel.countDocuments().lean(),
     courseModel.aggregate(pipeline).exec(),
   ]);
 
@@ -216,7 +216,10 @@ export const getAllCoursesForInstructor = async (
     })
     .build();
 
-  const courses = await courseModel.aggregate(pipeline).exec();
+  const [total, courses] = await Promise.all([
+    courseModel.countDocuments().lean(),
+    courseModel.aggregate(pipeline).exec(),
+  ]);
 
   await Promise.all(
     courses.map(async (course) => {
@@ -230,6 +233,8 @@ export const getAllCoursesForInstructor = async (
   return res.status(200).json({
     message: "Courses fetched successfully",
     statusCode: 200,
+    totalCourses: total,
+    totalPages: Math.floor(total / Number(size || 23)),
     success: true,
     courses,
   });
