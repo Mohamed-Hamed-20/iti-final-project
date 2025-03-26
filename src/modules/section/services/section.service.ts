@@ -18,7 +18,6 @@ export const addSection = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { title, courseId } = req.body;
     const user = req.user;
 
@@ -48,9 +47,6 @@ export const addSection = async (
       message: "Section created successfully",
       section,
     });
-  } catch (error) {
-    return next(error);
-  }
 };
 
 export const updateSection = async (
@@ -58,7 +54,6 @@ export const updateSection = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { sectionId } = req.params;
     const { title } = req.body;
     const user = req.user;
@@ -85,9 +80,7 @@ export const updateSection = async (
       message: "Section updated successfully",
       section: updatedSection,
     });
-  } catch (error) {
-    return next(error);
-  }
+
 };
 
 export const deleteSection = async (
@@ -95,7 +88,6 @@ export const deleteSection = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { sectionId } = req.params;
     const user = req.user;
 
@@ -121,9 +113,7 @@ export const deleteSection = async (
     return res.status(200).json({
       message: "Section deleted successfully",
     });
-  } catch (error) {
-    return next(error);
-  }
+
 };
 
 export const getSections = async (
@@ -131,7 +121,6 @@ export const getSections = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { courseId } = req.params;
 
     const sections = await sectionModel.find({ courseId });
@@ -146,9 +135,7 @@ export const getSections = async (
       message: "Sections fetched successfully",
       sections,
     });
-  } catch (error) {
-    return next(error);
-  }
+
 };
 
 export const reorderSections = async (
@@ -156,7 +143,6 @@ export const reorderSections = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const { updatedSections } = req.body;
     const user = req.user;
 
@@ -186,9 +172,7 @@ export const reorderSections = async (
       message: "Sections reordered successfully.",
       sections: updatedSectionsList
     });
-  } catch (error) {
-    return next(error);
-  }
+
 };
 
 export const searchSectionBycourse = async (
