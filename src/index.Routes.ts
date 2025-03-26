@@ -7,6 +7,7 @@ import videoRouter from "./modules/video/video.routes";
 import sectionRouter from "./modules/section/section.routes";
 import jobRouter from "./modules/jobs/job.routes";
 import deleteRequestRouter from "./modules/delete/delete.controller";
+import customerRouter from './modules/customerSupport/customerSupport.routes'
 
 const router = Router();
 router.use("/user", userRouter);
@@ -17,5 +18,6 @@ router.use("/video", videoRouter);
 router.use("/section", sectionRouter);
 router.use("/job", jobRouter);
 router.use("/delete/request", deleteRequestRouter);
+router.use("/custoersupport" , customerRouter)
 
 export default router;

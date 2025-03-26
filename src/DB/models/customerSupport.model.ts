@@ -3,6 +3,10 @@ import { ICustomerSupport } from "../interfaces/customerSupport.interface";
 
 const CustomerSupportSchema = new Schema<ICustomerSupport>(
   {
+    studentId: {
+      type: String,
+      required: true,
+    },
     subject: {
       type: String,
       required: true,
