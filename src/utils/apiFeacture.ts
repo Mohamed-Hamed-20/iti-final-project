@@ -2,7 +2,7 @@ import { Types, PipelineStage } from "mongoose";
 
 export function paginate(page: number, size: number) {
   if (size > 23) {
-    size = 23
+    size = 23;
   }
   page = page && page > 0 ? page : 1;
   size = size && size > 0 ? size : 10;
@@ -122,30 +122,37 @@ export default class ApiPipeline {
     return this;
   }
 
-projection(params: ProjectionParams): this {
-  const { allowFields, select, defaultFields } = params;
-  const selectedFields = select
-    ? select.split(",").map((f) => f.trim())
-    : defaultFields;
-  const fieldWanted = selectedFields.filter((field) =>
-    allowFields.includes(field)
-  );
-  if (fieldWanted.length > 0) {
-    const projection = fieldWanted.reduce<Record<string, any>>((acc, field) => {
-      acc[field] = {
-        $cond: {
-          if: { $or: [ { $eq: [`$${field}`, null] }, { $eq: [`$${field}`, undefined] } ] },
-          then: "$$REMOVE",
-          else: `$${field}`,
+  projection(params: ProjectionParams): this {
+    const { allowFields, select, defaultFields } = params;
+    const selectedFields = select
+      ? select.split(",").map((f) => f.trim())
+      : defaultFields;
+    const fieldWanted = selectedFields.filter((field) =>
+      allowFields.includes(field)
+    );
+    if (fieldWanted.length > 0) {
+      const projection = fieldWanted.reduce<Record<string, any>>(
+        (acc, field) => {
+          acc[field] = {
+            $cond: {
+              if: {
+                $or: [
+                  { $eq: [`$${field}`, null] },
+                  { $eq: [`$${field}`, undefined] },
+                ],
+              },
+              then: "$$REMOVE",
+              else: `$${field}`,
+            },
+          };
+          return acc;
         },
-      };
-      return acc;
-    }, {});
-    this.pipeline.push({ $project: projection });
+        {}
+      );
+      this.pipeline.push({ $project: projection });
+    }
+    return this;
   }
-  return this;
-}
-
 
   paginate(page: number, size: number): this {
     const { limit, skip } = paginate(page, size);
