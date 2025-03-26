@@ -56,8 +56,17 @@ router.put(
   "/:id",
   valid(cokkiesSchema) as RequestHandler,
   valid(updateCourseSchema) as RequestHandler,
-  isAuth([Roles.Instructor, Roles.Admin]),
+  isAuth([Roles.Instructor]),
   asyncHandler(courseServices.updateCourse)
+);
+
+// update course images
+router.patch(
+  "/update/image/:id",
+  valid(cokkiesSchema) as RequestHandler,
+  multerMemory().single("image"), // defult max 5mb and file allow is images
+  isAuth([Roles.Instructor]),
+  asyncHandler(courseServices.updatecourseImage)
 );
 
 // Delete Course (Only Instructors & Admins)

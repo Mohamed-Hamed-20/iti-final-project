@@ -6,7 +6,7 @@ export const addCourseSchema = {
   body: joi
     .object({
       title: joi.string().trim().min(3).max(200).required(),
-      subTitle: joi.string().trim().min(3).max(150).optional(),
+      subTitle: joi.string().trim().min(3).max(250).optional(),
       description: joi.string().trim().min(3).max(5000).allow(null, ""),
       price: joi.number().min(0).required(),
       access_type: joi.string().valid("free", "paid", "prime").required(),
@@ -36,10 +36,25 @@ export const updateCourseSchema = {
   body: joi
     .object({
       title: joi.string().trim().min(3).max(200),
+      subTitle: joi.string().trim().min(3).max(250).optional(),
       description: joi.string().trim().min(3).max(5000).allow(null, ""),
       price: joi.number().min(0),
       access_type: joi.string().valid("free", "paid", "prime"),
-      instructorId: generalFields._id,
+      categoryId: generalFields._id,
+      requirements: joi
+        .array()
+        .items(joi.string().trim().min(2).max(150))
+        .min(1)
+        .max(20),
+      learningPoints: joi
+        .array()
+        .items(joi.string().trim().min(2).max(150))
+        .min(1)
+        .max(20),
+      level: joi
+        .string()
+        .valid("beginner", "intermediate", "advanced")
+        .optional(),
     })
     .required(),
 };
@@ -51,6 +66,7 @@ export const searchCoursesScheam = {
       size: generalFields.size,
       select: generalFields.select,
       search: generalFields.search,
+      sort: generalFields.sort,
     })
     .required(),
 };
