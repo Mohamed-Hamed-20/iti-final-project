@@ -452,7 +452,7 @@ export const updatecourseImage = async (
   req.file.folder = folder;
 
   if (folder !== course.thumbnail) {
-    console.log("hellow mother");
+    console.log("hello mother");
 
     course = await courseModel.findByIdAndUpdate(
       id,
@@ -462,7 +462,7 @@ export const updatecourseImage = async (
   }
 
   const s3 = new S3Instance();
-  const updateFile = await s3.uploadLargeFile(req.file);
+  const updateFile = await s3.uploadLargeFile(req.file, folder, sanitizedFileName);
 
   if (!updateFile) {
     return next(new CustomError("Missing Server Error", 400));
