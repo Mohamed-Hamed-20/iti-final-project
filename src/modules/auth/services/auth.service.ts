@@ -8,8 +8,8 @@ import { TokenConfigration, SALT_ROUND } from "../../../config/env";
 import emailQueue from "../../../utils/email.Queue";
 import { v4 as uuidv4 } from "uuid";
 import { cokkiesOptions } from "../../../utils/cookies";
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 export const register = async (
   req: Request,
@@ -23,7 +23,7 @@ export const register = async (
 
   const hashpassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
-  const isApproved = role === "user"; 
+  const isApproved = role === "user";
 
   const result = new userModel({
     firstName,
@@ -31,7 +31,7 @@ export const register = async (
     email,
     password: hashpassword,
     role,
-    isApproved, 
+    isApproved,
   });
 
   const response = await result.save();
@@ -116,7 +116,7 @@ export const login = async (
   res.cookie(
     "accessToken",
     `${process.env.ACCESS_TOKEN_START_WITH}${accessToken}`,
-    cokkiesOptions(3600000)
+    cokkiesOptions(7 * 24 * 3600000)
   );
 
   res.cookie("refreshToken", refreshToken, cokkiesOptions(7 * 24 * 3600000));
@@ -156,15 +156,11 @@ export const confirmEmail = async (
 
     // If the email is already confirmed
     if (user.isConfirmed) {
-      return res.redirect("http://localhost:5173/login"); 
+      return res.redirect("http://localhost:5173/login");
     }
 
     const updateUser = await userModel
-      .findByIdAndUpdate(
-        userId,
-        { $set: { isConfirmed: true } },
-        { new: true }
-      )
+      .findByIdAndUpdate(userId, { $set: { isConfirmed: true } }, { new: true })
       .select("firstName lastName email isConfirmed role")
       .lean();
 
@@ -213,7 +209,10 @@ export const sendCode = async (
 
     await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
 
-    const emailTemplatePath = path.join(__dirname, "./emailTemplates/email-code.html");
+    const emailTemplatePath = path.join(
+      __dirname,
+      "./emailTemplates/email-code.html"
+    );
     let emailTemplate = fs.readFileSync(emailTemplatePath, "utf-8");
     emailTemplate = emailTemplate.replace(/{{code}}/g, OTPCode);
 
@@ -234,7 +233,9 @@ export const sendCode = async (
       statusCode: 200,
     });
   } catch (error) {
-    return next(new CustomError(`Failed to send code: ${(error as Error).message}`, 500));
+    return next(
+      new CustomError(`Failed to send code: ${(error as Error).message}`, 500)
+    );
   }
 };
 
@@ -256,20 +257,16 @@ export const forgetPassword = async (
       return next(new CustomError("Email or code is not valid", 400));
     }
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      Number(SALT_ROUND)
-    );
+    const hashedPassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
     const updatedUser = await userModel.findByIdAndUpdate(
       user._id,
-      { 
+      {
         $unset: { code: "" },
-        password: hashedPassword 
+        password: hashedPassword,
       },
       { new: true }
     );
-    
 
     if (!updatedUser) {
       return next(new CustomError("Failed to update password", 500));
@@ -282,8 +279,11 @@ export const forgetPassword = async (
       user: updatedUser,
     });
   } catch (error) {
-    return next(new CustomError(`Failed to reset password: ${(error as Error).message}`, 500));
+    return next(
+      new CustomError(
+        `Failed to reset password: ${(error as Error).message}`,
+        500
+      )
+    );
   }
 };
-
-
