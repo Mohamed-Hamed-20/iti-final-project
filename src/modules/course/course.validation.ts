@@ -51,6 +51,7 @@ export const searchCoursesScheam = {
       size: generalFields.size,
       select: generalFields.select,
       search: generalFields.search,
+      sort: generalFields.sort,
     })
     .required(),
 };
