@@ -21,6 +21,7 @@ export const addVideo = async (
   if (!req.file) {
     return next(new CustomError("No video file found", 400));
   }
+
   console.log({ sectionId });
 
   // Validate sectionId
@@ -35,22 +36,11 @@ export const addVideo = async (
 
   console.log(chkSection);
 
-  if (
-    !chkSection ||
-    !chkSection?.courseId ||
-    chkSection?.courseId?._id.toString() !== String(courseId)
-  ) {
+  if (!chkSection || !chkSection?.courseId || chkSection?.courseId?._id.toString() !== String(courseId)) {
     return next(new CustomError("Section not found", 404));
   }
 
-  // if (
-  //   chkSection.courseId?.instructorId == undefined ||
-  //   chkSection.courseId.instructorId?.toString() !== courseId?.toString()
-  // ) {
-  //   return next(new CustomError("Invaild Course", 400));
-  // }
-
-  // Create video instance with a manually generated _id
+  // Create a new video instance with a manually generated _id
   const videoId = new Types.ObjectId();
   const video = new videoModel({
     _id: videoId,
@@ -58,7 +48,7 @@ export const addVideo = async (
     sectionId,
   });
 
-  // Process and prepare the video file for upload
+  // Prepare file path
   const { videoFilePath } = await handleVideoAndThumbnail(
     req.file.originalname as string,
     chkSection,
@@ -69,7 +59,8 @@ export const addVideo = async (
   req.file.folder = videoFilePath as string;
 
   // Upload video file to S3
-  const videodata = await new S3Instance().uploadLargeFile(req.file);
+  const s3Instance = new S3Instance();
+  const videodata = await s3Instance.uploadLargeFile(req.file, videoFilePath, req.file.originalname);
 
   // Validate upload success
   if (!videodata || videodata instanceof Error) {
@@ -77,7 +68,7 @@ export const addVideo = async (
   }
 
   // Store uploaded file key in database
-  video.video_key = videodata.Key as string;
+  video.video_key = videodata.Key;
 
   // Save video record in database
   await video.save();
@@ -87,6 +78,7 @@ export const addVideo = async (
     video,
   });
 };
+
 
 export const updateVideo = async (
   req: Request,

@@ -13,6 +13,8 @@ import { cokkiesSchema } from "../auth/auth.validation";
 import { isAuth } from "../../middleware/auth";
 import { configureMulter } from "../../utils/multer";
 import { changePassSchema } from "./user.validation";
+import { multerMemory } from "../../utils/multer";
+import { FileType } from "../../utils/files.allowed";
 
 
 const router = Router();
@@ -36,11 +38,37 @@ router.get(
   asyncHandler(userServices.getInstructorById)
 );
 
+router.get(
+  "/verified/:instructorId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
+  asyncHandler(userServices.getInstructorVerification)
+);
+
 router.post(
 "/avatar",
 isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
 upload.single("avatar"),
 asyncHandler(userServices.uploadImage)
+);
+
+router.put(
+  "/verification",
+  isAuth([Roles.Instructor]),
+  multerMemory(1024 * 1024 * 1024, [...FileType.Images, ...FileType.Videos]).fields([
+    { name: "frontID", maxCount: 1 },
+    { name: "backID", maxCount: 1 },
+    { name: "requiredVideo", maxCount: 1 },
+    { name: "optionalVideo", maxCount: 1 },
+  ]),
+  valid(cokkiesSchema) as RequestHandler,
+  asyncHandler(userServices.instructorVerification)
+);
+
+router.put("/approve/:instructorId",
+  isAuth([Roles.Admin,Roles.Instructor]),
+  valid(cokkiesSchema) as RequestHandler,
+  asyncHandler(userServices.approveInstructor)
 );
 
 router.put(
@@ -52,7 +80,7 @@ asyncHandler(userServices.changePassword)
 
 router.put(
 "/userProfile", 
-isAuth([Roles.User]),
+isAuth([Roles.User, Roles.Instructor]),
 asyncHandler(userServices.userProfile)
 )
 

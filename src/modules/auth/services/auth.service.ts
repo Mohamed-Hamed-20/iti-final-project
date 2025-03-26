@@ -23,12 +23,15 @@ export const register = async (
 
   const hashpassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
+  const isApproved = role === "user"; 
+
   const result = new userModel({
     firstName,
     lastName,
     email,
     password: hashpassword,
-    role
+    role,
+    isApproved, 
   });
 
   const response = await result.save();
@@ -41,6 +44,7 @@ export const register = async (
     userId: response._id,
     role: response.role,
   });
+
   const link = `${req.protocol}://${req.headers.host}/api/v1/auth/confirm/email/${token}`;
 
   const emailTemplatePath = path.join(__dirname, "./emailTemplates/email.html");

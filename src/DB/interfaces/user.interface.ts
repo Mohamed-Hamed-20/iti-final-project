@@ -16,8 +16,13 @@ export interface Iuser extends Document {
   phone?: string;
   role?: Roles;
   isConfirmed?: boolean;
+  isApproved?: boolean;
   isOnline?: boolean;
   avatar?: string;
+  frontId?: string;
+  backId?: string;
+  requiredVideo?: string;
+  optionalVideo?: string;
   jobTitle?: string;
   code?:number;
 }

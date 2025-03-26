@@ -51,6 +51,11 @@ const userSchema = new Schema<Iuser>(
       required: false,
       default: false,
     },
+    isApproved: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
     isOnline:{
       type: Boolean,
       default: false
@@ -66,6 +71,18 @@ const userSchema = new Schema<Iuser>(
       required: false,
       default:
         "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+    },
+    frontId: {
+      type: String,
+    },
+    backId: {
+      type: String,
+    },
+    requiredVideo: {
+      type: String,
+    },
+    optionalVideo: {
+      type: String,
     },
   },
   { timestamps: true }

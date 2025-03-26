@@ -57,34 +57,40 @@ export default class S3Instance {
     return url;
   }
 
-  async uploadLargeFile(file: Express.Multer.File) {
-    if (!file.folder) {
-      return new CustomError("Folder folder and uniqueName is required", 400);
+  async uploadLargeFile(file: Express.Multer.File, folder: string, uniqueName: string) {
+    if (!file || !folder || !uniqueName) {
+      return new CustomError("File, folder, and uniqueName are required", 400);
     }
-
+  
+    const key = `${folder}/${uniqueName}`;
+  
     const upload = new Upload({
       client: this.s3,
       params: {
         Bucket: AWS_S3Keys.BUCKET_NAME,
-        Key: file.folder,
+        Key: key,
         Body: file.buffer,
         ContentType: file.mimetype,
         ACL: "public-read",
       },
       partSize: 10 * 1024 * 1024, // 10 MB
     });
-
+  
     upload.on("httpUploadProgress", (progress) => {
-      console.log(`📤 Progress: ${progress.loaded} / ${progress.total}`);
-      console.log(`🚀 key : ${progress.Key} , part : ${progress.part}`);
+      console.log(`📤 Uploading: ${progress.loaded} / ${progress.total}`);
     });
-
+  
     const response = await upload.done();
-
-    if (response.$metadata.httpStatusCode !== 200)
+  
+    if (response.$metadata.httpStatusCode !== 200) {
       return new CustomError("Failed to upload file", 500);
-    console.log("✅ Large file uploaded successfully!");
-    return response;
+    }
+  
+    console.log("✅ Video uploaded successfully!");
+    return {
+      Key: key,
+      Location: `https://${AWS_S3Keys.BUCKET_NAME}.s3.amazonaws.com/${key}`,
+    };
   }
 
   async uploadFile(file: Express.Multer.File) {
@@ -109,11 +115,11 @@ export default class S3Instance {
   }
 
   async uploadMultipleFiles(files: Array<Express.Multer.File>) {
-    const uploadePromises = files.map((file) => {
+    const uploadPromises = files.map((file) => {
       return this.uploadFile(file);
     });
 
-    return Promise.all(uploadePromises);
+    return Promise.all(uploadPromises);
   }
 
   async deleteFile(key: string) {
