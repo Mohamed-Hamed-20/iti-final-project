@@ -189,7 +189,7 @@ export default class S3Instance {
       { expiresIn: 3 * 3600 } // 3 hour
     );
 
-    console.log("✅ Signed URL generated successfully!");
+    // console.log("✅ Signed URL generated successfully!");
     return url;
   }
 
