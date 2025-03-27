@@ -28,6 +28,12 @@ cartRoutes.get(
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(cartService.getCourseById)
 );
+cartRoutes.get(
+  "/getCoursesBasedCategory",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User , Roles.Instructor]),
+  asyncHandler(cartService.getCoursesByCategory)
+);
 
 cartRoutes.delete(
   "/remove/:courseId",
