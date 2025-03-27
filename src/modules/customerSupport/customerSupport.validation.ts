@@ -2,7 +2,22 @@ import Joi from "joi";
 
 export const createTicketSchema = {
   body: Joi.object({
-
+    name: Joi.string().min(2).max(50).required().messages({
+      'string.empty': 'Name is required',
+      'string.min': 'Name must be at least 2 characters',
+      'string.max': 'Name cannot exceed 50 characters'
+    }),
+    email: Joi.string().email().required().messages({
+      'string.email': 'Please enter a valid email',
+      'string.empty': 'Email is required'
+    }),
+    mobile: Joi.string()
+      .pattern(/^01[0-2,5]{1}[0-9]{8}$/)
+      .required()
+      .messages({
+        'string.empty': 'Phone number is required',
+        'string.pattern.base': 'Please enter a valid Egyptian phone number',
+      }),
     subject: Joi.string().min(5).max(100).required().messages({
       "string.empty": "Subject is required",
       "string.min": "Subject must be at least 5 characters",

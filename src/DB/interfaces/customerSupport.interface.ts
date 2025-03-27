@@ -1,6 +1,7 @@
 export interface ICustomerSupport {
   name: string;
   email: string;
+  phone:string;
   studentId: string;
   subject: string;
   message: string;

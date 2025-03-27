@@ -9,6 +9,9 @@ const CustomerSupportSchema = new Schema<ICustomerSupport>(
     email: {
       type: String,
     },
+    phone:{
+      type:String,
+    },
     subject: {
       type: String,
       required: true,
