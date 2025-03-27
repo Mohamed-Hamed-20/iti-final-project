@@ -168,7 +168,7 @@ export const getAllCourses = async (
     message: "Courses fetched successfully",
     statusCode: 200,
     totalCourses: total,
-    totalPages: Math.floor(total / Number(size || 23)),
+    totalPages: Math.ceil(total / Number(size || 23)),
     success: true,
     courses,
   });
@@ -234,7 +234,7 @@ export const getAllCoursesForInstructor = async (
     message: "Courses fetched successfully",
     statusCode: 200,
     totalCourses: total,
-    totalPages: Math.floor(total / Number(size || 23)),
+    totalPages: Math.ceil(total / Number(size || 23)),
     success: true,
     courses,
   });
