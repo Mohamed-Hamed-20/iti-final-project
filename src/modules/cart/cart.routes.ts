@@ -4,36 +4,36 @@ import { cokkiesSchema } from "../auth/auth.validation";
 import { Roles } from "../../DB/interfaces/user.interface";
 import { isAuth } from "../../middleware/auth";
 import { asyncHandler } from "../../utils/errorHandling";
-import * as wishlistService from "./services/wishlist.service";
+import * as cartService from "./services/cart.service";
 
-const wishlistRoutes = Router();
+const cartRoutes = Router();
 
-wishlistRoutes.post(
+cartRoutes.post(
   "/add/:courseId",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
-  asyncHandler(wishlistService.wishList)
+  asyncHandler(cartService.cart)
 );
 
-wishlistRoutes.get(
+cartRoutes.get(
   "/allCourses",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
-  asyncHandler(wishlistService.getWishListCourses)
+  asyncHandler(cartService.getCartCourses)
 );
 
-wishlistRoutes.get(
+cartRoutes.get(
   "/getCourse/:courseId",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
-  asyncHandler(wishlistService.getCourseById)
+  asyncHandler(cartService.getCourseById)
 );
 
-wishlistRoutes.delete(
+cartRoutes.delete(
   "/remove/:courseId",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
-  asyncHandler(wishlistService.removeCourse)
+  asyncHandler(cartService.removeCourse)
 );
 
-export default wishlistRoutes;
+export default cartRoutes;

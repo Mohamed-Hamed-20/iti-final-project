@@ -9,6 +9,7 @@ import jobRouter from "./modules/jobs/job.routes";
 import deleteRequestRouter from "./modules/delete/delete.controller";
 import customerRouter from './modules/customerSupport/customerSupport.routes'
 import wishlistRoutes from "./modules/wishlist/wishlist.routes";
+import cartRoutes from "./modules/cart/cart.routes";
 
 const router = Router();
 router.use("/user", userRouter);
@@ -21,5 +22,6 @@ router.use("/job", jobRouter);
 router.use("/delete/request", deleteRequestRouter);
 router.use("/custoersupport" , customerRouter)
 router.use("/course/wishlist" , wishlistRoutes)
+router.use("/course/cart" , cartRoutes)
 
 export default router;
