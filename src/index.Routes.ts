@@ -8,6 +8,7 @@ import sectionRouter from "./modules/section/section.routes";
 import jobRouter from "./modules/jobs/job.routes";
 import deleteRequestRouter from "./modules/delete/delete.controller";
 import customerRouter from './modules/customerSupport/customerSupport.routes'
+import wishlistRoutes from "./modules/wishlist/wishlist.routes";
 
 const router = Router();
 router.use("/user", userRouter);
@@ -19,5 +20,6 @@ router.use("/section", sectionRouter);
 router.use("/job", jobRouter);
 router.use("/delete/request", deleteRequestRouter);
 router.use("/custoersupport" , customerRouter)
+router.use("/course/wishlist" , wishlistRoutes)
 
 export default router;
