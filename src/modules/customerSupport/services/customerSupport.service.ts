@@ -9,6 +9,18 @@ export class CustomerSupportService {
     return ticket;
   }
 
+  async createTicketWithoutAuth(ticketData: ICustomerSupport) {
+    const ticket = await customerSupportModel.create({
+      ...ticketData,
+      status: "open", // Set default status
+      createdAt: new Date(),
+      isAuthenticated: false // Flag to indicate non-authenticated ticket
+    });
+    
+    if (!ticket) throw new CustomError("Failed to create ticket", 400);
+    return ticket;
+  }
+
   async getAllTickets() {
     const tickets = await customerSupportModel.find().populate("assignedTo");
     if (!tickets) throw new CustomError("No tickets found", 404);

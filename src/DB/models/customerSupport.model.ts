@@ -3,9 +3,11 @@ import { ICustomerSupport } from "../interfaces/customerSupport.interface";
 
 const CustomerSupportSchema = new Schema<ICustomerSupport>(
   {
-    studentId: {
+    name: {
       type: String,
-      required: true,
+    },
+    email: {
+      type: String,
     },
     subject: {
       type: String,
@@ -38,6 +40,9 @@ const CustomerSupportSchema = new Schema<ICustomerSupport>(
   { timestamps: true }
 );
 
-const customerSupportModel = mongoose.model<ICustomerSupport>("customerSupport", CustomerSupportSchema);
+const customerSupportModel = mongoose.model<ICustomerSupport>(
+  "customerSupport",
+  CustomerSupportSchema
+);
 
 export default customerSupportModel;
