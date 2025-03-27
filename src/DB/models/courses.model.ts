@@ -69,6 +69,10 @@ const CourseSchema = new Schema<ICourse>(
   { timestamps: true }
 );
 
+CourseSchema.index({ title: 1 });
+CourseSchema.index({ description: 1 });
+CourseSchema.index({ categoryId: 1, price: 1 });
+
 const courseModel = mongoose.model<ICourse>("course", CourseSchema);
 
 export default courseModel;

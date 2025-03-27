@@ -46,7 +46,7 @@ export default class ApiPipeline {
 
   match(params: MatchParams): this {
     const { fields, search, op } = params;
-    if (!search) return this;
+    if (!search || search == "") return this;
     const searchQuery = fields.map((field: string) => ({
       [field]: { $regex: search, $options: "i" },
     }));
@@ -133,7 +133,7 @@ export default class ApiPipeline {
 
     if (fieldWanted.length > 0) {
       const projection = fieldWanted.reduce<Record<string, 1>>((acc, field) => {
-        acc[field] = 1; 
+        acc[field] = 1;
         return acc;
       }, {});
 
