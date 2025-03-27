@@ -29,6 +29,14 @@ wishlistRoutes.get(
   asyncHandler(wishlistService.getCourseById)
 );
 
+
+wishlistRoutes.get(
+  "/getCourseAddedCart/:courseId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User , Roles.Instructor]),
+  asyncHandler(wishlistService.getCourseAddedCart)
+);
+
 wishlistRoutes.delete(
   "/remove/:courseId",
   valid(cokkiesSchema) as RequestHandler,

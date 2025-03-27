@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { wishListModel } from "../../../DB/models/wishlist.model";
 import { CustomError } from "../../../utils/errorHandling";
+import { cartModel } from "../../../DB/models/cart.model";
 
 export const wishList = async (
   req: Request,
@@ -122,3 +123,37 @@ export const getCourseById = async (
       data: getCourse
     });
 };
+
+
+export const getCourseAddedCart = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { user } = req;
+  const {courseId} = req.params;
+  
+  if (!user) throw new Error("User is not found!");
+
+  const isCourseExist = await wishListModel.find({userId: user._id , courseId});
+  if(!isCourseExist){
+    return next(new CustomError("Course is not found" , 400));
+  }
+
+  const getCourse = await cartModel.findOneAndUpdate({userId: user._id , courseId} , {isCartAdded: true}, {new: true});
+
+  if(!getCourse){
+    return next(new CustomError("course id is not found" , 400));
+  }
+  
+  res
+    .status(200)
+    .json({
+      message: "Course deleted successfully",
+      statusCode: 200,
+      success: true,
+      data: getCourse
+    });
+};
+
+

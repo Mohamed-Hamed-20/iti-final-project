@@ -86,7 +86,7 @@ export const removeCourse = async (
   res
     .status(200)
     .json({
-      message: "Course deleted successfully",
+      message: "Course deleted successfully", 
       statusCode: 200,
       success: true
     });

@@ -3,6 +3,7 @@ import { model, Schema, Types, Document } from "mongoose";
 interface IWishlist extends Document {
   userId: Types.ObjectId;
   courseId: Types.ObjectId;
+  isCartAdded: Boolean;
 }
 
 const wishListSchema = new Schema<IWishlist>(
@@ -16,6 +17,10 @@ const wishListSchema = new Schema<IWishlist>(
       type: Schema.Types.ObjectId,
       ref: "course",
       required: true
+    },
+    isCartAdded: {
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true }
