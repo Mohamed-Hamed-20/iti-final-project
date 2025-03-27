@@ -144,8 +144,8 @@ export const getAllCourses = async (
     .sort(sort?.toString() || "")
     .paginate(Number(page) || 1, Number(size) || 100)
     .projection({
-      allowFields: [...defaultFields, "total"],
-      defaultFields: [...defaultFields, "total"],
+      allowFields: defaultFields,
+      defaultFields: defaultFields,
       select: select?.toString() || "",
     })
     .build();
@@ -155,14 +155,17 @@ export const getAllCourses = async (
     courseModel.aggregate(pipeline).exec(),
   ]);
 
-  await Promise.all(
-    courses.map(async (course) => {
-      if (course?.thumbnail) {
-        const url = await new S3Instance().getFile(course.thumbnail);
-        course.url = url;
-      }
-    })
-  );
+  const updatePromises = courses.map(async (course) => {
+    if (course?.thumbnail) {
+      return {
+        ...course,
+        url: await new S3Instance().getFile(course.thumbnail),
+      };
+    }
+    return course;
+  });
+
+  const updatedCourses = await Promise.all(updatePromises);
 
   return res.status(200).json({
     message: "Courses fetched successfully",
@@ -170,7 +173,7 @@ export const getAllCourses = async (
     totalCourses: total,
     totalPages: Math.ceil(total / Number(size || 23)),
     success: true,
-    courses,
+    courses: updatedCourses,
   });
 };
 

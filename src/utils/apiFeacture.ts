@@ -130,27 +130,16 @@ export default class ApiPipeline {
     const fieldWanted = selectedFields.filter((field) =>
       allowFields.includes(field)
     );
+
     if (fieldWanted.length > 0) {
-      const projection = fieldWanted.reduce<Record<string, any>>(
-        (acc, field) => {
-          acc[field] = {
-            $cond: {
-              if: {
-                $or: [
-                  { $eq: [`$${field}`, null] },
-                  { $eq: [`$${field}`, undefined] },
-                ],
-              },
-              then: "$$REMOVE",
-              else: `$${field}`,
-            },
-          };
-          return acc;
-        },
-        {}
-      );
+      const projection = fieldWanted.reduce<Record<string, 1>>((acc, field) => {
+        acc[field] = 1; 
+        return acc;
+      }, {});
+
       this.pipeline.push({ $project: projection });
     }
+
     return this;
   }
 
