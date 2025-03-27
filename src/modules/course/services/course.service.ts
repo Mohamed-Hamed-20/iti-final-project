@@ -38,7 +38,11 @@ export const addCourse = async (
 
   // Upload the course thumbnail to S3
   const s3Instance = new S3Instance();
-  const fileData = await s3Instance.uploadLargeFile(req.file, folder, uniqueFileName);
+  const fileData = await s3Instance.uploadLargeFile(
+    req.file,
+    folder,
+    uniqueFileName
+  );
 
   if (!fileData || fileData instanceof Error) {
     return next(new CustomError("Error uploading course thumbnail", 500));
@@ -140,13 +144,16 @@ export const getAllCourses = async (
     .sort(sort?.toString() || "")
     .paginate(Number(page) || 1, Number(size) || 100)
     .projection({
-      allowFields: defaultFields,
-      defaultFields: defaultFields,
+      allowFields: [...defaultFields, "total"],
+      defaultFields: [...defaultFields, "total"],
       select: select?.toString() || "",
     })
     .build();
 
-  const courses = await courseModel.aggregate(pipeline).exec();
+  const [total, courses] = await Promise.all([
+    courseModel.countDocuments().lean(),
+    courseModel.aggregate(pipeline).exec(),
+  ]);
 
   await Promise.all(
     courses.map(async (course) => {
@@ -160,6 +167,8 @@ export const getAllCourses = async (
   return res.status(200).json({
     message: "Courses fetched successfully",
     statusCode: 200,
+    totalCourses: total,
+    totalPages: Math.floor(total / Number(size || 23)),
     success: true,
     courses,
   });
@@ -207,7 +216,10 @@ export const getAllCoursesForInstructor = async (
     })
     .build();
 
-  const courses = await courseModel.aggregate(pipeline).exec();
+  const [total, courses] = await Promise.all([
+    courseModel.countDocuments().lean(),
+    courseModel.aggregate(pipeline).exec(),
+  ]);
 
   await Promise.all(
     courses.map(async (course) => {
@@ -221,6 +233,8 @@ export const getAllCoursesForInstructor = async (
   return res.status(200).json({
     message: "Courses fetched successfully",
     statusCode: 200,
+    totalCourses: total,
+    totalPages: Math.floor(total / Number(size || 23)),
     success: true,
     courses,
   });
@@ -462,7 +476,11 @@ export const updatecourseImage = async (
   }
 
   const s3 = new S3Instance();
-  const updateFile = await s3.uploadLargeFile(req.file, folder, sanitizedFileName);
+  const updateFile = await s3.uploadLargeFile(
+    req.file,
+    folder,
+    sanitizedFileName
+  );
 
   if (!updateFile) {
     return next(new CustomError("Missing Server Error", 400));
