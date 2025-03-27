@@ -14,41 +14,24 @@ export const addCourse = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<Response | void> => {
+) => {
   const {
     title,
     description,
     price,
     access_type,
-    instructorId,
     categoryId,
     learningPoints,
     subTitle,
     requirements,
     level,
   } = req.body;
+  const instructorId = req.user?._id;
 
   if (!req.file) {
-    return next(new CustomError("No course thumbnail found", 400));
+    return next(new CustomError("Missing required fields", 400));
   }
 
-  // Generate a unique name for the course thumbnail
-  const uniqueFileName = `${Date.now()}-${req.file.originalname}`;
-  const folder = `courses/${instructorId}`;
-
-  // Upload the course thumbnail to S3
-  const s3Instance = new S3Instance();
-  const fileData = await s3Instance.uploadLargeFile(
-    req.file,
-    folder,
-    uniqueFileName
-  );
-
-  if (!fileData || fileData instanceof Error) {
-    return next(new CustomError("Error uploading course thumbnail", 500));
-  }
-
-  // Create new course record
   const newCourse = new courseModel({
     title,
     description,
@@ -60,15 +43,32 @@ export const addCourse = async (
     subTitle,
     requirements,
     level,
-    thumbnail: fileData.Location, // Store the S3 file URL
   });
 
-  // Save the new course in the database
-  await newCourse.save();
+  const folder = await courseKey(newCourse._id, newCourse.title);
+
+  if (!folder) {
+    return next(new CustomError("Failed to add course", 500));
+  }
+
+  req.file.folder = folder;
+  newCourse.thumbnail = req.file.folder;
+
+  const [uploadImage, savedCourse] = await Promise.all([
+    new S3Instance().uploadLargeFile(req.file),
+    newCourse.save(),
+  ]);
+
+  if (uploadImage instanceof Error) {
+    await courseModel.deleteOne({ _id: newCourse._id });
+    return next(new CustomError("Error Uploading Image Server Error!", 500));
+  }
 
   return res.status(201).json({
-    message: "Course created successfully!",
-    course: newCourse,
+    message: "Course added successfully",
+    statusCode: 201,
+    success: true,
+    course: savedCourse,
   });
 };
 
@@ -459,15 +459,10 @@ export const updatecourseImage = async (
     return next(new CustomError("Course not found", 404));
   }
 
-  const sanitizedTitle = course.title.replace(/\s+/g, "-");
-  const sanitizedFileName = req.file.originalname.replace(/\s+/g, "-");
-  const folder = `/courses/${course._id}/${sanitizedTitle}--${sanitizedFileName}`;
-
+  const folder = await courseKey(course._id, course.title);
   req.file.folder = folder;
 
   if (folder !== course.thumbnail) {
-    console.log("hello mother");
-
     course = await courseModel.findByIdAndUpdate(
       id,
       { $set: { thumbnail: folder } },
@@ -476,11 +471,7 @@ export const updatecourseImage = async (
   }
 
   const s3 = new S3Instance();
-  const updateFile = await s3.uploadLargeFile(
-    req.file,
-    folder,
-    sanitizedFileName
-  );
+  const updateFile = await s3.uploadLargeFile(req.file);
 
   if (!updateFile) {
     return next(new CustomError("Missing Server Error", 400));

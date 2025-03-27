@@ -2,16 +2,9 @@ import { Types } from "mongoose";
 import { ICourse } from "../../../DB/interfaces/courses.interface";
 import FileQueue from "../../../utils/uploadFile.queue";
 
-export const courseKey = async (
-  _id: Types.ObjectId,
-  title: string,
-  originalname: string
-) => {
-  const folder = `/courses/${_id}/${title.replace(
-    /\s/g,
-    "-"
-  )}--${originalname.replace(/\s/g, "-")}`;
-  
+export const courseKey = async (_id: Types.ObjectId, title: string) => {
+  const folder = `/courses/${_id}/${_id}--${title.replace(/\s/g, "-")}`;
+
   return folder;
 };
 

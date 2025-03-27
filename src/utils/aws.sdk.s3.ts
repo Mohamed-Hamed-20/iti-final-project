@@ -22,6 +22,8 @@ declare global {
   }
 }
 
+export {};
+
 export default class S3Instance {
   private s3: S3Client;
   constructor() {
@@ -57,13 +59,47 @@ export default class S3Instance {
     return url;
   }
 
-  async uploadLargeFile(file: Express.Multer.File, folder: string, uniqueName: string) {
+  async uploadLargeFile(file: Express.Multer.File) {
+    if (!file.folder) {
+      return new CustomError("Folder folder and uniqueName is required", 400);
+    }
+
+    const upload = new Upload({
+      client: this.s3,
+      params: {
+        Bucket: AWS_S3Keys.BUCKET_NAME,
+        Key: file.folder,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: "public-read",
+      },
+      partSize: 10 * 1024 * 1024, // 10 MB
+    });
+
+    upload.on("httpUploadProgress", (progress) => {
+      console.log(`📤 Progress: ${progress.loaded} / ${progress.total}`);
+      console.log(`🚀 key : ${progress.Key} , part : ${progress.part}`);
+    });
+
+    const response = await upload.done();
+
+    if (response.$metadata.httpStatusCode !== 200)
+      return new CustomError("Failed to upload file", 500);
+    console.log("✅ Large file uploaded successfully!");
+    return response;
+  }
+
+  async uploadMulipleLargeFile(
+    file: Express.Multer.File,
+    folder: string,
+    uniqueName: string
+  ) {
     if (!file || !folder || !uniqueName) {
       return new CustomError("File, folder, and uniqueName are required", 400);
     }
-  
+
     const key = `${folder}/${uniqueName}`;
-  
+
     const upload = new Upload({
       client: this.s3,
       params: {
@@ -75,17 +111,17 @@ export default class S3Instance {
       },
       partSize: 10 * 1024 * 1024, // 10 MB
     });
-  
+
     upload.on("httpUploadProgress", (progress) => {
       console.log(`📤 Uploading: ${progress.loaded} / ${progress.total}`);
     });
-  
+
     const response = await upload.done();
-  
+
     if (response.$metadata.httpStatusCode !== 200) {
       return new CustomError("Failed to upload file", 500);
     }
-  
+
     console.log("✅ Video uploaded successfully!");
     return {
       Key: key,
@@ -158,11 +194,11 @@ export default class S3Instance {
   }
 
   async getFiles(keys: Array<string>) {
-  const filePromises = keys.map((key) => this.getFile(key));
-  const results = await Promise.allSettled(filePromises);
+    const filePromises = keys.map((key) => this.getFile(key));
+    const results = await Promise.allSettled(filePromises);
 
-  return results
-    .filter((result) => result.status === "fulfilled")
-    .map((result) => (result as PromiseFulfilledResult<string>).value);
+    return results
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => (result as PromiseFulfilledResult<string>).value);
   }
 }

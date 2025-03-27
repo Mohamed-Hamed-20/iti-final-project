@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { sectionModel, videoModel } from "../../../DB/models/videos.model";
-import { handleVideoAndThumbnail } from "./vidoe.helper";
+import { videoKey } from "./vidoe.helper";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import { CustomError } from "../../../utils/errorHandling";
 import courseModel from "../../../DB/models/courses.model";
@@ -36,7 +36,11 @@ export const addVideo = async (
 
   console.log(chkSection);
 
-  if (!chkSection || !chkSection?.courseId || chkSection?.courseId?._id.toString() !== String(courseId)) {
+  if (
+    !chkSection ||
+    !chkSection?.courseId ||
+    chkSection?.courseId?._id.toString() !== String(courseId)
+  ) {
     return next(new CustomError("Section not found", 404));
   }
 
@@ -49,18 +53,13 @@ export const addVideo = async (
   });
 
   // Prepare file path
-  const { videoFilePath } = await handleVideoAndThumbnail(
-    req.file.originalname as string,
-    chkSection,
-    videoId,
-    title
-  );
+  const videoFilePath = await videoKey(chkSection, videoId, title);
 
   req.file.folder = videoFilePath as string;
 
   // Upload video file to S3
   const s3Instance = new S3Instance();
-  const videodata = await s3Instance.uploadLargeFile(req.file, videoFilePath, req.file.originalname);
+  const videodata = await s3Instance.uploadLargeFile(req.file);
 
   // Validate upload success
   if (!videodata || videodata instanceof Error) {
@@ -68,7 +67,7 @@ export const addVideo = async (
   }
 
   // Store uploaded file key in database
-  video.video_key = videodata.Key;
+  video.video_key = videoFilePath;
 
   // Save video record in database
   await video.save();
@@ -78,7 +77,6 @@ export const addVideo = async (
     video,
   });
 };
-
 
 export const updateVideo = async (
   req: Request,

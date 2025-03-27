@@ -20,7 +20,7 @@ const processFileUpload = async (job: Queue.Job) => {
     console.log(`🚀 Processing file upload: ${file}`);
 
     const s3 = new S3Instance();
-    const response = await s3.uploadLargeFile(file , "" , "");
+    const response = await s3.uploadLargeFile(file);
 
     if (response instanceof Error) {
       console.error("❌ Upload Failed:", response.message);
