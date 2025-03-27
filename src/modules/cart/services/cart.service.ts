@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { cartModel } from "../../../DB/models/cart.model";
 import { CustomError } from "../../../utils/errorHandling";
+import { populate } from "dotenv";
 
 export const cart = async (
   req: Request,
@@ -44,7 +45,13 @@ export const getCartCourses = async (
   
   if (!user) throw new Error("User is not found!");
 
-  const allCourses = await cartModel.find({userId: user._id}).populate("courseId");
+  const allCourses = await cartModel.find({userId: user._id}).populate({
+    path: "courseId",
+    populate: {
+      path: "instructorId",
+      select: "-password"
+    }
+  });
 
   if(!allCourses){
     return next(
