@@ -19,7 +19,7 @@ export const wishList = async (
     return next(new CustomError("Course already exists", 400));
   }
     
-  const courseAdded = new wishListModel({ userId: user._id, courseId });
+  const courseAdded = new wishListModel({ userId: user._id, courseId});
   const courseSaved = await courseAdded.save();
 
   if (!courseSaved) {
@@ -33,6 +33,41 @@ export const wishList = async (
       message: "Course added successfully in wishlist",
       statusCode: 200,
       success: true
+    });
+};
+
+export const addToCartIcon = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { courseId } = req.params;
+  const { user } = req;
+  const {isCartAdded} = req.body;
+  console.log(isCartAdded);
+   
+  if (!user) throw new Error("User is undefined!");
+
+  const isCourseExist = await wishListModel.findOne({userId: user._id , courseId});
+
+  // if (isCourseExist) {
+  //   return next(new CustomError("Course already exists", 400));
+  // }
+    
+  const updateCartIcon = await wishListModel.findOneAndUpdate({ userId: user._id, courseId },{isCartAdded:isCartAdded},{new: true});
+
+  if (!updateCartIcon) {
+    return next(
+      new CustomError("Something went wrong during saving course", 400)
+    );
+  }
+  res
+    .status(200)
+    .json({
+      message: "cart icon change successfully",
+      statusCode: 200,
+      success: true,
+      data: updateCartIcon
     });
 };
 

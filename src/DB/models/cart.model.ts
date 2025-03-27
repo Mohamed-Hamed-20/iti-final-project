@@ -3,6 +3,7 @@ import { model, Schema, Types, Document } from "mongoose";
 interface ICart extends Document {
   userId: Types.ObjectId;
   courseId: Types.ObjectId;
+  isCartAdded: Boolean;
 }
 
 const cartSchema = new Schema<ICart>(
@@ -16,6 +17,10 @@ const cartSchema = new Schema<ICart>(
       type: Schema.Types.ObjectId,
       ref: "course",
       required: true
+    },
+    isCartAdded: {
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true }

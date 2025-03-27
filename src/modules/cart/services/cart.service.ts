@@ -12,7 +12,7 @@ interface Category {
 interface Course {
   _id: string;
   title: string;
-  categoryId?: Category | null; // categoryId might be null if not populated
+  categoryId?: Category | null; 
 }
 
 
@@ -32,7 +32,7 @@ export const cart = async (
     return next(new CustomError("Course already exists", 400));
   }
 
-  const courseAdded = new cartModel({ userId: user._id, courseId });
+  const courseAdded = new cartModel({ userId: user._id, courseId , isCartAdded: true });
   const courseSaved = await courseAdded.save();
 
   if (!courseSaved) {
