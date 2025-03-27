@@ -49,7 +49,7 @@ export const getCartCourses = async (
     path: "courseId",
     populate: {
       path: "instructorId",
-      select: "-password"
+      select: "firstName lastName"
     }
   });
 
