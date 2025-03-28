@@ -24,7 +24,7 @@ redis;
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-app.use(morgan("dev"));
+// app.use(morgan("dev"));
 
 // API routes
 app.use("/api/v1", apiRouter);

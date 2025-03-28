@@ -37,6 +37,13 @@ wishlistRoutes.get(
   asyncHandler(wishlistService.getCourseAddedCart)
 );
 
+wishlistRoutes.get(
+  "/wishlistCheckCourse/:courseId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User , Roles.Instructor]),
+  asyncHandler(wishlistService.wishlistCheckCourse)
+);
+
 wishlistRoutes.patch(
   "/addCartIcon/:courseId",
   valid(cokkiesSchema) as RequestHandler,

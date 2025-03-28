@@ -19,7 +19,7 @@ export const wishList = async (
     return next(new CustomError("Course already exists", 400));
   }
     
-  const courseAdded = new wishListModel({ userId: user._id, courseId});
+  const courseAdded = new wishListModel({ userId: user._id, courseId , isWishlistAdded: true});
   const courseSaved = await courseAdded.save();
 
   if (!courseSaved) {
@@ -88,13 +88,21 @@ export const getWishListCourses = async (
     )
   }
 
+  let coursesIds = [];
+
+  for (let i = 0; i < allCourses.length ; i++) {
+    coursesIds.push(allCourses[i].courseId._id)    
+  }
+  console.log(coursesIds);
+  
   res
     .status(200)
     .json({
       message: "Fetch wishlist courses",
       statusCode: 200,
       success: true,
-      data: allCourses
+      data: allCourses,
+      ids: coursesIds
     });
 };
 
@@ -192,3 +200,28 @@ export const getCourseAddedCart = async (
 };
 
 
+export const wishlistCheckCourse = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { courseId } = req.params;
+  const { user } = req;
+   
+  if (!user) throw new Error("User is undefined!");
+
+  const isCourseExist = await wishListModel.findOne({userId: user._id , courseId});
+  
+  if(!isCourseExist){
+    return new CustomError("Course Not Found in Wishlist" , 400);
+  }
+
+  res
+    .status(200)
+    .json({
+      message: "Course founded in wishlist",
+      statusCode: 200,
+      success: true,
+      data: {isWishlistAdded: !!isCourseExist , id: isCourseExist._id}
+    });
+};
