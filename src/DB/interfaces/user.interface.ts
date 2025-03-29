@@ -1,5 +1,13 @@
 import { Document, Types } from "mongoose";
 
+export interface ISocialLinks {
+  linkedin?: string;
+  github?: string;
+  twitter?: string;
+  facebook?: string;
+  portfolio?: string;
+}
+
 export enum Roles {
   User = "user",
   Admin = "admin",
@@ -24,7 +32,8 @@ export interface Iuser extends Document {
   requiredVideo?: string;
   optionalVideo?: string;
   jobTitle?: string;
-  code?:number;
+  code?: number;
+  socialLinks?: ISocialLinks;
 }
 
 

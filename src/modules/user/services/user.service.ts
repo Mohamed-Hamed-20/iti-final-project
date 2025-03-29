@@ -187,7 +187,7 @@ export const instructorData = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, phone, jobTitle } = req.body;
+  const { firstName, lastName, phone, jobTitle,socialLinks } = req.body;
   const userId = req.user?._id;
 
   if (!userId) {
@@ -196,7 +196,7 @@ export const instructorData = async (
 
   const updateUser = await userModel.findByIdAndUpdate(
     userId,
-    { firstName, lastName, phone, jobTitle },
+    { firstName, lastName, phone, jobTitle,socialLinks },
     { new: true }
   );
 
@@ -205,7 +205,7 @@ export const instructorData = async (
   }
 
   res.status(200).json({
-    message: "User data updated successfully",
+    message: "Instractor data updated successfully",
     statusCode: 200,
     success: true,
     user: sanatizeUser(updateUser),

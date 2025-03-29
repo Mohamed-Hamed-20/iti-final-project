@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(
   cors({
     credentials: true,
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173","http://localhost:5174"],
   })
 );
 app.use(express.urlencoded({ extended: true }));
@@ -27,7 +27,7 @@ redis;
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-app.use(morgan("dev"));
+// app.use(morgan("dev"));
 
 // API routes
 app.use("/api/v1", apiRouter);
