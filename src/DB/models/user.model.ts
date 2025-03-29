@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { Iuser, Roles } from "../interfaces/user.interface";
 
 const userSchema = new Schema<Iuser>(
@@ -84,6 +84,13 @@ const userSchema = new Schema<Iuser>(
     optionalVideo: {
       type: String,
     },
+    socialLinks: {
+      linkedin: { type: String },
+      github: { type: String },
+      twitter: { type: String },
+      facebook: { type: String },
+      portfolio: { type: String }
+    }
   },
   { timestamps: true }
 );
