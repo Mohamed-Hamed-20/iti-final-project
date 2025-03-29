@@ -187,30 +187,36 @@ export const instructorData = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, phone, jobTitle,socialLinks } = req.body;
+  const { firstName, lastName, phone, jobTitle, socialLinks } = req.body;
   const userId = req.user?._id;
 
   if (!userId) {
     return next(new CustomError("Unauthorized", 401));
   }
 
-  const updateUser = await userModel.findByIdAndUpdate(
-    userId,
-    { firstName, lastName, phone, jobTitle,socialLinks },
-    { new: true }
-  );
+  const encryptedPhone = phone
+    ? encrypt(phone, String(process.env.SECRETKEY_CRYPTO))
+    : undefined;
+
+  const updateData: any = { firstName, lastName, jobTitle, socialLinks };
+  if (encryptedPhone) updateData.phone = encryptedPhone;
+
+  const updateUser = await userModel.findByIdAndUpdate(userId, updateData, {
+    new: true,
+  });
 
   if (!updateUser) {
     return next(new CustomError("User not found during update", 404));
   }
 
   res.status(200).json({
-    message: "Instractor data updated successfully",
+    message: "Instructor data updated successfully",
     statusCode: 200,
     success: true,
     user: sanatizeUser(updateUser),
   });
 };
+
 
 export const deleteAccount = async (
   req: Request,

@@ -98,6 +98,7 @@ asyncHandler(userServices.deleteAccount)
 
 router.post(
   "/checkPass",
+  valid(changePassSchema) as RequestHandler,
   isAuth([Roles.Instructor,Roles.User]),
   asyncHandler(userServices.checkPass)
 );

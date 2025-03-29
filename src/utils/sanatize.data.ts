@@ -16,6 +16,7 @@ export const sanatizeUser = (user: Iuser) => {
     role: user?.role,
     avatar: user?.avatar,
     isConfirmed: user?.isConfirmed,
+    jobTitle: user.jobTitle,
     socialLinks: user?.socialLinks,
     isApproved: user?.isApproved
   };
