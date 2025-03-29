@@ -18,7 +18,7 @@ class Database {
       console.log("DB is Already Connected");
       return;
     }
-    const uri = databaseConfigration.DB_URL;
+    const uri = `${databaseConfigration.DB_URL}`;
     const options: ConnectOptions = {
       serverSelectionTimeoutMS: 5000,
     };
