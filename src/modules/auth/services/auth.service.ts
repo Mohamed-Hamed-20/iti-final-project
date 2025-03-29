@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { cokkiesOptions } from "../../../utils/cookies";
 import fs from "fs";
 import path from "path";
+import cron from 'node-cron';
 
 export const register = async (
   req: Request,
@@ -207,7 +208,10 @@ export const sendCode = async (
 
     const OTPCode = generateOTP();
 
-    await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
+    await userModel.findByIdAndUpdate(user._id, { 
+      code: OTPCode,
+      updatedAt: new Date() 
+    });
 
     const emailTemplatePath = path.join(
       __dirname,
@@ -287,3 +291,26 @@ export const forgetPassword = async (
     );
   }
 };
+
+export const clearUnusedCodes = async () => {
+  try {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    
+    const result = await userModel.updateMany(
+      { 
+        code: { $exists: true, $ne: "" },
+        updatedAt: { $lte: fifteenMinutesAgo }
+      },
+      { $unset: { code: "" } }
+    );
+
+    console.log(`Cleared ${result.modifiedCount} unused codes`);
+  } catch (error) {
+    console.error('Error clearing unused codes:', error);
+  }
+};
+
+// Schedule the cron job to run every 5 minutes
+cron.schedule('*/5 * * * *', clearUnusedCodes);
+
+
