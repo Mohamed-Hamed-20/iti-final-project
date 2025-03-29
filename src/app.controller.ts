@@ -8,8 +8,11 @@ import { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import path from "path";
 import morgan from "morgan";
+import compression from "compression";
 
 const app: Application = express();
+
+app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
 app.use(express.json());
 app.use(

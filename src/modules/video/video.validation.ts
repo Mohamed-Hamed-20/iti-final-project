@@ -7,4 +7,9 @@ export const addvideoSchema = {
       sectionId: generalFields._id.required(),
     })
     .required(),
+  query: joi
+    .object({
+      courseId: generalFields._id.required(),
+    })
+    .required(),
 };
