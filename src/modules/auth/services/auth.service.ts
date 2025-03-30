@@ -24,7 +24,8 @@ export const register = async (
 
   const hashpassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
-  const isApproved = role === "user";
+  // Set verification status based on role
+  const verificationStatus = role === "user" ? 'approved' : 'none';
 
   const result = new userModel({
     firstName,
@@ -32,7 +33,7 @@ export const register = async (
     email,
     password: hashpassword,
     role,
-    isApproved,
+    verificationStatus, 
   });
 
   const response = await result.save();
@@ -80,7 +81,7 @@ export const login = async (
 
   const findUser = await userModel
     .findOne({ email })
-    .select("firstName lastName email password role avatar isConfirmed")
+    .select("firstName lastName email password role avatar isConfirmed verificationStatus")
     .lean();
 
   if (!findUser) return next(new CustomError("Invalid Email or Password", 404));

@@ -7,7 +7,6 @@ import bcrypt, { compare } from "bcryptjs";
 import { encrypt } from "../../../utils/crpto";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import redis from "../../../utils/redis";
-import { log } from "console";
 
 export const profile = async (
   req: Request,
@@ -35,7 +34,7 @@ export const instructors = async (
   next: NextFunction
 ): Promise<Response | void> => {
   const users = await userModel
-    .find({ role: "instructor", isApproved: true })
+    .find({ role: "instructor", verificationStatus: 'approved' })
     .select("-password -email")
     .populate("courses")
     .lean();
@@ -217,7 +216,6 @@ export const instructorData = async (
   });
 };
 
-
 export const deleteAccount = async (
   req: Request,
   res: Response,
@@ -318,7 +316,7 @@ export const instructorVerification = async (
 
   console.log("✅ Received Files:", files);
 
-  // Generate unique S3 file keys (only the relative path, no bucket URL)
+  // Generate unique S3 file keys
   const fileKeyPromises = requiredFiles.map((file) =>
     userFileKey(user._id.toString(), file, files[file][0].originalname)
   );
@@ -382,7 +380,7 @@ export const instructorVerification = async (
 
   console.log("Uploaded File Keys:", uploadedFiles);
 
-  // Update user document
+  // Update user document with verification status and files
   const updatedUser = await userModel.findByIdAndUpdate(
     user._id,
     {
@@ -390,6 +388,7 @@ export const instructorVerification = async (
       backId: uploadedFiles.backID,
       requiredVideo: uploadedFiles.requiredVideo,
       optionalVideo: uploadedFiles.optionalVideo || "",
+      verificationStatus: 'pending',
     },
     { new: true }
   );
@@ -399,9 +398,10 @@ export const instructorVerification = async (
   console.log("User Updated:", updatedUser);
 
   return res.status(200).json({
-    message: "Verification files uploaded successfully",
+    message: "Verification files uploaded successfully. Your verification status is now pending.",
     success: true,
     user: sanatizeUser(updatedUser),
+    verificationStatus: 'pending'
   });
 };
 
@@ -508,76 +508,92 @@ export const instructorVerification = async (
 // };
 
 //Add It In Admin Panel
-export const getInstructorVerification = async (
+
+export const getPendingVerifications = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
-  const { instructorId } = req.params;
+  try {
+    // Fetch all instructors with pending verification status
+    const pendingInstructors = await userModel
+      .find({ 
+        role: "instructor", 
+        verificationStatus: 'pending'
+      })
+      .select('_id firstName lastName email verificationStatus frontId backId requiredVideo optionalVideo createdAt')
+      .lean();
 
-  // Fetch instructor verification data from the database
-  const instructorVerification = await userModel
-    .findOne({ _id: instructorId })
-    .lean();
+    if (!pendingInstructors || pendingInstructors.length === 0) {
+      return res.status(200).json({
+        message: "No pending verifications found",
+        status: "success",
+        data: []
+      });
+    }
 
-  if (!instructorVerification) {
-    return next(new CustomError("Instructor verification data not found", 404));
-  }
+    // Process each instructor to get their verification documents
+    const instructorsWithFiles = await Promise.all(
+      pendingInstructors.map(async (instructor) => {
+        try {
+          const { _id, frontId, backId, requiredVideo, optionalVideo } = instructor;
+          
+          // Skip if no documents exist
+          if (!frontId && !backId && !requiredVideo && !optionalVideo) {
+            return {
+              ...instructor,
+              documents: null
+            };
+          }
 
-  let { frontId, backId, requiredVideo, optionalVideo } =
-    instructorVerification;
+          // Get file URLs from S3
+          const fileKeys = [frontId, backId, requiredVideo, optionalVideo]
+            .filter((key): key is string => typeof key === "string" && key.trim() !== "")
+            .map((key) => {
+              try {
+                return key.replace(`https://${process.env.BUCKET_NAME}.s3.amazonaws.com/`, "");
+              } catch (error) {
+                console.error(`Error processing key for instructor ${_id}:`, error);
+                return null;
+              }
+            })
+            .filter(key => key !== null) as string[];
 
-  // Redis cache keys
-  const cacheKeys: Record<string, string> = {
-    frontId: `verification:${instructorId}:frontId`,
-    backId: `verification:${instructorId}:backId`,
-    requiredVideo: `verification:${instructorId}:requiredVideo`,
-    optionalVideo: `verification:${instructorId}:optionalVideo`,
-  };
+          const fileUrls = fileKeys.length > 0 
+            ? await new S3Instance().getFiles(fileKeys) 
+            : [];
 
-  // Check if data exists in Redis
-  const cachedFiles = await Promise.all(
-    Object.values(cacheKeys).map((key) => redis.get(key))
-  );
-
-  if (cachedFiles.every((url) => url)) {
-    console.log("✅ Data fetched from Redis Cache!");
-    return res.status(200).json({
-      instructorId,
-      frontId: cachedFiles[0],
-      backId: cachedFiles[1],
-      requiredVideo: cachedFiles[2],
-      optionalVideo: cachedFiles[3],
-    });
-  }
-
-  // Ensure we only fetch valid keys and remove S3 base URL
-  const fileKeys = [frontId, backId, requiredVideo, optionalVideo]
-    .filter(
-      (key): key is string => typeof key === "string" && key.trim() !== ""
-    )
-    .map((key) =>
-      key.replace(`https://${process.env.BUCKET_NAME}.s3.amazonaws.com/`, "")
+          return {
+            ...instructor,
+            documents: {
+              frontId: fileUrls[0] || null,
+              backId: fileUrls[1] || null,
+              requiredVideo: fileUrls[2] || null,
+              optionalVideo: fileUrls[3] || null
+            }
+          };
+        } catch (error) {
+          console.error(`Error processing instructor ${instructor._id}:`, error);
+          return {
+            ...instructor,
+            documents: null,
+            error: "Failed to load documents"
+          };
+        }
+      })
     );
 
-  console.log("Fetching files with keys:", fileKeys);
+    return res.status(200).json({
+      message: "Pending instructor verifications retrieved successfully",
+      status: "success",
+      count: instructorsWithFiles.length,
+      data: instructorsWithFiles
+    });
 
-  const fileUrls = await new S3Instance().getFiles(fileKeys);
-
-  // Store new file URLs in Redis with a 2-hour expiry
-  Object.entries(cacheKeys).forEach(([key, cacheKey], index) => {
-    if (fileUrls[index]) {
-      redis.setex(cacheKey, 7200, fileUrls[index]);
-    }
-  });
-
-  return res.status(200).json({
-    instructorId,
-    frontId: fileUrls[0] || "",
-    backId: fileUrls[1] || "",
-    requiredVideo: fileUrls[2] || "",
-    optionalVideo: fileUrls[3] || "",
-  });
+  } catch (error) {
+    console.error("Error in getPendingVerifications:", error);
+    return next(new CustomError("Failed to retrieve pending verifications. Please try again later.", 500));
+  }
 };
 
 export const approveInstructor = async (
@@ -594,25 +610,20 @@ export const approveInstructor = async (
     return next(new CustomError("Instructor not found", 404));
   }
 
-  if (instructor.role !== "instructor") {
-    return next(new CustomError("User is not an instructor", 400));
-  }
-
-  if (instructor.isApproved) {
+  if (instructor.verificationStatus === 'approved') {
     return res.status(200).json({
       message: "Instructor is already approved",
       success: true,
       statusCode: 200,
     });
   }
-
-  // Update the isApproved field to true
-  instructor.isApproved = true;
+  instructor.verificationStatus = 'approved';
   await instructor.save();
 
   return res.status(200).json({
     message: "Instructor approved successfully",
     success: true,
     statusCode: 200,
+    verificationStatus: instructor.verificationStatus
   });
 };
