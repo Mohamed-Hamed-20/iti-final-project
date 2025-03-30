@@ -1,14 +1,14 @@
-import mongoose, { PipelineStage, Types } from "mongoose";
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
+import mongoose, { Types } from "mongoose";
+import categoryModel from "../../../DB/models/category.model";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
-import { CustomError } from "../../../utils/errorHandling";
-import { paginate } from "../../../utils/pagination";
-import { courseKey, uploadFileToQueue } from "./courses.helper";
-import S3Instance from "../../../utils/aws.sdk.s3";
-import ApiPipeline from "../../../utils/apiFeacture";
 import { sectionModel, videoModel } from "../../../DB/models/videos.model";
-import categoryModel from "../../../DB/models/category.model";
+import ApiPipeline from "../../../utils/apiFeacture";
+import S3Instance from "../../../utils/aws.sdk.s3";
+import { CustomError } from "../../../utils/errorHandling";
+import { createNotification } from "../../notification/notification.controller";
+import { courseKey } from "./courses.helper";
 
 export const addCourse = async (
   req: Request,
@@ -63,6 +63,9 @@ export const addCourse = async (
     await courseModel.deleteOne({ _id: newCourse._id });
     return next(new CustomError("Error Uploading Image Server Error!", 500));
   }
+
+  // Create notification after course creation
+  await createNotification(req.user?._id.toString()!, savedCourse._id.toString());
 
   return res.status(201).json({
     message: "Course added successfully",
