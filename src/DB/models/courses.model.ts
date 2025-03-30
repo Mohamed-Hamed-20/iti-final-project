@@ -1,5 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { ICourse } from "../interfaces/courses.interface";
+import { boolean } from "joi";
 
 const CourseSchema = new Schema<ICourse>(
   {
@@ -65,6 +66,10 @@ const CourseSchema = new Schema<ICourse>(
       required: true,
     },
     instructorId: { type: Schema.Types.ObjectId, ref: "user", required: true },
+    featured:{
+      type : Boolean,
+      default : false
+    }
   },
   { timestamps: true }
 );
