@@ -19,4 +19,5 @@ export interface ICourse extends Document {
   instructorId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId;
   url?: string;
+  featured:boolean
 }
