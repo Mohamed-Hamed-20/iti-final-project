@@ -11,6 +11,7 @@ import sectionRouter from "./modules/section/section.routes";
 import userRouter from "./modules/user/user.routes";
 import videoRouter from "./modules/video/video.routes";
 import wishlistRoutes from "./modules/wishlist/wishlist.routes";
+import postRouter from "./modules/posts/posts.routes";
 
 const router = Router();
 router.use("/user", userRouter);
@@ -25,5 +26,6 @@ router.use("/custoersupport" , customerRouter)
 router.use("/course/wishlist" , wishlistRoutes)
 router.use("/course/cart" , cartRoutes)
 router.use("/notifications", notificationRouter);
+router.use("/posts", postRouter);
 
 export default router;
