@@ -11,7 +11,7 @@ import { CustomError } from "../../../utils/errorHandling";
       const { title } = req.body;
 
       const jobTitle = await jobModel.findOne({ title: { $regex: new RegExp(`^${title}$`, "i") } }).select("title");
-        if (jobTitle) return next(new CustomError("Job Title is Already Exist", 404));
+        if (jobTitle) return next(new CustomError("Job Title Already Exists", 404));
   
       const newJob = new jobModel({ title });
       const savedJob = await newJob.save();
