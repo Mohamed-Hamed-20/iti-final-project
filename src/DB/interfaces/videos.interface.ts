@@ -11,6 +11,7 @@ export interface IVideo extends Document {
   process?: "processing" | "completed" | "rejected";
   status?: "pending" | "approved" | "rejected";
   order?: number;
+  publicView?: boolean;
 }
 
 export interface Isection extends Document {

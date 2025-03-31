@@ -59,6 +59,7 @@ const VideoSchema = new Schema<IVideo>(
       default: "pending",
     },
     order: { type: Number, required: false, min: 0, max: 300 },
+    publicView: { type: Boolean, required: false, default: false },
   },
   { timestamps: true }
 );

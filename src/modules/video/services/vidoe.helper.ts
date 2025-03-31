@@ -3,6 +3,7 @@ import { CustomError } from "../../../utils/errorHandling";
 import { Isection, IVideo } from "../../../DB/interfaces/videos.interface";
 import { sectionModel, videoModel } from "../../../DB/models/videos.model";
 import courseModel from "../../../DB/models/courses.model";
+import { FfmpegService } from "../../../utils/ffmpeg.video";
 
 export const videoKey = async (
   section: any,
@@ -104,7 +105,6 @@ export const videoKey = async (
 //   }
 // };
 
-
 export const updateCourseTransaction = async (
   courseId: string | Types.ObjectId,
   sectionId: string | Types.ObjectId,
@@ -128,6 +128,7 @@ export const updateCourseTransaction = async (
       status: "pending",
       process: "processing",
       duration: video.duration,
+      publicView: video.publicView,
     });
 
     videoDoc.video_key = await videoKey(
@@ -135,7 +136,10 @@ export const updateCourseTransaction = async (
       videoDoc._id,
       video.title
     );
-    console.log({ videoDoc });
+
+    console.log({
+      fromated: new FfmpegService().formatDuration(video.duration),
+    });
 
     const [savedVideo, updatedSection, updatedCourse] = await Promise.all([
       videoDoc.save(),

@@ -9,6 +9,7 @@ import { Types } from "mongoose";
 import { FfmpegService } from "../../../utils/ffmpeg.video";
 import { title } from "process";
 import { addVideoToQueue } from "../../../utils/video.queue";
+import enrollmentModel from "../../../DB/models/enrollment.model";
 
 export const addVideo2 = async (
   req: Request,
@@ -101,7 +102,7 @@ export const addVideo = async (
   next: NextFunction
 ): Promise<Response | void> => {
   // Extract required fields from request body and query parameters
-  const { title, sectionId } = req.body;
+  const { title, sectionId, publicView } = req.body;
   const { courseId } = req.query;
   const user = req.user;
 
@@ -110,7 +111,6 @@ export const addVideo = async (
   if (!req.file || !req.file.path) {
     return next(new CustomError("Video file is missing", 400));
   }
-  console.log(req.file);
 
   // Find the section by sectionId and courseId and populate course data (instructorId, title)
   const section = await sectionModel
@@ -120,8 +120,6 @@ export const addVideo = async (
       select: "title instructorId",
     })
     .lean();
-
-  console.log({ section });
 
   if (!section) {
     return next(new CustomError("Invalid sectionId or courseId", 404));
@@ -146,8 +144,6 @@ export const addVideo = async (
     req.file.path
   );
 
-  console.log({ durationInSecound, size });
-
   if (!size || !durationInSecound) {
     return next(new CustomError("Server Error: Missing video metadata", 500));
   }
@@ -158,12 +154,12 @@ export const addVideo = async (
     await updateCourseTransaction(String(courseId), sectionId, {
       title,
       duration: durationInSecound,
+      publicView,
     });
-  console.log(savedVideo);
 
   // add upload video to queue
   req.file.folder = savedVideo.video_key;
-  await addVideoToQueue(req.file);
+  await addVideoToQueue(req.file, savedVideo._id);
 
   // Return a success response
   return res
@@ -184,16 +180,22 @@ export const getVideo = async (
 
   const { video_key } = video;
 
-  // Try fetching URLs from Redis cache
-  // const cachedVideoUrl = await redis.get(`video_url:${video_key}`);
+  if (video.status == "approved") {
+    return next(
+      new CustomError("videp Not approved yet to be accessable", 400)
+    );
+  }
 
-  // if (cachedVideoUrl) {
-  //   console.log("✅ Fetched from Redis Cache!");
-  //   return res.status(200).json({
-  //     video,
-  //     video_url: cachedVideoUrl,
-  //   });
-  // }
+  if (video?.publicView == false) {
+    const isEnrollMent = await enrollmentModel.findOne({
+      studentId: req?.user?._id,
+      courseId: video.courseId,
+    });
+
+    if (!isEnrollMent) {
+      return next(new CustomError("you should buy this course First", 400));
+    }
+  }
 
   // Fetch video and thumbnail URLs in parallel
   const video_url = await new S3Instance().getFile(video_key);
@@ -202,8 +204,11 @@ export const getVideo = async (
     return next(new CustomError("Error fetching video or thumbnail", 500));
   }
 
-  // Cache URLs in Redis for 2 hours
-  // await redis.setex(`video_url:${video_key}`, 7200, video_url);
-
-  return res.status(200).json({ video, video_url });
+  return res.status(200).json({
+    message: "video featched successfully",
+    success: true,
+    statusCode: 200,
+    video,
+    video_url,
+  });
 };

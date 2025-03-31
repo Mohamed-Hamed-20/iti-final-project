@@ -8,11 +8,6 @@ ffmpeg.setFfmpegPath(ffmpegStatic as string);
 ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 export class FfmpegService {
-  /**
-   * Get video metadata including formatted duration and size
-   * @param filePath - Path to the video file
-   * @returns Video metadata (formatted duration & size in bytes)
-   */
   async getVideoMetadata(
     filePath: string
   ): Promise<{ durationInSecound: number; size: number }> {
@@ -52,7 +47,7 @@ export class FfmpegService {
    * @param seconds - Total duration in seconds
    * @returns Formatted duration string
    */
-  private formatDuration(seconds: number): string {
+  formatDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
