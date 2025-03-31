@@ -64,15 +64,18 @@ export const addCourse = async (
     return next(new CustomError("Error Uploading Image Server Error!", 500));
   }
 
-  // Create notification after course creation
-  await createNotification(req.user?._id.toString()!, savedCourse._id.toString());
-
-  return res.status(201).json({
+  res.status(201).json({
     message: "Course added successfully",
     statusCode: 201,
     success: true,
     course: savedCourse,
   });
+
+  // Create notification after course creation
+  await createNotification(
+    req.user?._id.toString()!,
+    savedCourse._id.toString()
+  );
 };
 
 const allowSearchFields = [
@@ -188,7 +191,6 @@ export const getAllCoursesForInstructor = async (
 ) => {
   const { page, size, select, sort, search } = req.query;
   const { access_type } = req.query;
-  console.log({ userId: req.user?._id });
 
   const pipeline = new ApiPipeline()
     .searchOnString("access_type", access_type as string)
@@ -314,7 +316,9 @@ export const getCourseById = async (
         title: 1,
         order: 1,
         video_key: 1,
-        thumbnail_key: 1,
+        publicView: 1,
+        status: 1,
+        process: 1,
       }
     )
     .addStage({
@@ -360,8 +364,8 @@ export const getCourseById = async (
       },
     })
     .projection({
-      allowFields: defaultFields,
-      defaultFields: defaultFields,
+      allowFields: [...defaultFields, "sections", "videos"],
+      defaultFields: [...defaultFields, "sections", "videos"],
       select: undefined,
     })
     .build();

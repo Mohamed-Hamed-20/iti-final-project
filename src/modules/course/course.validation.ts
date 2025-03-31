@@ -17,13 +17,13 @@ export const addCourseSchema = {
       categoryId: generalFields._id.required(),
       requirements: joi
         .array()
-        .items(joi.string().trim().min(2).max(150))
+        .items(joi.string().trim().min(2).max(400))
         .min(1)
         .max(20)
         .required(),
       learningPoints: joi
         .array()
-        .items(joi.string().trim().min(2).max(150))
+        .items(joi.string().trim().min(2).max(400))
         .min(1)
         .max(20)
         .required(),
@@ -43,12 +43,12 @@ export const updateCourseSchema = {
       categoryId: generalFields._id,
       requirements: joi
         .array()
-        .items(joi.string().trim().min(2).max(150))
+        .items(joi.string().trim().min(2).max(400))
         .min(1)
         .max(20),
       learningPoints: joi
         .array()
-        .items(joi.string().trim().min(2).max(150))
+        .items(joi.string().trim().min(2).max(400))
         .min(1)
         .max(20),
       level: joi
