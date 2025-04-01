@@ -12,9 +12,8 @@ interface Category {
 interface Course {
   _id: string;
   title: string;
-  categoryId?: Category | null; 
+  categoryId?: Category | null;
 }
-
 
 export const cart = async (
   req: Request,
@@ -32,7 +31,11 @@ export const cart = async (
     return next(new CustomError("Course already exists", 400));
   }
 
-  const courseAdded = new cartModel({ userId: user._id, courseId , isCartAdded: true });
+  const courseAdded = new cartModel({
+    userId: user._id,
+    courseId,
+    isCartAdded: true,
+  });
   const courseSaved = await courseAdded.save();
 
   if (!courseSaved) {
@@ -151,11 +154,11 @@ export const getCoursesByCategory = async (
   let { category } = req.query;
 
 
-  if (!category) {
-    category = [];
-  } else if (!Array.isArray(category)) {
-    category = [category as string];
-  }
+  const categoryArray: string[] = category
+    ? typeof category === "string"
+      ? category.split(",")
+      : []
+    : [];
 
 
   if (!user) throw new Error("User is not found!");
@@ -163,7 +166,7 @@ export const getCoursesByCategory = async (
   const allCourses = await courseModel.aggregate([
     {
       $lookup: {
-        from: "categories", 
+        from: "categories",
         localField: "categoryId",
         foreignField: "_id",
         as: "category",
@@ -174,12 +177,12 @@ export const getCoursesByCategory = async (
     },
     {
       $match: {
-        "category.title": { $in: category }, 
+        "category.title": { $in: categoryArray },
       },
     },
     {
       $lookup: {
-        from: "users", 
+        from: "users",
         localField: "instructorId",
         foreignField: "_id",
         as: "instructor",
@@ -191,14 +194,11 @@ export const getCoursesByCategory = async (
     {
       $project: {
         description: 0,
-        "category._id": 0, 
+        "category._id": 0,
         "instructor._id": 0,
       },
     },
   ]);
-  
-  
-  
 
   if (!allCourses) {
     return next(new CustomError("No Courses founded in this category", 400));
