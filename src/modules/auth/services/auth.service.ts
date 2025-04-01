@@ -10,7 +10,8 @@ import { v4 as uuidv4 } from "uuid";
 import { cokkiesOptions } from "../../../utils/cookies";
 import fs from "fs";
 import path from "path";
-import cron from 'node-cron';
+import cron from "node-cron";
+import { TokenExpiredError } from "jsonwebtoken";
 
 export const register = async (
   req: Request,
@@ -25,7 +26,7 @@ export const register = async (
   const hashpassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
   // Set verification status based on role
-  const verificationStatus = role === "user" ? 'approved' : 'none';
+  const verificationStatus = role === "user" ? "approved" : "none";
 
   const result = new userModel({
     firstName,
@@ -33,7 +34,7 @@ export const register = async (
     email,
     password: hashpassword,
     role,
-    verificationStatus, 
+    verificationStatus,
   });
 
   const response = await result.save();
@@ -81,7 +82,9 @@ export const login = async (
 
   const findUser = await userModel
     .findOne({ email })
-    .select("firstName lastName email password role avatar isConfirmed verificationStatus")
+    .select(
+      "firstName lastName email password role avatar isConfirmed verificationStatus"
+    )
     .lean();
 
   if (!findUser) return next(new CustomError("Invalid Email or Password", 404));
@@ -97,6 +100,7 @@ export const login = async (
   if (findUser.isConfirmed == false) {
     return next(new CustomError("Please confirm your Email", 400));
   }
+
   // access Token
   const accessToken = new TokenService(
     String(TokenConfigration.ACCESS_TOKEN_SECRET),
@@ -118,10 +122,10 @@ export const login = async (
   res.cookie(
     "accessToken",
     `${process.env.ACCESS_TOKEN_START_WITH}${accessToken}`,
-    cokkiesOptions(7 * 24 * 3600000)
+    cokkiesOptions(10 * 24 * 3600000)
   );
 
-  res.cookie("refreshToken", refreshToken, cokkiesOptions(7 * 24 * 3600000));
+  res.cookie("refreshToken", refreshToken, cokkiesOptions(10 * 24 * 3600000));
   return res.status(200).json({
     message: "Login successful",
     success: true,
@@ -209,9 +213,9 @@ export const sendCode = async (
 
     const OTPCode = generateOTP();
 
-    await userModel.findByIdAndUpdate(user._id, { 
+    await userModel.findByIdAndUpdate(user._id, {
       code: OTPCode,
-      updatedAt: new Date() 
+      updatedAt: new Date(),
     });
 
     const emailTemplatePath = path.join(
@@ -296,22 +300,125 @@ export const forgetPassword = async (
 export const clearUnusedCodes = async () => {
   try {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
-    
+
     const result = await userModel.updateMany(
-      { 
+      {
         code: { $exists: true, $ne: "" },
-        updatedAt: { $lte: fifteenMinutesAgo }
+        updatedAt: { $lte: fifteenMinutesAgo },
       },
       { $unset: { code: "" } }
     );
 
     console.log(`Cleared ${result.modifiedCount} unused codes`);
   } catch (error) {
-    console.error('Error clearing unused codes:', error);
+    console.error("Error clearing unused codes:", error);
   }
 };
 
 // Schedule the cron job to run every 5 minutes
-cron.schedule('*/5 * * * *', clearUnusedCodes);
+cron.schedule("*/5 * * * *", clearUnusedCodes);
 
+export const generateNewAccessToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | Response> => {
+  // get tokens from cookies
+  const { refreshToken, accessToken: accessTokenCookie } = req.cookies;
+  if (!accessTokenCookie || !refreshToken) {
+    return next(new CustomError("please login first", 400));
+  }
 
+  // extract the access token from the cookie (remove prefix if any)
+  const tokenPrefix = TokenConfigration.ACCESS_TOKEN_START_WITH || "Bearer ";
+  let accessToken: string;
+  try {
+    const parts = accessTokenCookie.split(tokenPrefix);
+    if (parts.length < 2) {
+      return next(new CustomError("invalid access token format", 400));
+    }
+    accessToken = parts[1];
+  } catch (error) {
+    return next(new CustomError("error parsing access token", 400));
+  }
+
+  // verify if the access token is expired
+  try {
+    const decoded = new TokenService(
+      String(TokenConfigration.ACCESS_TOKEN_SECRET)
+    ).verifyToken(accessToken);
+    // if token is still valid, no need to refresh
+    if (decoded && decoded.userId) {
+      return next(new CustomError("access token is still valid", 400));
+    }
+  } catch (error) {
+    // if error is not token expired error, reject request
+    if (!(error instanceof TokenExpiredError)) {
+      return next(
+        new CustomError(
+          `invalid access token: ${(error as Error).message}`,
+          400
+        )
+      );
+    }
+    // else, token is expired, so we continue
+  }
+
+  // refresh the token using the refresh token
+  try {
+    const decodedRefresh = new TokenService(
+      String(TokenConfigration.REFRESH_TOKEN_SECRET)
+    ).verifyToken(refreshToken);
+    if (!decodedRefresh || !decodedRefresh.userId) {
+      return next(new CustomError("invalid refresh token", 400));
+    }
+
+    // find user in db
+    const user = await userModel.findById(decodedRefresh.userId).lean();
+    if (!user) {
+      return next(new CustomError("user not found, please login again", 400));
+    }
+
+    // generate new access token
+    const newAccessToken = new TokenService(
+      String(TokenConfigration.ACCESS_TOKEN_SECRET),
+      String(TokenConfigration.ACCESS_EXPIRE)
+    ).generateToken({
+      userId: user._id,
+      role: user.role,
+    });
+
+    // generate new refresh token (token rotation)
+    const newRefreshToken = new TokenService(
+      String(TokenConfigration.REFRESH_TOKEN_SECRET),
+      String(TokenConfigration.REFRESH_EXPIRE)
+    ).generateToken({
+      userId: user._id,
+      role: user.role,
+    });
+
+    // set new tokens in cookies; cookie expiry here is set longer (e.g., same as refresh token)
+    res.cookie(
+      "accessToken",
+      `${process.env.ACCESS_TOKEN_START_WITH || "Bearer "}${newAccessToken}`,
+      cokkiesOptions(10 * 24 * 3600000) // cookie expires in 7 days
+    );
+    res.cookie(
+      "refreshToken",
+      newRefreshToken,
+      cokkiesOptions(10 * 24 * 3600000)
+    );
+
+    // send the new access token in the response
+    return res.status(200).json({
+      messgae: "Token refreshed successfully",
+      success: true,
+      statsuCode: 200,
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    return next(
+      new CustomError(`token refresh error: ${(error as Error).message}`, 400)
+    );
+  }
+};

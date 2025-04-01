@@ -42,4 +42,8 @@ router.post(
   asyncHandler(authServices.forgetPassword)
 );
 
+router.post(
+  "/generate/tokens",
+  asyncHandler(authServices.generateNewAccessToken)
+);
 export default router;
