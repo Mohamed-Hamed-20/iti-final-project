@@ -1,16 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 import { sectionModel, videoModel } from "../../../DB/models/videos.model";
-import { videoKey } from "./vidoe.helper";
+import { updateCourseTransaction, videoKey } from "./vidoe.helper";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import { CustomError } from "../../../utils/errorHandling";
 import courseModel from "../../../DB/models/courses.model";
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { AWS_S3Keys } from "../../../config/env";
 import redis from "../../../utils/redis";
 import { Types } from "mongoose";
+import { FfmpegService } from "../../../utils/ffmpeg.video";
+import { title } from "process";
+import { addVideoToQueue } from "../../../utils/video.queue";
+import enrollmentModel from "../../../DB/models/enrollment.model";
 
-export const addVideo = async (
+export const addVideo2 = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -87,6 +88,85 @@ export const updateVideo = async (
   const { videoId } = req.query;
 };
 
+export const createSignedVideo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  const { videoType, courseId } = req.body;
+};
+
+export const addVideo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  // Extract required fields from request body and query parameters
+  const { title, sectionId, publicView } = req.body;
+  const { courseId } = req.query;
+  const user = req.user;
+
+  // Extract video metadata (duration and size) using FfmpegService
+  // Ensure req.file is available (it should be set by multer)
+  if (!req.file || !req.file.path) {
+    return next(new CustomError("Video file is missing", 400));
+  }
+
+  // Find the section by sectionId and courseId and populate course data (instructorId, title)
+  const section = await sectionModel
+    .findOne({ _id: sectionId, courseId: courseId })
+    .populate<{ courseId: { _id: string; instructorId: string } }>({
+      path: "courseId",
+      select: "title instructorId",
+    })
+    .lean();
+
+  if (!section) {
+    return next(new CustomError("Invalid sectionId or courseId", 404));
+  }
+
+  // Validate that the section's courseId matches the provided courseId
+  if (String(section.courseId?._id) !== String(courseId)) {
+    return next(
+      new CustomError("CourseId does not match section's course", 400)
+    );
+  }
+
+  // Ensure the current user is the instructor of the course
+  if (String(section.courseId.instructorId) !== String(user?._id)) {
+    return next(
+      new CustomError("Not allowed to upload video to this course", 403)
+    );
+  }
+
+  const ffmpegService = new FfmpegService();
+  const { durationInSecound, size } = await ffmpegService.getVideoMetadata(
+    req.file.path
+  );
+
+  if (!size || !durationInSecound) {
+    return next(new CustomError("Server Error: Missing video metadata", 500));
+  }
+
+  // Update the course and section documents within a transaction.
+  // This function saves the video document and updates the related course and section.
+  const { savedVideo, updatedCourse, updatedSection } =
+    await updateCourseTransaction(String(courseId), sectionId, {
+      title,
+      duration: durationInSecound,
+      publicView,
+    });
+
+  // add upload video to queue
+  req.file.folder = savedVideo.video_key;
+  await addVideoToQueue(req.file, savedVideo._id);
+
+  // Return a success response
+  return res
+    .status(200)
+    .json({ message: "Video uploaded successfully", video: savedVideo });
+};
+
 export const getVideo = async (
   req: Request,
   res: Response,
@@ -100,15 +180,21 @@ export const getVideo = async (
 
   const { video_key } = video;
 
-  // Try fetching URLs from Redis cache
-  const cachedVideoUrl = await redis.get(`video_url:${video_key}`);
+  if (video.status == "approved") {
+    return next(
+      new CustomError("videp Not approved yet to be accessable", 400)
+    );
+  }
 
-  if (cachedVideoUrl) {
-    console.log("✅ Fetched from Redis Cache!");
-    return res.status(200).json({
-      video,
-      video_url: cachedVideoUrl,
+  if (video?.publicView == false) {
+    const isEnrollMent = await enrollmentModel.findOne({
+      studentId: req?.user?._id,
+      courseId: video.courseId,
     });
+
+    if (!isEnrollMent) {
+      return next(new CustomError("you should buy this course First", 400));
+    }
   }
 
   // Fetch video and thumbnail URLs in parallel
@@ -118,8 +204,11 @@ export const getVideo = async (
     return next(new CustomError("Error fetching video or thumbnail", 500));
   }
 
-  // Cache URLs in Redis for 2 hours
-  await redis.setex(`video_url:${video_key}`, 7200, video_url);
-
-  return res.status(200).json({ video, video_url });
+  return res.status(200).json({
+    message: "video featched successfully",
+    success: true,
+    statusCode: 200,
+    video,
+    video_url,
+  });
 };

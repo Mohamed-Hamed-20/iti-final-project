@@ -1,3 +1,4 @@
+import fs from "fs";
 import {
   CreateBucketCommand,
   DeleteBucketCommand,
@@ -21,8 +22,6 @@ declare global {
     }
   }
 }
-
-export {};
 
 export default class S3Instance {
   private s3: S3Client;
@@ -127,6 +126,48 @@ export default class S3Instance {
       Key: key,
       Location: `https://${AWS_S3Keys.BUCKET_NAME}.s3.amazonaws.com/${key}`,
     };
+  }
+
+  async uploadLargeFileWithPath(file: Express.Multer.File) {
+    if (!file.path) {
+      return new CustomError("File path is required", 400);
+    }
+    if (!file.folder) {
+      return new CustomError("File Folder is required", 400);
+    }
+
+    const upload = new Upload({
+      client: this.s3,
+      params: {
+        Bucket: AWS_S3Keys.BUCKET_NAME,
+        Key: file.folder,
+        Body: fs.createReadStream(file.path),
+        ContentType: file.mimetype,
+      },
+      partSize: 10 * 1024 * 1024, // 10 MB
+    });
+
+    upload.on("httpUploadProgress", (progress) => {
+      console.log(`📤 Progress: ${progress.loaded} / ${progress.total}`);
+    });
+
+    try {
+      const response = await upload.done();
+
+      if (response.$metadata.httpStatusCode !== 200) {
+        throw new CustomError("Failed to upload file", 500);
+      }
+
+      console.log("✅ Large file uploaded successfully!");
+
+      fs.unlinkSync(file.path);
+
+      return response;
+    } catch (error) {
+      console.error("❌ Upload failed:", error);
+      fs.unlinkSync(file.path);
+      throw new CustomError("Upload failed", 500);
+    }
   }
 
   async uploadFile(file: Express.Multer.File) {

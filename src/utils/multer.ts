@@ -9,16 +9,20 @@ import path from "path";
 
 export const configureMulter = (
   fileSize: number = 5 * 1024 * 1024,
-  allowedFileTypes: Array<string> = FileType.Images
+  allowedFileTypes: Array<string> = FileType.Images,
+  folder: string = "uploads"
 ) => {
   const storage = multer.diskStorage({
     destination(req, file, callback) {
-      const uploadPath = path.join(process.cwd(), "uploads");
-
-      if (!fs.existsSync(uploadPath)) {
-        fs.mkdirSync(uploadPath);
+      try {
+        const uploadPath = path.join(process.cwd(), folder);
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        callback(null, uploadPath);
+      } catch (error) {
+        callback(new Error("Failed to create upload directory"), "");
       }
-      callback(null, uploadPath);
     },
     filename(req, file, callback) {
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

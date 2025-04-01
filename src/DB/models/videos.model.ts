@@ -9,6 +9,10 @@ const sectionSchema = new mongoose.Schema<Isection>(
       required: true,
     },
     totalVideos: { type: Number, required: true, default: 0 },
+    totalDuration: {
+      type: Number,
+      default: 0,
+    },
     title: { type: String, required: true },
     order: { type: Number, required: false },
   },
@@ -38,7 +42,24 @@ const VideoSchema = new Schema<IVideo>(
       type: String,
       required: true,
     },
+
+    duration: { type: String, required: true },
+    process: {
+      type: String,
+      trim: true,
+      required: true,
+      enum: ["processing", "completed", "rejected"],
+      default: "processing",
+    },
+    status: {
+      type: String,
+      trim: true,
+      required: true,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
     order: { type: Number, required: false, min: 0, max: 300 },
+    publicView: { type: Boolean, required: false, default: false },
   },
   { timestamps: true }
 );

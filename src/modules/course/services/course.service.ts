@@ -1,14 +1,14 @@
-import mongoose, { PipelineStage, Types } from "mongoose";
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
+import mongoose, { Types } from "mongoose";
+import categoryModel from "../../../DB/models/category.model";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
-import { CustomError } from "../../../utils/errorHandling";
-import { paginate } from "../../../utils/pagination";
-import { courseKey, uploadFileToQueue } from "./courses.helper";
-import S3Instance from "../../../utils/aws.sdk.s3";
-import ApiPipeline from "../../../utils/apiFeacture";
 import { sectionModel, videoModel } from "../../../DB/models/videos.model";
-import categoryModel from "../../../DB/models/category.model";
+import ApiPipeline from "../../../utils/apiFeacture";
+import S3Instance from "../../../utils/aws.sdk.s3";
+import { CustomError } from "../../../utils/errorHandling";
+import { createNotification } from "../../notification/notification.controller";
+import { courseKey } from "./courses.helper";
 
 export const addCourse = async (
   req: Request,
@@ -64,12 +64,18 @@ export const addCourse = async (
     return next(new CustomError("Error Uploading Image Server Error!", 500));
   }
 
-  return res.status(201).json({
+  res.status(201).json({
     message: "Course added successfully",
     statusCode: 201,
     success: true,
     course: savedCourse,
   });
+
+  // Create notification after course creation
+  await createNotification(
+    req.user?._id.toString()!,
+    savedCourse._id.toString()
+  );
 };
 
 const allowSearchFields = [
@@ -185,7 +191,6 @@ export const getAllCoursesForInstructor = async (
 ) => {
   const { page, size, select, sort, search } = req.query;
   const { access_type } = req.query;
-  console.log({ userId: req.user?._id });
 
   const pipeline = new ApiPipeline()
     .searchOnString("access_type", access_type as string)
@@ -311,7 +316,9 @@ export const getCourseById = async (
         title: 1,
         order: 1,
         video_key: 1,
-        thumbnail_key: 1,
+        publicView: 1,
+        status: 1,
+        process: 1,
       }
     )
     .addStage({
@@ -357,8 +364,8 @@ export const getCourseById = async (
       },
     })
     .projection({
-      allowFields: defaultFields,
-      defaultFields: defaultFields,
+      allowFields: [...defaultFields, "sections", "videos"],
+      defaultFields: [...defaultFields, "sections", "videos"],
       select: undefined,
     })
     .build();

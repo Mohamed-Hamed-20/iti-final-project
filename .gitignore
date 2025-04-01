@@ -1,6 +1,6 @@
-./.env
 /.env
 /dist
-./dist
 /node_modules
-./node_modules
+/uploads
+/npm-cache
+/src/npm-cache  # Ignore npm-cache inside the src folder

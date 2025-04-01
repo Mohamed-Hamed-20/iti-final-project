@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { cokkiesOptions } from "../../../utils/cookies";
 import fs from "fs";
 import path from "path";
+import cron from 'node-cron';
 
 export const register = async (
   req: Request,
@@ -19,11 +20,12 @@ export const register = async (
   const { firstName, lastName, email, password, role } = req.body;
 
   const chkemail = await userModel.findOne({ email }).select("email");
-  if (chkemail) return next(new CustomError("Email is Already Exist", 404));
+  if (chkemail) return next(new CustomError("Email Already Exists", 404));
 
   const hashpassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
-  const isApproved = role === "user";
+  // Set verification status based on role
+  const verificationStatus = role === "user" ? 'approved' : 'none';
 
   const result = new userModel({
     firstName,
@@ -31,7 +33,7 @@ export const register = async (
     email,
     password: hashpassword,
     role,
-    isApproved,
+    verificationStatus, 
   });
 
   const response = await result.save();
@@ -79,7 +81,7 @@ export const login = async (
 
   const findUser = await userModel
     .findOne({ email })
-    .select("firstName lastName email password role avatar isConfirmed")
+    .select("firstName lastName email password role avatar isConfirmed verificationStatus")
     .lean();
 
   if (!findUser) return next(new CustomError("Invalid Email or Password", 404));
@@ -207,7 +209,10 @@ export const sendCode = async (
 
     const OTPCode = generateOTP();
 
-    await userModel.findByIdAndUpdate(user._id, { code: OTPCode });
+    await userModel.findByIdAndUpdate(user._id, { 
+      code: OTPCode,
+      updatedAt: new Date() 
+    });
 
     const emailTemplatePath = path.join(
       __dirname,
@@ -287,3 +292,26 @@ export const forgetPassword = async (
     );
   }
 };
+
+export const clearUnusedCodes = async () => {
+  try {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    
+    const result = await userModel.updateMany(
+      { 
+        code: { $exists: true, $ne: "" },
+        updatedAt: { $lte: fifteenMinutesAgo }
+      },
+      { $unset: { code: "" } }
+    );
+
+    console.log(`Cleared ${result.modifiedCount} unused codes`);
+  } catch (error) {
+    console.error('Error clearing unused codes:', error);
+  }
+};
+
+// Schedule the cron job to run every 5 minutes
+cron.schedule('*/5 * * * *', clearUnusedCodes);
+
+

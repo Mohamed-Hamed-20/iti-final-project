@@ -2,7 +2,7 @@ import { asyncHandler } from "./../../utils/errorHandling";
 import { instructors } from "./../user/services/user.service";
 import { Roles } from "./../../DB/interfaces/user.interface";
 import { RequestHandler, Router } from "express";
-import { multerMemory } from "../../utils/multer";
+import { configureMulter, multerMemory } from "../../utils/multer";
 import { FileType } from "../../utils/files.allowed";
 import * as videoService from "./services/video.service";
 import { isAuth } from "../../middleware/auth";
@@ -13,13 +13,18 @@ const router = Router();
 
 router.post(
   "/add",
-  multerMemory(1024 * 1024 * 1024, [...FileType.Videos]).single("video"),
+  configureMulter(
+    1024 * 1024 * 1024,
+    [...FileType.Videos],
+    "uploads/original"
+  ).single("video"),
   valid(cokkiesSchema) as RequestHandler,
   valid(addvideoSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(videoService.addVideo)
 );
 
+router.get("/signed-url", asyncHandler(videoService.addVideo));
 router.get(
   "/",
   valid(cokkiesSchema) as RequestHandler,

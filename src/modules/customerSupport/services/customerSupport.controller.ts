@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-
+import { createNotification } from "../../notification/notification.controller";
 import { CustomerSupportService } from "./customerSupport.service";
 
 export class CustomerSupportController {
@@ -7,6 +7,12 @@ export class CustomerSupportController {
 
   async createTicket(req: Request, res: Response, next: NextFunction) {
     const ticket = await this.service.createTicket(req.body);
+    
+    // Create notification for the ticket
+    if (req.user?._id) {
+      await createNotification(req.user._id.toString(), ticket._id.toString());
+    }
+
     return res.status(201).json({
       message: "Ticket created successfully",
       success: true,

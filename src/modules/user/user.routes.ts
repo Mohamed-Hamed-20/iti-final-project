@@ -34,15 +34,15 @@ router.get(
 );
 
 router.get(
-  "/:id",
-  asyncHandler(userServices.getInstructorById)
+  "/pending",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
+  asyncHandler(userServices.getPendingVerifications)
 );
 
 router.get(
-  "/verified/:instructorId",
-  valid(cokkiesSchema) as RequestHandler,
-  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
-  asyncHandler(userServices.getInstructorVerification)
+  "/:id",
+  asyncHandler(userServices.getInstructorById)
 );
 
 router.post(
@@ -98,6 +98,7 @@ asyncHandler(userServices.deleteAccount)
 
 router.post(
   "/checkPass",
+  valid(changePassSchema) as RequestHandler,
   isAuth([Roles.Instructor,Roles.User]),
   asyncHandler(userServices.checkPass)
 );

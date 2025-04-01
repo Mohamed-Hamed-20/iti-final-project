@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { Iuser, Roles } from "../interfaces/user.interface";
 
 const userSchema = new Schema<Iuser>(
@@ -51,11 +51,6 @@ const userSchema = new Schema<Iuser>(
       required: false,
       default: false,
     },
-    isApproved: {
-      type: Boolean,
-      required: false,
-      default: false,
-    },
     isOnline:{
       type: Boolean,
       default: false
@@ -84,6 +79,17 @@ const userSchema = new Schema<Iuser>(
     optionalVideo: {
       type: String,
     },
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "none"],
+    },
+    socialLinks: {
+      linkedin: { type: String },
+      github: { type: String },
+      twitter: { type: String },
+      facebook: { type: String },
+      portfolio: { type: String }
+    }
   },
   { timestamps: true }
 );
