@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { cartModel } from "../../../DB/models/cart.model";
 import { CustomError } from "../../../utils/errorHandling";
-import { populate } from "dotenv";
 import courseModel from "../../../DB/models/courses.model";
 
 interface Category {

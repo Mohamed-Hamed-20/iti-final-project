@@ -7,6 +7,7 @@ import bcrypt, { compare } from "bcryptjs";
 import { encrypt } from "../../../utils/crpto";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import redis from "../../../utils/redis";
+import { ICourse } from "../../../DB/interfaces/courses.interface";
 
 export const profile = async (
   req: Request,
@@ -34,7 +35,7 @@ export const instructors = async (
   next: NextFunction
 ): Promise<Response | void> => {
   const users = await userModel
-    .find({ role: "instructor", verificationStatus: 'approved' })
+    .find({ role: "instructor", verificationStatus: "approved" })
     .select("-password -email")
     .populate("courses")
     .lean();
@@ -56,7 +57,7 @@ export const getInstructorById = async (
   const instructor = await userModel
     .findById(id)
     .select("-password -email")
-    .populate({
+    .populate<{ courses: Array<ICourse> }>({
       path: "courses",
       populate: {
         path: "categoryId",
@@ -67,6 +68,16 @@ export const getInstructorById = async (
   if (!instructor) {
     return next(new CustomError("Instructor not found", 404));
   }
+
+  const keys = instructor.courses.map((course) => course.thumbnail);
+  const urls = await new S3Instance().getFiles(keys);
+  for (let i = 0; i < instructor.courses.length; i++) {
+    instructor.courses[i].url = urls[i];
+  }
+
+  // for await (const course of instructor.courses) {
+  //   course.url = await new S3Instance().getFile(course.thumbnail);
+  // }
 
   return res.status(200).json({
     message: "Instructor fetched successfully",
@@ -388,7 +399,7 @@ export const instructorVerification = async (
       backId: uploadedFiles.backID,
       requiredVideo: uploadedFiles.requiredVideo,
       optionalVideo: uploadedFiles.optionalVideo || "",
-      verificationStatus: 'pending',
+      verificationStatus: "pending",
     },
     { new: true }
   );
@@ -398,10 +409,11 @@ export const instructorVerification = async (
   console.log("User Updated:", updatedUser);
 
   return res.status(200).json({
-    message: "Verification files uploaded successfully. Your verification status is now pending.",
+    message:
+      "Verification files uploaded successfully. Your verification status is now pending.",
     success: true,
     user: sanatizeUser(updatedUser),
-    verificationStatus: 'pending'
+    verificationStatus: "pending",
   });
 };
 
@@ -517,18 +529,20 @@ export const getPendingVerifications = async (
   try {
     // Fetch all instructors with pending verification status
     const pendingInstructors = await userModel
-      .find({ 
-        role: "instructor", 
-        verificationStatus: 'pending'
+      .find({
+        role: "instructor",
+        verificationStatus: "pending",
       })
-      .select('_id firstName lastName email verificationStatus frontId backId requiredVideo optionalVideo createdAt')
+      .select(
+        "_id firstName lastName email verificationStatus frontId backId requiredVideo optionalVideo createdAt"
+      )
       .lean();
 
     if (!pendingInstructors || pendingInstructors.length === 0) {
       return res.status(200).json({
         message: "No pending verifications found",
         status: "success",
-        data: []
+        data: [],
       });
     }
 
@@ -536,32 +550,43 @@ export const getPendingVerifications = async (
     const instructorsWithFiles = await Promise.all(
       pendingInstructors.map(async (instructor) => {
         try {
-          const { _id, frontId, backId, requiredVideo, optionalVideo } = instructor;
-          
+          const { _id, frontId, backId, requiredVideo, optionalVideo } =
+            instructor;
+
           // Skip if no documents exist
           if (!frontId && !backId && !requiredVideo && !optionalVideo) {
             return {
               ...instructor,
-              documents: null
+              documents: null,
             };
           }
 
           // Get file URLs from S3
           const fileKeys = [frontId, backId, requiredVideo, optionalVideo]
-            .filter((key): key is string => typeof key === "string" && key.trim() !== "")
+            .filter(
+              (key): key is string =>
+                typeof key === "string" && key.trim() !== ""
+            )
             .map((key) => {
               try {
-                return key.replace(`https://${process.env.BUCKET_NAME}.s3.amazonaws.com/`, "");
+                return key.replace(
+                  `https://${process.env.BUCKET_NAME}.s3.amazonaws.com/`,
+                  ""
+                );
               } catch (error) {
-                console.error(`Error processing key for instructor ${_id}:`, error);
+                console.error(
+                  `Error processing key for instructor ${_id}:`,
+                  error
+                );
                 return null;
               }
             })
-            .filter(key => key !== null) as string[];
+            .filter((key) => key !== null) as string[];
 
-          const fileUrls = fileKeys.length > 0 
-            ? await new S3Instance().getFiles(fileKeys) 
-            : [];
+          const fileUrls =
+            fileKeys.length > 0
+              ? await new S3Instance().getFiles(fileKeys)
+              : [];
 
           return {
             ...instructor,
@@ -569,15 +594,18 @@ export const getPendingVerifications = async (
               frontId: fileUrls[0] || null,
               backId: fileUrls[1] || null,
               requiredVideo: fileUrls[2] || null,
-              optionalVideo: fileUrls[3] || null
-            }
+              optionalVideo: fileUrls[3] || null,
+            },
           };
         } catch (error) {
-          console.error(`Error processing instructor ${instructor._id}:`, error);
+          console.error(
+            `Error processing instructor ${instructor._id}:`,
+            error
+          );
           return {
             ...instructor,
             documents: null,
-            error: "Failed to load documents"
+            error: "Failed to load documents",
           };
         }
       })
@@ -587,12 +615,16 @@ export const getPendingVerifications = async (
       message: "Pending instructor verifications retrieved successfully",
       status: "success",
       count: instructorsWithFiles.length,
-      data: instructorsWithFiles
+      data: instructorsWithFiles,
     });
-
   } catch (error) {
     console.error("Error in getPendingVerifications:", error);
-    return next(new CustomError("Failed to retrieve pending verifications. Please try again later.", 500));
+    return next(
+      new CustomError(
+        "Failed to retrieve pending verifications. Please try again later.",
+        500
+      )
+    );
   }
 };
 
@@ -610,20 +642,20 @@ export const approveInstructor = async (
     return next(new CustomError("Instructor not found", 404));
   }
 
-  if (instructor.verificationStatus === 'approved') {
+  if (instructor.verificationStatus === "approved") {
     return res.status(200).json({
       message: "Instructor is already approved",
       success: true,
       statusCode: 200,
     });
   }
-  instructor.verificationStatus = 'approved';
+  instructor.verificationStatus = "approved";
   await instructor.save();
 
   return res.status(200).json({
     message: "Instructor approved successfully",
     success: true,
     statusCode: 200,
-    verificationStatus: instructor.verificationStatus
+    verificationStatus: instructor.verificationStatus,
   });
 };

@@ -23,7 +23,6 @@ declare global {
   }
 }
 
-
 export default class S3Instance {
   private s3: S3Client;
   constructor() {
