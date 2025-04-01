@@ -55,13 +55,36 @@ export default class ApiPipeline {
   }
 
   sort(sortText?: string): this {
-    if (!sortText) return this;
+    if (!sortText || typeof sortText !== "string") {
+      // Default to no sorting or a fallback if desired
+      this.pipeline.push({ $sort: { createdAt: -1 } }); // Optional default
+      return this;
+    }
+  
     const sortFields: Record<string, 1 | -1> = {};
     sortText.split(",").forEach((item) => {
-      const [field, order] = item.split(":");
-      sortFields[field.trim()] = order.trim().toLowerCase() === "desc" ? -1 : 1;
+      const trimmedItem = item.trim();
+      if (!trimmedItem) return; // Skip empty items
+  
+      const [field, order] = trimmedItem.split(":");
+      const cleanedField = field.trim();
+  
+      if (order) {
+        // Handle explicit order (e.g., "createdAt:desc")
+        sortFields[cleanedField] = order.trim().toLowerCase() === "desc" ? -1 : 1;
+      } else if (cleanedField.startsWith("-")) {
+        // Handle MongoDB-style descending (e.g., "-createdAt")
+        sortFields[cleanedField.slice(1)] = -1;
+      } else {
+        // Handle ascending (e.g., "createdAt")
+        sortFields[cleanedField] = 1;
+      }
     });
-    this.pipeline.push({ $sort: sortFields });
+  
+    if (Object.keys(sortFields).length > 0) {
+      this.pipeline.push({ $sort: sortFields });
+    }
+  
     return this;
   }
 
