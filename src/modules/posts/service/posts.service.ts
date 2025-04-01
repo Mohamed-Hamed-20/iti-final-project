@@ -393,10 +393,7 @@ export const likePost = async (
     return next(new CustomError("Post not found", 404));
   }
 
-  if (post.author.toString() === userId?.toString()) {
-    return next(new CustomError("You cannot like your own post", 403));
-  }
-
+  // Removed the check that prevented users from liking their own posts
   const hasLiked = post.likes.some(
     (like) => like?.user?.toString() === userId?.toString()
   );
@@ -429,11 +426,18 @@ export const unlikePost = async (
     return next(new CustomError("Post not found", 404));
   }
 
-  const likeIndex = post.likes.findIndex(
-    (like) => like?.user?.toString() === userId?.toString()
+  // Check if the user has liked the post
+  const likeIndex = post.likes.findIndex((like) =>
+    like?.user?.toString() === userId?.toString()
   );
+
   if (likeIndex === -1) {
-    return next(new CustomError("You have not liked this post", 400));
+    return res.status(200).json({
+      message: "You have not liked this post, no action taken",
+      statusCode: 200,
+      success: true,
+      post,
+    });
   }
 
   post.likes.splice(likeIndex, 1);
