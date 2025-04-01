@@ -21,7 +21,7 @@ export const register = async (
   const { firstName, lastName, email, password, role } = req.body;
 
   const chkemail = await userModel.findOne({ email }).select("email");
-  if (chkemail) return next(new CustomError("Email is Already Exist", 404));
+  if (chkemail) return next(new CustomError("Email Already Exists", 404));
 
   const hashpassword = await bcrypt.hash(password, Number(SALT_ROUND));
 
