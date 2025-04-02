@@ -53,14 +53,12 @@ export const getInstructorById = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
     const user = req.user as Iuser; 
     
     if (!user) {
       return next(new CustomError("User not authenticated", 401));
     }
 
-    // 1. Find instructor with proper typing
     const instructor = await userModel.findById(user._id)
       .select("-password -email")
       .populate<{ courses: ICourse[] }>({
@@ -76,11 +74,9 @@ export const getInstructorById = async (
       instructor.courses = [];
     }
 
-    // 3. Get thumbnails
     const keys = instructor.courses.map((course) => course.thumbnail);
     const urls = await new S3Instance().getFiles(keys);
     
-    // 4. Convert to plain object and add URLs/instructor data
     const result = instructor.toObject({
       virtuals: true,
       versionKey: false
@@ -103,10 +99,6 @@ export const getInstructorById = async (
       instructor: result,
     });
 
-  } catch (error) {
-    console.error('Error in getInstructorById:', error);
-    next(error);
-  }
 };
 
 // export const getInstructorById = async (
