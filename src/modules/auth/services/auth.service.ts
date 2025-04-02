@@ -12,6 +12,7 @@ import fs from "fs";
 import path from "path";
 import cron from "node-cron";
 import { TokenExpiredError } from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 
 export const register = async (
   req: Request,
@@ -421,4 +422,83 @@ export const generateNewAccessToken = async (
       new CustomError(`token refresh error: ${(error as Error).message}`, 400)
     );
   }
+};
+
+export const verifyAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+    // Get tokens from cookies
+    const accessToken = req.cookies?.accessToken?.replace(
+      `${process.env.ACCESS_TOKEN_START_WITH}`,
+      ''
+    );
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!accessToken || !refreshToken) {
+      return next(new CustomError('Authentication required', 401));
+    }
+
+    // Verify access token first
+    let decoded: any;
+    try {
+      decoded = jwt.verify(
+        accessToken,
+        String(process.env.ACCESS_TOKEN_SECRET)
+      );
+    } catch (accessError) {
+      // If access token expired, try refresh token
+      if (accessError instanceof jwt.TokenExpiredError) {
+        try {
+          decoded = jwt.verify(
+            refreshToken,
+            String(process.env.REFRESH_TOKEN_SECRET)
+          );
+          
+          // Generate new access token
+          const newAccessToken = new TokenService(
+            String(process.env.ACCESS_TOKEN_SECRET),
+            String(process.env.ACCESS_EXPIRE)
+          ).generateToken({
+            userId: decoded.userId,
+            role: decoded.role
+          });
+
+          // Set new access token in cookie
+          res.cookie(
+            'accessToken',
+            `${process.env.ACCESS_TOKEN_START_WITH}${newAccessToken}`,
+            cokkiesOptions(10 * 24 * 3600000)
+          );
+        } catch (refreshError) {
+          return next(new CustomError('Session expired, please login again', 401));
+        }
+      } else {
+        return next(new CustomError('Invalid token', 401));
+      }
+    }
+
+    // Find user in database
+    const user = await userModel
+      .findById(decoded.userId)
+      .select('firstName lastName email role avatar isConfirmed verificationStatus')
+      .lean();
+
+    if (!user) {
+      return next(new CustomError('User not found', 404));
+    }
+
+    // Check if user is confirmed
+    if (!user.isConfirmed) {
+      return next(new CustomError('Please confirm your email', 403));
+    }
+
+    return res.status(200).json({
+      message: 'Authenticated',
+      success: true,
+      statusCode: 200,
+      user: sanatizeUser(user),
+    });
+
 };

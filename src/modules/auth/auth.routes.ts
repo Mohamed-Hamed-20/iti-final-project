@@ -12,6 +12,10 @@ import { asyncHandler } from "../../utils/errorHandling";
 
 const router = Router();
 
+router.get('/verify',
+  asyncHandler(authServices.verifyAuth)
+);
+
 router.post(
   "/register",
   valid(registerSchema) as RequestHandler,

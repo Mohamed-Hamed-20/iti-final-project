@@ -41,17 +41,17 @@ router.get(
 );
 
 router.get(
-  "/:id",
-  valid(cokkiesSchema) as RequestHandler,
-  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
-  asyncHandler(userServices.getInstructorById)
-);
-
-router.get(
   "/instructor-profile",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor]),  
   asyncHandler(userServices.getInstructorById) 
+);
+
+router.get(
+  "/:id",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
+  asyncHandler(userServices.getInstructorById)
 );
 
 router.post(
