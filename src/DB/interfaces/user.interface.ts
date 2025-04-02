@@ -26,6 +26,7 @@ export interface Iuser extends Document {
   isConfirmed?: boolean;
   isOnline?: boolean;
   avatar?: string;
+  bio?: string;
   frontId?: string;
   backId?: string;
   requiredVideo?: string;

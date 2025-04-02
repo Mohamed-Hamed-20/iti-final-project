@@ -67,6 +67,10 @@ const userSchema = new Schema<Iuser>(
       default:
         "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
     },
+    bio: {
+      type: String,
+      maxlength: [500, 'Bio cannot be longer than 500 characters']
+    },
     frontId: {
       type: String,
     },

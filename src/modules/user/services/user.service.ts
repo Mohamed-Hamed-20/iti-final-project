@@ -8,6 +8,7 @@ import { encrypt } from "../../../utils/crpto";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import redis from "../../../utils/redis";
 import { ICourse } from "../../../DB/interfaces/courses.interface";
+import { Iuser } from "../../../DB/interfaces/user.interface";
 
 export const profile = async (
   req: Request,
@@ -52,40 +53,91 @@ export const getInstructorById = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { id } = req.params;
+  try {
+    const user = req.user as Iuser; 
+    
+    if (!user) {
+      return next(new CustomError("User not authenticated", 401));
+    }
 
-  const instructor = await userModel
-    .findById(id)
-    .select("-password -email")
-    .populate<{ courses: Array<ICourse> }>({
-      path: "courses",
-      populate: {
-        path: "categoryId",
-      },
-    })
-    .lean();
+    // 1. Find instructor with proper typing
+    const instructor = await userModel.findById(user._id)
+      .select("-password -email")
+      .populate<{ courses: ICourse[] }>({
+        path: "courses",
+        populate: {
+          path: "categoryId",
+          select: "title thumbnail"
+        }
+      })
+      .orFail(new CustomError("Instructor not found", 404)); 
 
-  if (!instructor) {
-    return next(new CustomError("Instructor not found", 404));
+    if (!Array.isArray(instructor.courses)) {
+      instructor.courses = [];
+    }
+
+    // 3. Get thumbnails
+    const keys = instructor.courses.map((course) => course.thumbnail);
+    const urls = await new S3Instance().getFiles(keys);
+    
+    // 4. Convert to plain object and add URLs/instructor data
+    const result = instructor.toObject({
+      virtuals: true,
+      versionKey: false
+    });
+
+    result.courses = result.courses.map((course: ICourse, index: number) => ({
+      ...course,
+      url: urls[index],
+      instructor: {
+        firstName: result.firstName,
+        lastName: result.lastName,
+        avatar: result.avatar
+      }
+    }));
+
+    return res.status(200).json({
+      message: "Instructor fetched successfully",
+      statusCode: 200,
+      success: true,
+      instructor: result,
+    });
+
+  } catch (error) {
+    console.error('Error in getInstructorById:', error);
+    next(error);
   }
-
-  const keys = instructor.courses.map((course) => course.thumbnail);
-  const urls = await new S3Instance().getFiles(keys);
-  for (let i = 0; i < instructor.courses.length; i++) {
-    instructor.courses[i].url = urls[i];
-  }
-
-  // for await (const course of instructor.courses) {
-  //   course.url = await new S3Instance().getFile(course.thumbnail);
-  // }
-
-  return res.status(200).json({
-    message: "Instructor fetched successfully",
-    statusCode: 200,
-    success: true,
-    instructor,
-  });
 };
+
+// export const getInstructorById = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const { id } = req.params;
+
+//   const instructor = await userModel
+//     .findById(id)
+//     .select("-password -email")
+//     .populate({
+//       path: "courses",
+//       populate: {
+//         path: "categoryId",
+//       },
+//     })
+//     .lean();
+
+//   if (!instructor) {
+//     return next(new CustomError("Instructor not found", 404));
+//   }
+
+//   return res.status(200).json({
+//     message: "Instructor fetched successfully",
+//     statusCode: 200,
+//     success: true,
+//     instructor,
+//   });
+// };
 
 export const uploadImage = async (
   req: Request,
@@ -197,7 +249,7 @@ export const instructorData = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, phone, jobTitle, socialLinks } = req.body;
+  const { firstName, lastName, phone, jobTitle, socialLinks, bio  } = req.body;
   const userId = req.user?._id;
 
   if (!userId) {
@@ -208,7 +260,7 @@ export const instructorData = async (
     ? encrypt(phone, String(process.env.SECRETKEY_CRYPTO))
     : undefined;
 
-  const updateData: any = { firstName, lastName, jobTitle, socialLinks };
+  const updateData: any = { firstName, lastName, jobTitle, socialLinks, bio   };
   if (encryptedPhone) updateData.phone = encryptedPhone;
 
   const updateUser = await userModel.findByIdAndUpdate(userId, updateData, {
