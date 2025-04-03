@@ -58,6 +58,10 @@ const CourseSchema = new Schema<ICourse>(
       enum: ["beginner", "intermediate", "advanced"],
       required: true,
     },
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "none"],
+    },
     subTitle: { type: String, required: false },
     requirements: { type: [String], required: false },
     categoryId: {

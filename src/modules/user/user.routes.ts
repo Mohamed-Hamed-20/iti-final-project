@@ -41,9 +41,18 @@ router.get(
 );
 
 router.get(
-  "/:id",
-  asyncHandler(userServices.getInstructorById)
+  "/instructor-profile",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
+  asyncHandler(userServices.getInstructorById) 
 );
+
+// router.get(
+//   "/:id",
+//   valid(cokkiesSchema) as RequestHandler,
+//   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
+//   asyncHandler(userServices.getInstructorById)
+// );
 
 router.post(
 "/avatar",

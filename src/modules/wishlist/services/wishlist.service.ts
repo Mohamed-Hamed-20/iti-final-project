@@ -2,6 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import { wishListModel } from "../../../DB/models/wishlist.model";
 import { CustomError } from "../../../utils/errorHandling";
 import { cartModel } from "../../../DB/models/cart.model";
+import { Iuser } from "../../../DB/interfaces/user.interface";
+import S3Instance from "../../../utils/aws.sdk.s3";
+import courseModel from "../../../DB/models/courses.model";
+
 
 export const wishList = async (
   req: Request,
@@ -75,35 +79,109 @@ export const getWishListCourses = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void | any> => {
-  const { user } = req;
-  
-  if (!user) throw new Error("User is not found!");
+) => {
+  const { user } = req as { user: Iuser };
 
-  const allCourses = await wishListModel.find({userId: user._id}).populate("courseId");
-
-  if(!allCourses){
-    return next(
-      new CustomError("No Courses founded in your wishlist", 400)
-    )
+  if (!user) {
+    return next(new CustomError("User not found", 404));
   }
 
-  let coursesIds = [];
+  try {
+    const wishlistItems = await wishListModel.find({ userId: user._id }).lean();
+    
+    if (!wishlistItems || wishlistItems.length === 0) {
+      return res.status(200).json({
+        message: "No courses found in your wishlist",
+        statusCode: 200,
+        success: true,
+        data: [],
+      });
+    }
 
-  for (let i = 0; i < allCourses.length ; i++) {
-    coursesIds.push(allCourses[i].courseId._id)    
-  }
-  console.log(coursesIds);
-  
-  res
-    .status(200)
-    .json({
-      message: "Fetch wishlist courses",
+    const courseIds = wishlistItems.map(item => item.courseId);
+
+    const pipeline = [
+      {
+        $match: {
+          _id: { $in: courseIds }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "instructorId",
+          foreignField: "_id",
+          as: "instructorId",
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                avatar: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $unwind: "$instructorId"
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "categoryId",
+          pipeline: [
+            {
+              $project: {
+                title: 1,
+                thumbnail: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $unwind: "$categoryId"
+      }
+    ];
+
+    const courses = await courseModel.aggregate(pipeline).exec();
+
+    // Add URLs to courses and merge with wishlist info
+    const wishlistCourses = await Promise.all(
+      courses.map(async (course) => {
+        const wishlistItem = wishlistItems.find(item => 
+          item.courseId.toString() === course._id.toString()
+        );
+        
+        let url = '';
+        if (course?.thumbnail) {
+          url = await new S3Instance().getFile(course.thumbnail);
+        }
+
+        return {
+          ...wishlistItem,
+          courseId: {
+            ...course,
+            url, 
+            instructorId: course.instructorId, 
+            categoryId: course.categoryId    
+          }
+        };
+      })
+    );
+
+    return res.status(200).json({
+      message: "Wishlist courses fetched successfully",
       statusCode: 200,
       success: true,
-      data: allCourses,
-      ids: coursesIds
+      data: wishlistCourses,
     });
+  } catch (error) {
+    next(new CustomError("Failed to fetch wishlist courses", 500));
+  }
 };
 
 export const removeCourse = async (
@@ -167,7 +245,6 @@ export const getCourseById = async (
     });
 };
 
-
 export const getCourseAddedCart = async (
   req: Request,
   res: Response,
@@ -198,7 +275,6 @@ export const getCourseAddedCart = async (
       data: getCourse
     });
 };
-
 
 export const wishlistCheckCourse = async (
   req: Request,
