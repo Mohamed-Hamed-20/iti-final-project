@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { cartModel } from "../../../DB/models/cart.model";
 import { CustomError } from "../../../utils/errorHandling";
 import courseModel from "../../../DB/models/courses.model";
+import S3Instance from "../../../utils/aws.sdk.s3";
+import { Iuser } from "../../../DB/interfaces/user.interface";
 
 interface Category {
   _id: string;
@@ -53,35 +55,108 @@ export const getCartCourses = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void | any> => {
-  const { user } = req;
+) => {
+  const { user } = req as { user: Iuser };
 
-  if (!user) throw new Error("User is not found!");
-
-  const allCourses = await cartModel.find({ userId: user._id }).populate({
-    path: "courseId",
-    populate: [
-      {
-        path: "instructorId",
-        select: "firstName lastName",
-      },
-      {
-        path: "categoryId",
-        select: "title",
-      },
-    ],
-  });
-
-  if (!allCourses) {
-    return next(new CustomError("No Courses founded in your cart", 400));
+  if (!user) {
+    return next(new CustomError("User not found", 404));
   }
 
-  res.status(200).json({
-    message: "Fetch cart courses",
-    statusCode: 200,
-    success: true,
-    data: allCourses,
-  });
+  try {
+    const cartItems = await cartModel.find({ userId: user._id }).lean();
+    
+    if (!cartItems || cartItems.length === 0) {
+      return res.status(200).json({
+        message: "No courses found in your cart",
+        statusCode: 200,
+        success: true,
+        data: [],
+      });
+    }
+
+    const courseIds = cartItems.map(item => item.courseId);
+
+    const pipeline = [
+      {
+        $match: {
+          _id: { $in: courseIds }
+        }
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "instructorId",
+          foreignField: "_id",
+          as: "instructorId",
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                avatar: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $unwind: "$instructorId"
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "categoryId", 
+          pipeline: [
+            {
+              $project: {
+                title: 1,
+                thumbnail: 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        $unwind: "$categoryId"
+      }
+    ];
+
+    // Get courses with populated data
+    const courses = await courseModel.aggregate(pipeline).exec();
+
+    // Add URLs to courses and merge with cart info
+    const cartCourses = await Promise.all(
+      courses.map(async (course) => {
+        const cartItem = cartItems.find(item => item.courseId.toString() === course._id.toString());
+        
+        let url = '';
+        if (course?.thumbnail) {
+          url = await new S3Instance().getFile(course.thumbnail);
+        }
+
+        return {
+          ...cartItem,
+          courseId: {
+            ...course,
+            url,
+            instructorId: course.instructorId,
+            categoryId: course.categoryId
+          }
+        };
+      })
+    );
+
+    return res.status(200).json({
+      message: "Cart courses fetched successfully",
+      statusCode: 200,
+      success: true,
+      data: cartCourses,
+    });
+  } catch (error) {
+    next(new CustomError("Failed to fetch cart courses", 500));
+  }
 };
 
 export const removeCourse = async (
@@ -148,65 +223,109 @@ export const getCoursesByCategory = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void | any> => {
+): Promise<void> => {
   const { user } = req;
-  let { category } = req.query;
+  const { category } = req.query;
 
-
-  const categoryArray: string[] = category
-    ? typeof category === "string"
-      ? category.split(",")
-      : []
-    : [];
-
-
-  if (!user) throw new Error("User is not found!");
-
-  const allCourses = await courseModel.aggregate([
-    {
-      $lookup: {
-        from: "categories",
-        localField: "categoryId",
-        foreignField: "_id",
-        as: "category",
-      },
-    },
-    {
-      $unwind: "$category",
-    },
-    {
-      $match: {
-        "category.title": { $in: categoryArray },
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "instructorId",
-        foreignField: "_id",
-        as: "instructor",
-      },
-    },
-    {
-      $unwind: "$instructor",
-    },
-    {
-      $project: {
-        description: 0,
-        "category._id": 0,
-        "instructor._id": 0,
-      },
-    },
-  ]);
-
-  if (!allCourses) {
-    return next(new CustomError("No Courses founded in this category", 400));
+  if (!user) {
+    next(new CustomError("User not found", 404));
+    return;
   }
 
-  res.status(200).json({
-    message: "Fetch courses based on categories",
-    statusCode: 200,
-    success: true,
-    data: allCourses,
-  });
+  try {
+    const categoryArray: string[] = category
+      ? typeof category === "string"
+        ? category.split(",")
+        : []
+      : [];
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: "$category",
+      },
+      {
+        $match: categoryArray.length > 0 
+          ? { "category.title": { $in: categoryArray } }
+          : {},
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "instructorId",
+          foreignField: "_id",
+          as: "instructor",
+        },
+      },
+      {
+        $unwind: "$instructor",
+      },
+      {
+        $project: {
+          title: 1,
+          price: 1,
+          thumbnail: 1,
+          access_type: 1,
+          rating: 1,
+          totalSections: 1,
+          totalVideos: 1,
+          totalDuration: 1,
+          purchaseCount: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          "category.title": 1,
+          "category.thumbnail": 1,
+          "instructor.firstName": 1,
+          "instructor.lastName": 1,
+          "instructor.avatar": 1,
+        },
+      },
+    ];
+
+    const courses = await courseModel.aggregate(pipeline).exec();
+
+    const coursesWithUrls = await Promise.all(
+      courses.map(async (course) => {
+        let url = '';
+        if (course.thumbnail) {
+          url = await new S3Instance().getFile(course.thumbnail);
+        }
+        return {
+          ...course,
+          url,
+          duration: course.totalDuration 
+            ? `${Math.floor(course.totalDuration / 60)}h ${course.totalDuration % 60}m` 
+            : "0h 0m",
+          enrollments: course.purchaseCount || 0,
+        };
+      })
+    );
+
+    if (coursesWithUrls.length === 0) {
+      res.status(200).json({
+        message: "No courses found in this category",
+        statusCode: 200,
+        success: true,
+        data: [],
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Courses fetched successfully",
+      statusCode: 200,
+      success: true,
+      data: coursesWithUrls,
+    });
+
+  } catch (error) {
+    next(new CustomError("Failed to fetch courses by category", 500));
+  }
 };
