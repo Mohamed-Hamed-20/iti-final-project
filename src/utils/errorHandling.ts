@@ -31,7 +31,6 @@ export const asyncHandler = (controller: ControllerFunction) => {
   };
 };
 
-
 // Multer error handler
 export const multerErrorHandler = (
   err: MulterError,
@@ -138,8 +137,6 @@ export const errorHandler: ErrorRequestHandler | any = (
     err instanceof (JsonWebTokenError || TokenExpiredError || NotBeforeError) ||
     err.message.includes("jwt expired")
   ) {
-    console.log("eloowwwwwwwww");
-
     return tokenErrorHandler(err, req, res, next);
   } else {
     return generalErrorHandler(err, req, res, next);
