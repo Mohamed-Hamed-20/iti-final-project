@@ -564,46 +564,137 @@ export const searchCollection = async (
   try {
     const { collectionName, searchFilters } = req.body;
 
-    if (!collectionName || !searchFilters) {
-      return next(
-        new CustomError(
-          "Collection name and valid search filters are required",
-          400
-        )
-      );
+    if (!collectionName || !searchFilters || typeof searchFilters !== 'string') {
+      return next(new CustomError("Valid collection name and search term are required", 400));
     }
 
+    const searchRegex = new RegExp(searchFilters, "i"); 
+
     if (collectionName === "courses") {
-      const searchFilters2 = "^" + searchFilters;
+      type CourseWithPopulatedFields = {
+        _id: any;
+        title: string;
+        thumbnail?: string;
+        instructorId: {
+          firstName: string;
+          lastName: string;
+          avatar?: string;
+        };
+        categoryId: {
+          title: string;
+          thumbnail?: string;
+        };
+        [key: string]: any;
+      };
+
       const courses = await courseModel
         .find({
-          title: { $regex: searchFilters2, $options: "i" },
+          $or: [
+            { title: searchRegex },
+            { description: searchRegex }
+          ]
         })
-        .populate("instructorId", "firstName lastName")
-        .populate("categoryId", "title");
-      res.status(200).json({ status: "success", data: courses });
-    } else if (collectionName === "instructors") {
-      const searchFilters2 = "^" + searchFilters;
-      const instructors = await userModel
-        .find({
-          firstName: { $regex: searchFilters2, $options: "i" },
-          // $or: [
-          //   { firstName: { $regex: searchFilters, $options: "i" } },
-          //   { lastName: { $regex: searchFilters, $options: "i" } }
-          // ]
-        })
-        .select("-password -email")
-        .populate("courses")
+        .populate<Pick<CourseWithPopulatedFields, 'instructorId' | 'categoryId'>>([
+          { path: 'instructorId', select: 'firstName lastName avatar' },
+          { path: 'categoryId', select: 'title thumbnail' }
+        ])
+        .limit(10) 
         .lean();
 
-      res.status(200).json({ status: "success", data: instructors });
+      const processedCourses = await Promise.all(
+        courses.map(async (course) => {
+          const thumbnailUrl = course.thumbnail 
+            ? await new S3Instance().getFile(course.thumbnail)
+            : undefined;
+
+          return {
+            ...course,
+            url: thumbnailUrl,
+            instructor: {
+              firstName: course.instructorId?.firstName || '',
+              lastName: course.instructorId?.lastName || '',
+              avatar: course.instructorId?.avatar || ''
+            },
+            category: {
+              title: course.categoryId?.title || '',
+              thumbnail: course.categoryId?.thumbnail || ''
+            }
+          };
+        })
+      );
+
+      return res.status(200).json({ 
+        status: "success", 
+        data: processedCourses 
+      });
+
+    } else if (collectionName === "instructors") {
+      type InstructorWithCourses = {
+        _id: any;
+        firstName: string;
+        lastName: string;
+        avatar?: string;
+        role: string;
+        courses: Array<{
+          _id: any;
+          title: string;
+          thumbnail?: string;
+          price: number;
+          rating: number;
+        }>;
+      };
+
+      const instructors = await userModel
+        .find({
+          role: "instructor",
+          $or: [
+            { firstName: searchRegex },
+            { lastName: searchRegex },
+            { email: searchRegex } 
+          ]
+        })
+        .select("-password -email -refreshToken -__v")
+        .populate<Pick<InstructorWithCourses, 'courses'>>({
+          path: "courses",
+          select: "title thumbnail price rating",
+          options: { limit: 3 }
+        })
+        .limit(10)
+        .lean();
+
+      const processedInstructors = await Promise.all(
+        instructors.map(async (instructor) => {
+          const avatarUrl = instructor.avatar && !instructor.avatar.startsWith('http')
+            ? await new S3Instance().getFile(instructor.avatar)
+            : instructor.avatar;
+
+          const processedCourses = await Promise.all(
+            instructor.courses?.map(async (course) => ({
+              ...course,
+              url: course.thumbnail ? await new S3Instance().getFile(course.thumbnail) : undefined
+            })) || []
+          );
+
+          return {
+            ...instructor,
+            avatar: avatarUrl,
+            courses: processedCourses
+          };
+        })
+      );
+
+      return res.status(200).json({ 
+        status: "success", 
+        data: processedInstructors 
+      });
+
     } else {
-      return next(new CustomError("Invalid collection name", 400));
+      return next(new CustomError("Invalid collection name. Use 'courses' or 'instructors'", 400));
     }
   } catch (error) {
     console.error("Search Error:", error);
     return next(
-      new CustomError(`Failed to search: ${(error as Error).message}`, 500)
+      new CustomError("Failed to perform search. Please try again later.", 500)
     );
   }
 };
