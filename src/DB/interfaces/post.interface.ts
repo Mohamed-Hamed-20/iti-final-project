@@ -16,6 +16,7 @@ export interface ILike {
 export interface IPost extends Document {
   text: string;
   author: Types.ObjectId | Iuser; 
+  category: string;
   comments: IComment[];
   likes: ILike[];
   createdAt: Date;
