@@ -19,6 +19,6 @@ export interface ICourse extends Document {
   instructorId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId;
   url?: string;
-  verificationStatus: 'pending' | 'approved' | 'rejected' | 'none'; 
+  status: 'pending' | 'approved' | 'rejected' | 'none'; 
   featured:boolean
 }
