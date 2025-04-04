@@ -43,6 +43,10 @@ const PostSchema = new Schema<IPost>({
     ref: "User", 
     required: true 
   },
+    category: {
+      type: String,
+      required: true,
+    },
   comments: [CommentSchema],
   likes: [LikeSchema],
   createdAt: { 

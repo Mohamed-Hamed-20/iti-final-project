@@ -6,6 +6,7 @@ export const addPostSchema = {
   body: joi
     .object({
       text: joi.string().trim().min(1).max(500).required(),
+      category: joi.string().trim().required(),
     })
     .required(),
 };

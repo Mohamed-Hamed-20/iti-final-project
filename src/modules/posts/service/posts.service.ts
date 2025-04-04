@@ -21,11 +21,12 @@ export const addPost = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { text } = req.body;
+  const { text, category } = req.body;
   const authorId = req.user?._id;
 
   const newPost = new Post({
     text,
+    category,
     author: authorId,
   });
 
