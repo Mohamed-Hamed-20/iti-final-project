@@ -390,110 +390,63 @@ export const getCourseById = async (
   });
 };
 
+
 // update course
 export const updateCourse = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { id } = req.params;
-  const {
-    title,
-    description,
-    price,
-    learningPoints,
-    access_type,
-    categoryId,
-    level,
-    subTitle,
-    requirements,
-  } = req.body;
-
-  const course = await courseModel.findById(id).lean();
-  if (!course) {
-    return next(new CustomError("Course not found", 404));
-  }
-
-  if (String(course.instructorId) !== String(req.user?._id)) {
-    return next(new CustomError("Not allowed to modify this course", 403));
-  }
-
-  const courseUpdate: any = {};
-
-  if (title !== undefined) courseUpdate.title = title;
-  if (description !== undefined) courseUpdate.description = description;
-  if (price !== undefined) courseUpdate.price = price;
-  if (access_type !== undefined) courseUpdate.access_type = access_type;
-  if (learningPoints !== undefined)
-    courseUpdate.learningPoints = learningPoints;
-  if (level !== undefined) courseUpdate.level = level;
-  if (subTitle !== undefined) courseUpdate.subTitle = subTitle;
-  if (requirements !== undefined) courseUpdate.requirements = requirements;
-
-  if (categoryId) {
-    const category = await categoryModel.findById(categoryId);
-    if (!category) {
-      return next(new CustomError("Category not found", 404));
+  try {
+   
+    const course = await courseModel.findById(req.params.id);
+    if (!course) {
+      return next(new CustomError("Course not found", 404));
     }
-    courseUpdate.categoryId = category._id;
-  }
 
-  const updated = await courseModel.findByIdAndUpdate(
-    id,
-    { $set: courseUpdate },
-    { new: true, lean: true }
-  );
+    const courseUpdate: any = {};
 
-  return res.status(200).json({
-    message: "Course updated successfully",
-    statusCode: 200,
-    success: true,
-    course: updated,
-  });
-};
+ 
+    if (req.file) {
+      const newTitle = courseUpdate.title ?? course.title;
+      const folder = await courseKey(course._id, newTitle);
+      req.file.folder = folder;
 
-// update image for course
-export const updatecourseImage = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const { id } = req.params;
+      if (folder !== course.thumbnail) {
+        courseUpdate.thumbnail = folder;
+      }
 
-  if (!req.file) {
-    return next(new CustomError("Course image not provided successfully", 400));
-  }
+      const s3 = new S3Instance();
+      const updateFile = await s3.uploadLargeFile(req.file);
 
-  let course = await courseModel.findById(id).lean().select("title thumbnail");
-  if (!course) {
-    return next(new CustomError("Course not found", 404));
-  }
+      if (!updateFile) {
+        return next(new CustomError("Failed to upload image", 400));
+      }
+    }
 
-  const folder = await courseKey(course._id, course.title);
-  req.file.folder = folder;
+    if (course.thumbnail) {
+      course.url = await new S3Instance().getFile(course.thumbnail);
+    }
 
-  if (folder !== course.thumbnail) {
-    course = await courseModel.findByIdAndUpdate(
-      id,
-      { $set: { thumbnail: folder } },
-      { new: true, lean: true }
+    const updateData = {
+      ...req.body,
+      ...courseUpdate
+    };
+    const updated = await courseModel.findByIdAndUpdate(
+      req.params.id,
+      updateData, 
+      { new: true, lean: true }  
     );
+
+    return res.status(200).json({
+      message: "Course updated successfully",
+      statusCode: 200,
+      success: true,
+      course: updated,
+    });
+  } catch (error) {
+    next(error);
   }
-
-  const s3 = new S3Instance();
-  const updateFile = await s3.uploadLargeFile(req.file);
-
-  if (!updateFile) {
-    return next(new CustomError("Missing Server Error", 400));
-  }
-
-  return res.status(200).json({
-    message: "Image updated successfully",
-    statusCode: 200,
-    success: true,
-    updateFile,
-    course,
-  });
 };
 
 export const deleteCourse = async (

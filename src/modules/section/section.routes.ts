@@ -39,7 +39,7 @@ router.delete(
 );
 
 router.get(
-  "/",
+  "/:courseId",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(sectionService.getSections)
