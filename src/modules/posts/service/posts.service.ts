@@ -1,7 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { Post } from "../../../DB/models/post.model";
 import { CustomError } from "../../../utils/errorHandling";
-import ApiPipeline from "../../../utils/apiFeacture";
 import { Roles } from "../../../DB/interfaces/user.interface";
 import { PipelineStage, Types } from "mongoose";
 
@@ -9,6 +8,7 @@ const allowSearchFields = ["text", "author.firstName", "author.lastName"];
 const defaultFields = [
   "text",
   "author",
+  "categoryId",
   "comments",
   "likes",
   "createdAt",
@@ -21,12 +21,13 @@ export const addPost = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { text, category } = req.body;
+  const { text } = req.body;
+  const { categoryId } = req.params;
   const authorId = req.user?._id;
 
   const newPost = new Post({
     text,
-    category,
+    categoryId,
     author: authorId,
   });
 
@@ -57,11 +58,8 @@ export const getAllPosts = async (
   const pageNum = Number(page) || 1;
   const sizeNum = Number(size) || 10;
   const skip = (pageNum - 1) * sizeNum;
-
-  // Ensure sort is a string and provide a default if invalid
   const sortValue = typeof sort === "string" ? sort : "-createdAt";
 
-  // Explicitly type pipeline as PipelineStage[]
   const pipeline: PipelineStage[] = [
     // Lookup author details
     {
@@ -73,7 +71,25 @@ export const getAllPosts = async (
         pipeline: [{ $project: { firstName: 1, lastName: 1, avatar: 1 } }],
       },
     },
-    { $unwind: "$author" }, // Single author
+    { $unwind: "$author" },
+    
+    // Lookup category details
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "categoryId",
+        pipeline: [{ $project: { title: 1, thumbnail: 1 } }],
+      },
+    },
+    { 
+      $unwind: { 
+        path: "$categoryId", 
+        preserveNullAndEmptyArrays: true 
+      } 
+    },
+
     // Lookup comments with user details
     {
       $lookup: {
@@ -91,6 +107,7 @@ export const getAllPosts = async (
       $project: {
         text: 1,
         author: 1,
+        categoryId: 1,
         createdAt: 1,
         updatedAt: 1,
         comments: {
@@ -130,6 +147,7 @@ export const getAllPosts = async (
       $project: {
         text: 1,
         author: 1,
+        categoryId: 1,
         comments: 1,
         createdAt: 1,
         updatedAt: 1,
@@ -215,9 +233,7 @@ export const getPostById = async (
   const { id } = req.params;
 
   const pipeline = [
-    // Match the post by ID
     { $match: { _id: new Types.ObjectId(id) } },
-    // Lookup author details
     {
       $lookup: {
         from: "users",
@@ -227,8 +243,22 @@ export const getPostById = async (
         pipeline: [{ $project: { firstName: 1, lastName: 1, avatar: 1 } }],
       },
     },
-    { $unwind: "$author" }, // Since author is a single object
-    // Lookup comments with user details
+    { $unwind: "$author" },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "categoryId",
+        pipeline: [{ $project: { title: 1, thumbnail: 1 } }],
+      },
+    },
+    { 
+      $unwind: { 
+        path: "$categoryId", 
+        preserveNullAndEmptyArrays: true 
+      } 
+    },
     {
       $lookup: {
         from: "users",
@@ -240,11 +270,11 @@ export const getPostById = async (
         as: "commentUsers",
       },
     },
-    // Merge commentUsers into comments
     {
       $project: {
         text: 1,
         author: 1,
+        categoryId: 1,
         createdAt: 1,
         updatedAt: 1,
         comments: {
@@ -264,10 +294,9 @@ export const getPostById = async (
             },
           },
         },
-        likes: 1, // Keep likes as-is for now
+        likes: 1,
       },
     },
-    // Lookup likes with user details
     {
       $lookup: {
         from: "users",
@@ -279,11 +308,11 @@ export const getPostById = async (
         as: "likeUsers",
       },
     },
-    // Merge likeUsers into likes
     {
       $project: {
         text: 1,
         author: 1,
+        categoryId: 1,
         comments: 1,
         createdAt: 1,
         updatedAt: 1,
@@ -394,7 +423,6 @@ export const likePost = async (
     return next(new CustomError("Post not found", 404));
   }
 
-  // Removed the check that prevented users from liking their own posts
   const hasLiked = post.likes.some(
     (like) => like?.user?.toString() === userId?.toString()
   );
@@ -427,9 +455,8 @@ export const unlikePost = async (
     return next(new CustomError("Post not found", 404));
   }
 
-  // Check if the user has liked the post
-  const likeIndex = post.likes.findIndex((like) =>
-    like?.user?.toString() === userId?.toString()
+  const likeIndex = post.likes.findIndex(
+    (like) => like?.user?.toString() === userId?.toString()
   );
 
   if (likeIndex === -1) {

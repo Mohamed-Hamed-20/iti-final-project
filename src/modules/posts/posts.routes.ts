@@ -1,3 +1,4 @@
+import { addCategory } from './../category/services/category.service';
 import { RequestHandler, Router } from "express";
 import * as postServices from "./service/posts.service";
 import {
@@ -18,7 +19,7 @@ const router = Router();
 
 // Add Post (Only Instructors)
 router.post(
-  "/add",
+  "/add/:categoryId",
   valid(cokkiesSchema) as RequestHandler,
   valid(addPostSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
