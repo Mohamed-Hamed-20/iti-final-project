@@ -9,6 +9,8 @@ import S3Instance from "../../../utils/aws.sdk.s3";
 import { CustomError } from "../../../utils/errorHandling";
 import { createNotification } from "../../notification/notification.controller";
 import { courseKey } from "./courses.helper";
+import { sanatizeUser } from "../../../utils/sanatize.data";
+import { Iuser } from "../../../DB/interfaces/user.interface";
 
 export const addCourse = async (
   req: Request,
@@ -70,7 +72,7 @@ export const addCourse = async (
   }
 
   await categoryModel.findByIdAndUpdate(categoryId, {
-    $inc: { courseCount: 1 }
+    $inc: { courseCount: 1 },
   });
 
   res.status(201).json({
@@ -210,7 +212,7 @@ export const getAllCoursesForInstructor = async (
 ) => {
   const { page, size, select, sort, search } = req.query;
   const { access_type } = req.query;
-
+  const user = req.user;
   const pipeline = new ApiPipeline()
     .searchOnString("access_type", access_type as string)
     .matchId({
@@ -243,10 +245,15 @@ export const getAllCoursesForInstructor = async (
     })
     .build();
 
-  const [total, courses] = await Promise.all([
+  const [total, courses, urlAvatar] = await Promise.all([
     courseModel.countDocuments().lean(),
     courseModel.aggregate(pipeline).exec(),
+    new S3Instance().getFile(user?.avatar as string),
   ]);
+
+  if (user) {
+    user.url = urlAvatar;
+  }
 
   await Promise.all(
     courses.map(async (course) => {
@@ -264,6 +271,7 @@ export const getAllCoursesForInstructor = async (
     totalPages: Math.ceil(total / Number(size || 23)),
     success: true,
     courses,
+    user: sanatizeUser(user as Iuser),
   });
 };
 
@@ -309,19 +317,17 @@ export const getCourseById = async (
         thumbnail: 1,
       }
     )
-    .lookUp(
-      {
-        from: "courses",
-        localField: "category._id",
-        foreignField: "categoryId",
-        as: "coursesInCategory",
-        isArray: true
-      }
-    )
+    .lookUp({
+      from: "courses",
+      localField: "category._id",
+      foreignField: "categoryId",
+      as: "coursesInCategory",
+      isArray: true,
+    })
     .addStage({
       $addFields: {
-        "category.totalCourses": { $size: "$coursesInCategory" }
-      }
+        "category.totalCourses": { $size: "$coursesInCategory" },
+      },
     })
     .lookUp(
       {
