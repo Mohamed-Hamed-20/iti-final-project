@@ -32,6 +32,11 @@ export const addCourse = async (
     return next(new CustomError("Missing required fields", 400));
   }
 
+  const category = await categoryModel.findById(categoryId);
+  if (!category) {
+    return next(new CustomError("Category not found", 404));
+  }
+
   const newCourse = new courseModel({
     title,
     description,
@@ -63,6 +68,10 @@ export const addCourse = async (
     await courseModel.deleteOne({ _id: newCourse._id });
     return next(new CustomError("Error Uploading Image Server Error!", 500));
   }
+
+  await categoryModel.findByIdAndUpdate(categoryId, {
+    $inc: { courseCount: 1 }
+  });
 
   res.status(201).json({
     message: "Course added successfully",
@@ -580,7 +589,7 @@ export const searchCollection = async (
           { path: "instructorId", select: "firstName lastName avatar" },
           { path: "categoryId", select: "title thumbnail" },
         ])
-        .limit(10)
+        .limit(8)
         .lean();
 
       const processedCourses = await Promise.all(
@@ -640,7 +649,7 @@ export const searchCollection = async (
           select: "title thumbnail price rating",
           options: { limit: 3 },
         })
-        .limit(10)
+        .limit(8)
         .lean();
 
       const processedInstructors = await Promise.all(

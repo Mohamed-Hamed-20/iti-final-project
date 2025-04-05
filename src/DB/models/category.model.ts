@@ -11,6 +11,7 @@ const CategorySchema = new Schema<ICategory>(
       type: String,
       required: true,
     },
+    courseCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
