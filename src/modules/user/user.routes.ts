@@ -16,10 +16,8 @@ import { changePassSchema } from "./user.validation";
 import { multerMemory } from "../../utils/multer";
 import { FileType } from "../../utils/files.allowed";
 
-
 const router = Router();
 const upload = configureMulter();
-
 
 router.get(
   "/profile",
@@ -28,17 +26,13 @@ router.get(
   asyncHandler(userServices.profile)
 );
 
-router.get(
-  "/instructors",
-  asyncHandler(userServices.instructors)
-);
-
+router.get("/instructors", asyncHandler(userServices.instructors));
 
 router.get(
   "/instructor-profile",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
-  asyncHandler(userServices.getInstructorById) 
+  asyncHandler(userServices.getInstructorById)
 );
 
 // router.get(
@@ -49,16 +43,19 @@ router.get(
 // );
 
 router.post(
-"/avatar",
-isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
-upload.single("avatar"),
-asyncHandler(userServices.uploadImage)
+  "/avatar",
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  upload.single("avatar"),
+  asyncHandler(userServices.uploadImage)
 );
 
 router.put(
   "/verification",
   isAuth([Roles.Instructor]),
-  multerMemory(1024 * 1024 * 1024, [...FileType.Images, ...FileType.Videos]).fields([
+  multerMemory(1024 * 1024 * 1024, [
+    ...FileType.Images,
+    ...FileType.Videos,
+  ]).fields([
     { name: "frontID", maxCount: 1 },
     { name: "backID", maxCount: 1 },
     { name: "requiredVideo", maxCount: 1 },
@@ -68,44 +65,42 @@ router.put(
   asyncHandler(userServices.instructorVerification)
 );
 
-
+router.put(
+  "/changePass",
+  valid(changePassSchema) as RequestHandler,
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.changePassword)
+);
 
 router.put(
-"/changePass", 
-valid(changePassSchema) as RequestHandler,
-isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
-asyncHandler(userServices.changePassword)
-)
+  "/userProfile",
+  isAuth([Roles.User, Roles.Instructor]),
+  asyncHandler(userServices.userProfile)
+);
 
 router.put(
-"/userProfile", 
-isAuth([Roles.User, Roles.Instructor]),
-asyncHandler(userServices.userProfile)
-)
-
-router.put(
-"/instructorData", 
-isAuth([Roles.Admin,Roles.Instructor]),
-asyncHandler(userServices.instructorData)
-)
+  "/instructorData",
+  isAuth([Roles.Admin, Roles.Instructor]),
+  asyncHandler(userServices.instructorData)
+);
 
 router.delete(
-"/:id", 
-isAuth([Roles.Instructor,Roles.User]),
-asyncHandler(userServices.deleteAccount)
-)
+  "/:id",
+  isAuth([Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.deleteAccount)
+);
 
 router.post(
   "/checkPass",
   valid(changePassSchema) as RequestHandler,
-  isAuth([Roles.Instructor,Roles.User]),
+  isAuth([Roles.Instructor, Roles.User]),
   asyncHandler(userServices.checkPass)
 );
 
 router.post(
   "/logout",
-   isAuth([Roles.Admin,Roles.Instructor,Roles.User]),
-   asyncHandler(userServices.logout)
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.logout)
 );
 
 export default router;
