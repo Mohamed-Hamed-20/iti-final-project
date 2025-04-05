@@ -1,4 +1,4 @@
-import { Types, PipelineStage } from "mongoose";
+import mongoose, { Types, PipelineStage } from "mongoose";
 
 export function paginate(page: number, size: number) {
   if (size > 23) {
@@ -43,7 +43,19 @@ export default class ApiPipeline {
   constructor() {
     this.pipeline = [];
   }
+  searchIds(field: any, ids: Array<mongoose.Types.ObjectId>) {
+    if (field && ids) {
+      this.pipeline.push({
+        $match: {
+          [field]: {
+            $in: ids.map((id) => new mongoose.Types.ObjectId(id)),
+          },
+        },
+      });
+    }
 
+    return this;
+  }
   match(params: MatchParams): this {
     const { fields, search, op } = params;
     if (!search || search == "") return this;
@@ -60,18 +72,19 @@ export default class ApiPipeline {
       this.pipeline.push({ $sort: { createdAt: -1 } }); // Optional default
       return this;
     }
-  
+
     const sortFields: Record<string, 1 | -1> = {};
     sortText.split(",").forEach((item) => {
       const trimmedItem = item.trim();
       if (!trimmedItem) return; // Skip empty items
-  
+
       const [field, order] = trimmedItem.split(":");
       const cleanedField = field.trim();
-  
+
       if (order) {
         // Handle explicit order (e.g., "createdAt:desc")
-        sortFields[cleanedField] = order.trim().toLowerCase() === "desc" ? -1 : 1;
+        sortFields[cleanedField] =
+          order.trim().toLowerCase() === "desc" ? -1 : 1;
       } else if (cleanedField.startsWith("-")) {
         // Handle MongoDB-style descending (e.g., "-createdAt")
         sortFields[cleanedField.slice(1)] = -1;
@@ -80,11 +93,11 @@ export default class ApiPipeline {
         sortFields[cleanedField] = 1;
       }
     });
-  
+
     if (Object.keys(sortFields).length > 0) {
       this.pipeline.push({ $sort: sortFields });
     }
-  
+
     return this;
   }
 

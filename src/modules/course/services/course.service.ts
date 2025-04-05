@@ -114,8 +114,10 @@ export const getAllCourses = async (
   next: NextFunction
 ) => {
   const { page, size, select, sort, search } = req.query;
+  const { ids } = req.query;
 
   const pipeline = new ApiPipeline()
+    .searchIds("categoryId", ids as unknown as Array<mongoose.Types.ObjectId>)
     .lookUp(
       {
         from: "users",
@@ -161,13 +163,21 @@ export const getAllCourses = async (
     courseModel.aggregate(pipeline).exec(),
   ]);
 
+  const s3Instance = new S3Instance();
+
   const updatePromises = courses.map(async (course) => {
+    // Process course thumbnail if it exists
     if (course?.thumbnail) {
-      return {
-        ...course,
-        url: await new S3Instance().getFile(course.thumbnail),
-      };
+      course.url = await s3Instance.getFile(course.thumbnail);
     }
+
+    // Process instructor's thumbnail if instructor exists and has a thumbnail
+    if (course.instructor?.avatar) {
+      course.instructor.url = await s3Instance.getFile(
+        course.instructor.avatar
+      );
+    }
+
     return course;
   });
 
@@ -404,7 +414,6 @@ export const getCourseById = async (
   });
 };
 
-
 // update course
 export const updateCourse = async (
   req: Request,
@@ -412,7 +421,6 @@ export const updateCourse = async (
   next: NextFunction
 ) => {
   try {
-   
     const course = await courseModel.findById(req.params.id);
     if (!course) {
       return next(new CustomError("Course not found", 404));
@@ -420,7 +428,6 @@ export const updateCourse = async (
 
     const courseUpdate: any = {};
 
- 
     if (req.file) {
       const newTitle = courseUpdate.title ?? course.title;
       const folder = await courseKey(course._id, newTitle);
@@ -444,12 +451,12 @@ export const updateCourse = async (
 
     const updateData = {
       ...req.body,
-      ...courseUpdate
+      ...courseUpdate,
     };
     const updated = await courseModel.findByIdAndUpdate(
       req.params.id,
-      updateData, 
-      { new: true, lean: true }  
+      updateData,
+      { new: true, lean: true }
     );
 
     return res.status(200).json({
@@ -531,11 +538,20 @@ export const searchCollection = async (
   try {
     const { collectionName, searchFilters } = req.body;
 
-    if (!collectionName || !searchFilters || typeof searchFilters !== 'string') {
-      return next(new CustomError("Valid collection name and search term are required", 400));
+    if (
+      !collectionName ||
+      !searchFilters ||
+      typeof searchFilters !== "string"
+    ) {
+      return next(
+        new CustomError(
+          "Valid collection name and search term are required",
+          400
+        )
+      );
     }
 
-    const searchRegex = new RegExp(searchFilters, "i"); 
+    const searchRegex = new RegExp(searchFilters, "i");
 
     if (collectionName === "courses") {
       type CourseWithPopulatedFields = {
@@ -556,21 +572,20 @@ export const searchCollection = async (
 
       const courses = await courseModel
         .find({
-          $or: [
-            { title: searchRegex },
-            { description: searchRegex }
-          ]
+          $or: [{ title: searchRegex }, { description: searchRegex }],
         })
-        .populate<Pick<CourseWithPopulatedFields, 'instructorId' | 'categoryId'>>([
-          { path: 'instructorId', select: 'firstName lastName avatar' },
-          { path: 'categoryId', select: 'title thumbnail' }
+        .populate<
+          Pick<CourseWithPopulatedFields, "instructorId" | "categoryId">
+        >([
+          { path: "instructorId", select: "firstName lastName avatar" },
+          { path: "categoryId", select: "title thumbnail" },
         ])
-        .limit(10) 
+        .limit(10)
         .lean();
 
       const processedCourses = await Promise.all(
         courses.map(async (course) => {
-          const thumbnailUrl = course.thumbnail 
+          const thumbnailUrl = course.thumbnail
             ? await new S3Instance().getFile(course.thumbnail)
             : undefined;
 
@@ -578,23 +593,22 @@ export const searchCollection = async (
             ...course,
             url: thumbnailUrl,
             instructor: {
-              firstName: course.instructorId?.firstName || '',
-              lastName: course.instructorId?.lastName || '',
-              avatar: course.instructorId?.avatar || ''
+              firstName: course.instructorId?.firstName || "",
+              lastName: course.instructorId?.lastName || "",
+              avatar: course.instructorId?.avatar || "",
             },
             category: {
-              title: course.categoryId?.title || '',
-              thumbnail: course.categoryId?.thumbnail || ''
-            }
+              title: course.categoryId?.title || "",
+              thumbnail: course.categoryId?.thumbnail || "",
+            },
           };
         })
       );
 
-      return res.status(200).json({ 
-        status: "success", 
-        data: processedCourses 
+      return res.status(200).json({
+        status: "success",
+        data: processedCourses,
       });
-
     } else if (collectionName === "instructors") {
       type InstructorWithCourses = {
         _id: any;
@@ -617,46 +631,53 @@ export const searchCollection = async (
           $or: [
             { firstName: searchRegex },
             { lastName: searchRegex },
-            { email: searchRegex } 
-          ]
+            { email: searchRegex },
+          ],
         })
         .select("-password -email -refreshToken -__v")
-        .populate<Pick<InstructorWithCourses, 'courses'>>({
+        .populate<Pick<InstructorWithCourses, "courses">>({
           path: "courses",
           select: "title thumbnail price rating",
-          options: { limit: 3 }
+          options: { limit: 3 },
         })
         .limit(10)
         .lean();
 
       const processedInstructors = await Promise.all(
         instructors.map(async (instructor) => {
-          const avatarUrl = instructor.avatar && !instructor.avatar.startsWith('http')
-            ? await new S3Instance().getFile(instructor.avatar)
-            : instructor.avatar;
+          const avatarUrl =
+            instructor.avatar && !instructor.avatar.startsWith("http")
+              ? await new S3Instance().getFile(instructor.avatar)
+              : instructor.avatar;
 
           const processedCourses = await Promise.all(
             instructor.courses?.map(async (course) => ({
               ...course,
-              url: course.thumbnail ? await new S3Instance().getFile(course.thumbnail) : undefined
+              url: course.thumbnail
+                ? await new S3Instance().getFile(course.thumbnail)
+                : undefined,
             })) || []
           );
 
           return {
             ...instructor,
             avatar: avatarUrl,
-            courses: processedCourses
+            courses: processedCourses,
           };
         })
       );
 
-      return res.status(200).json({ 
-        status: "success", 
-        data: processedInstructors 
+      return res.status(200).json({
+        status: "success",
+        data: processedInstructors,
       });
-
     } else {
-      return next(new CustomError("Invalid collection name. Use 'courses' or 'instructors'", 400));
+      return next(
+        new CustomError(
+          "Invalid collection name. Use 'courses' or 'instructors'",
+          400
+        )
+      );
     }
   } catch (error) {
     console.error("Search Error:", error);
@@ -666,72 +687,72 @@ export const searchCollection = async (
   }
 };
 
-
 export const requestCourseVerification = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-    const { courseId } = req.params;
-    const userId = req.user?._id;
+  const { courseId } = req.params;
+  const userId = req.user?._id;
 
-    const course = await courseModel.findOne({
-      _id: courseId,
-      instructorId: userId
-    });
+  const course = await courseModel.findOne({
+    _id: courseId,
+    instructorId: userId,
+  });
 
-    if (!course) {
-      return next(new CustomError("Course not found or unauthorized", 404));
-    }
+  if (!course) {
+    return next(new CustomError("Course not found or unauthorized", 404));
+  }
 
-    if (course.status !== "none") {
-      return next(new CustomError(
-        `Course verification is already ${course.status}`,
-        400
-      ));
-    }
+  if (course.status !== "none") {
+    return next(
+      new CustomError(`Course verification is already ${course.status}`, 400)
+    );
+  }
 
-    // Check if course has at least one section and one video
-    const sections = await sectionModel.find({ courseId });
-    if (sections.length === 0) {
-      return next(new CustomError(
+  // Check if course has at least one section and one video
+  const sections = await sectionModel.find({ courseId });
+  if (sections.length === 0) {
+    return next(
+      new CustomError(
         "Course must have at least one section to request verification",
         400
-      ));
-    }
+      )
+    );
+  }
 
-    // Check videos for each section
-    for (const section of sections) {
-      const videos = await videoModel.find({ sectionId: section._id });
-      if (videos.length === 0) {
-        return next(new CustomError(
+  // Check videos for each section
+  for (const section of sections) {
+    const videos = await videoModel.find({ sectionId: section._id });
+    if (videos.length === 0) {
+      return next(
+        new CustomError(
           `Section "${section.title}" must have at least one video`,
           400
-        ));
-      }
+        )
+      );
     }
+  }
 
-    const [updatedCourse] = await Promise.all([
-      courseModel.findByIdAndUpdate(
-        courseId,
-        { status: "pending" },
-        { new: true }
-      ),
-      sectionModel.updateMany(
-        { courseId },
-        { status: "pending" }
-      ),
-      videoModel.updateMany(
-        { courseId },
-        { status: "pending" }
-      )
-    ]);
+  const [updatedCourse] = await Promise.all([
+    courseModel.findByIdAndUpdate(
+      courseId,
+      { status: "pending" },
+      { new: true }
+    ),
+    sectionModel.updateMany({ courseId }, { status: "pending" }),
+    videoModel.updateMany({ courseId }, { status: "pending" }),
+  ]);
 
-
-    res.status(200).json({
-      success: true,
-      message: "Verification request submitted successfully",
-      course: updatedCourse
-    });
-
+  res.status(200).json({
+    success: true,
+    message: "Verification request submitted successfully",
+    course: updatedCourse,
+  });
 };
+
+export const filerCourses = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {};

@@ -3,6 +3,7 @@ import * as courseServices from "./services/course.service";
 import {
   addCourseSchema,
   getCourseByIdSchema,
+  idsSchema,
   searchCoursesInstructorScheam,
   searchCoursesScheam,
   updateCourseSchema,
