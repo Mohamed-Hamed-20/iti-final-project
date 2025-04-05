@@ -115,7 +115,6 @@ export const getAllCourses = async (
 ) => {
   const { page, size, select, sort, search } = req.query;
   const { ids } = req.query;
-  console.log(ids);
 
   const pipeline = new ApiPipeline()
     .searchIds("categoryId", ids as unknown as Array<mongoose.Types.ObjectId>)
