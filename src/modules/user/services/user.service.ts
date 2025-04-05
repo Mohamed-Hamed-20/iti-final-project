@@ -8,7 +8,10 @@ import { encrypt } from "../../../utils/crpto";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import redis from "../../../utils/redis";
 import { ICourse } from "../../../DB/interfaces/courses.interface";
-import { Iuser } from "../../../DB/interfaces/user.interface";
+import { Iuser, Roles } from "../../../DB/interfaces/user.interface";
+import ApiPipeline from "../../../utils/apiFeacture";
+import mongoose, { Types } from "mongoose";
+import { userFileKey2 } from "./user.helper";
 
 export const profile = async (
   req: Request,
@@ -16,10 +19,13 @@ export const profile = async (
   next: NextFunction
 ): Promise<void | any> => {
   const user = req.user;
-  console.log("User object before sanitization:", user);
 
   if (!user) {
-    return next(new CustomError("user not found ERROR", 500));
+    return next(new CustomError("Missing Server ERROR", 500));
+  }
+
+  if (user?.avatar) {
+    user.url = await new S3Instance().getFile(user?.avatar as string);
   }
 
   return res.status(200).json({
@@ -30,21 +36,99 @@ export const profile = async (
   });
 };
 
+const allowSearchFields = [
+  "firstName",
+  "lastName",
+  "phone",
+  "bio",
+  "jobTitle",
+  "courses.title",
+];
+
+const defaultFields = [
+  "firstName",
+  "lastName",
+  "email",
+  "phone",
+  "age",
+  "isOnline",
+  "bio",
+  "avatar",
+  "socialLinks",
+  "jobTitle",
+  "role",
+  "courses",
+];
+
 export const instructors = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<Response | void> => {
-  const users = await userModel
-    .find({ role: "instructor", verificationStatus: "approved" })
-    .select("-password -email")
-    .populate("courses")
-    .lean();
+  const { page, size, select, sort, search } = req.query;
+  const { ids } = req.query;
+
+  const pipeline = new ApiPipeline()
+    .addStage({
+      $match: { role: Roles.Instructor, verificationStatus: "approved" },
+    })
+    .lookUp(
+      {
+        from: "courses",
+        localField: "_id",
+        foreignField: "instructorId",
+        as: "courses",
+        isArray: true,
+      },
+      {
+        title: 1,
+        price: 1,
+        rating: 1,
+        totalVideos: 1,
+        totalSections: 1,
+        purchaseCount: 1,
+        instructorId: 1,
+        totalDuration: 1,
+      }
+    )
+    .match({
+      fields: allowSearchFields,
+      search: search?.toString() || "",
+      op: "$or",
+    })
+    .sort(sort?.toString() || "")
+    .paginate(Number(page) || 1, Number(size) || 100)
+    .projection({
+      allowFields: defaultFields,
+      defaultFields: defaultFields,
+      select: select?.toString() || "",
+    })
+    .build();
+
+  const [total, users] = await Promise.all([
+    userModel.countDocuments({ role: Roles.Instructor }),
+    userModel.aggregate(pipeline).exec(),
+  ]);
+
+  const s3Instance = new S3Instance();
+
+  const updatePromises = users.map(async (user) => {
+    // Process course thumbnail if it exists
+    if (user?.avatar) {
+      user.url = await s3Instance.getFile(user.avatar);
+    }
+    return user;
+  });
+
+  const updatedUsers = await Promise.all(updatePromises);
 
   return res.status(200).json({
-    message: "All instructors",
-    status: "success",
-    data: users,
+    message: "instructors fetched successfully",
+    success: true,
+    statusCode: 200,
+    totalUsers: total,
+    totalPages: Math.ceil(total / Number(size || 23)),
+    data: updatedUsers,
   });
 };
 
@@ -53,52 +137,52 @@ export const getInstructorById = async (
   res: Response,
   next: NextFunction
 ) => {
-    const user = req.user as Iuser; 
-    
-    if (!user) {
-      return next(new CustomError("User not authenticated", 401));
-    }
+  const user = req.user as Iuser;
 
-    const instructor = await userModel.findById(user._id)
-      .select("-password -email")
-      .populate<{ courses: ICourse[] }>({
-        path: "courses",
-        populate: {
-          path: "categoryId",
-          select: "title thumbnail"
-        }
-      })
-      .orFail(new CustomError("Instructor not found", 404)); 
+  if (!user) {
+    return next(new CustomError("User not authenticated", 401));
+  }
 
-    if (!Array.isArray(instructor.courses)) {
-      instructor.courses = [];
-    }
+  const instructor = await userModel
+    .findById(user._id)
+    .select("-password -email")
+    .populate<{ courses: ICourse[] }>({
+      path: "courses",
+      populate: {
+        path: "categoryId",
+        select: "title thumbnail",
+      },
+    })
+    .orFail(new CustomError("Instructor not found", 404));
 
-    const keys = instructor.courses.map((course) => course.thumbnail);
-    const urls = await new S3Instance().getFiles(keys);
-    
-    const result = instructor.toObject({
-      virtuals: true,
-      versionKey: false
-    });
+  if (!Array.isArray(instructor.courses)) {
+    instructor.courses = [];
+  }
 
-    result.courses = result.courses.map((course: ICourse, index: number) => ({
-      ...course,
-      url: urls[index],
-      instructor: {
-        firstName: result.firstName,
-        lastName: result.lastName,
-        avatar: result.avatar
-      }
-    }));
+  const keys = instructor.courses.map((course) => course.thumbnail);
+  const urls = await new S3Instance().getFiles(keys);
 
-    return res.status(200).json({
-      message: "Instructor fetched successfully",
-      statusCode: 200,
-      success: true,
-      instructor: result,
-    });
+  const result = instructor.toObject({
+    virtuals: true,
+    versionKey: false,
+  });
 
+  result.courses = result.courses.map((course: ICourse, index: number) => ({
+    ...course,
+    url: urls[index],
+    instructor: {
+      firstName: result.firstName,
+      lastName: result.lastName,
+      avatar: result.avatar,
+    },
+  }));
+
+  return res.status(200).json({
+    message: "Instructor fetched successfully",
+    statusCode: 200,
+    success: true,
+    instructor: result,
+  });
 };
 
 // export const getInstructorById = async (
@@ -136,27 +220,35 @@ export const uploadImage = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const userId = req.user?._id;
+
   if (!req.file) {
     return next(new CustomError("No file uploaded", 400));
   }
 
-  const imagePath = `${req.protocol}://${req.get("host")}/uploads/${
-    req.file.filename
-  }`;
-
-  const userId = req.user?._id;
-  if (!userId) {
-    return next(new CustomError("Unauthorized", 401));
-  }
-
-  const user = await userModel.findByIdAndUpdate(
-    userId,
-    { avatar: imagePath },
-    { new: true }
+  const folder = await userFileKey2(
+    userId as unknown as string,
+    req.file.originalname
   );
 
-  if (!user) {
-    return next(new CustomError("User not found", 404));
+  req.file.folder = folder;
+
+  const [user, isUploaded] = await Promise.all([
+    await userModel.findByIdAndUpdate(
+      userId,
+      { avatar: folder },
+      { new: true, lean: true }
+    ),
+    new S3Instance().uploadLargeFileWithPath(req.file),
+  ]);
+
+  if (!user || !isUploaded) {
+    await userModel.updateOne(
+      { _id: req.user?._id },
+      { avatar: req.user?.avatar }
+    );
+
+    return next(new CustomError("SERVER ERROR !", 500));
   }
 
   res.status(200).json({
@@ -241,7 +333,7 @@ export const instructorData = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, phone, jobTitle, socialLinks, bio  } = req.body;
+  const { firstName, lastName, phone, jobTitle, socialLinks, bio } = req.body;
   const userId = req.user?._id;
 
   if (!userId) {
@@ -252,7 +344,7 @@ export const instructorData = async (
     ? encrypt(phone, String(process.env.SECRETKEY_CRYPTO))
     : undefined;
 
-  const updateData: any = { firstName, lastName, jobTitle, socialLinks, bio   };
+  const updateData: any = { firstName, lastName, jobTitle, socialLinks, bio };
   if (encryptedPhone) updateData.phone = encryptedPhone;
 
   const updateUser = await userModel.findByIdAndUpdate(userId, updateData, {
@@ -564,4 +656,3 @@ export const instructorVerification = async (
 // };
 
 //Add It In Admin Panel
-

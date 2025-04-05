@@ -10,3 +10,13 @@ export const userFileKey = async (
 
   return `users/${userId}/${fileType}/${uniqueId}.${fileExtension}`;
 };
+
+export const userFileKey2 = async (
+  userId: string,
+  originalFilename: string
+): Promise<string> => {
+  const fileExtension = originalFilename.replace(/\s/g , "_");
+  const uniqueId = uuidv4();
+
+  return `users/${userId}/${uniqueId}-${fileExtension}`;
+};

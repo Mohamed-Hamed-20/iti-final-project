@@ -292,6 +292,8 @@ export const getCourseById = async (
         phone: 1,
         isOnline: 1,
         avatar: 1,
+        bio: 1,
+        jobTitle: 1,
       }
     )
     .lookUp(

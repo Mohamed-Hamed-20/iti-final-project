@@ -3,6 +3,8 @@ import { Post } from "../../../DB/models/post.model";
 import { CustomError } from "../../../utils/errorHandling";
 import { Roles } from "../../../DB/interfaces/user.interface";
 import { PipelineStage, Types } from "mongoose";
+import S3Instance from "../../../utils/aws.sdk.s3";
+import { IComment } from "../../../DB/interfaces/post.interface";
 
 const allowSearchFields = ["text", "author.firstName", "author.lastName"];
 const defaultFields = [
@@ -72,7 +74,7 @@ export const getAllPosts = async (
       },
     },
     { $unwind: "$author" },
-    
+
     // Lookup category details
     {
       $lookup: {
@@ -83,11 +85,11 @@ export const getAllPosts = async (
         pipeline: [{ $project: { title: 1, thumbnail: 1 } }],
       },
     },
-    { 
-      $unwind: { 
-        path: "$categoryId", 
-        preserveNullAndEmptyArrays: true 
-      } 
+    {
+      $unwind: {
+        path: "$categoryId",
+        preserveNullAndEmptyArrays: true,
+      },
     },
 
     // Lookup comments with user details
@@ -214,13 +216,34 @@ export const getAllPosts = async (
     Post.aggregate(pipeline).exec(),
   ]);
 
+  const postsWithAuthors = await Promise.all(
+    posts.map(async (post) => {
+      if (post.author) {
+        post.author.url = await new S3Instance().getFile(post?.author?.avatar);
+      }
+
+      if (post.comments && post.comments.length > 0) {
+        await Promise.all(
+          post.comments.map(async (comment: IComment | any) => {
+            if (comment?.user) {
+              comment.user.url = await new S3Instance().getFile(
+                comment?.user?.avatar as string
+              );
+            }
+          })
+        );
+      }
+      return post;
+    })
+  );
+
   return res.status(200).json({
     message: "Posts fetched successfully",
     statusCode: 200,
     totalPosts: total,
     totalPages: Math.ceil(total / sizeNum),
     success: true,
-    posts,
+    posts: postsWithAuthors,
   });
 };
 
@@ -253,11 +276,11 @@ export const getPostById = async (
         pipeline: [{ $project: { title: 1, thumbnail: 1 } }],
       },
     },
-    { 
-      $unwind: { 
-        path: "$categoryId", 
-        preserveNullAndEmptyArrays: true 
-      } 
+    {
+      $unwind: {
+        path: "$categoryId",
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $lookup: {
@@ -341,7 +364,28 @@ export const getPostById = async (
     return next(new CustomError("Post not found", 404));
   }
 
-  const post = postArray[0];
+  const postsWithAuthors = await Promise.all(
+    postArray.map(async (post) => {
+      if (post.author) {
+        post.author.url = await new S3Instance().getFile(post?.author?.avatar);
+      }
+
+      if (post.comments && post.comments.length > 0) {
+        await Promise.all(
+          post.comments.map(async (comment: IComment | any) => {
+            if (comment?.user) {
+              comment.user.url = await new S3Instance().getFile(
+                comment?.user?.avatar as string
+              );
+            }
+          })
+        );
+      }
+      return post;
+    })
+  );
+
+  const post = postsWithAuthors[0];
 
   return res.status(200).json({
     message: "Post fetched successfully",

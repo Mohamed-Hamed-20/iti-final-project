@@ -19,7 +19,8 @@ export const sanatizeUser = (user: Iuser) => {
     isConfirmed: user?.isConfirmed,
     jobTitle: user.jobTitle,
     socialLinks: user?.socialLinks,
-    verificationStatus: user?.verificationStatus
+    verificationStatus: user?.verificationStatus,
+    url : user.url,
   };
 
   return _.omitBy(sanitized, _.isNil);

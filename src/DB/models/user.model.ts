@@ -51,25 +51,24 @@ const userSchema = new Schema<Iuser>(
       required: false,
       default: false,
     },
-    isOnline:{
+    isOnline: {
       type: Boolean,
-      default: false
+      default: false,
     },
-    code:{
+    code: {
       type: String,
     },
-    jobTitle:{
+    jobTitle: {
       type: String,
     },
     avatar: {
       type: String,
       required: false,
-      default:
-        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+      default: "default-avatar-icon-of-social-media-user-vector.jpg",
     },
     bio: {
       type: String,
-      maxlength: [500, 'Bio cannot be longer than 500 characters']
+      maxlength: [500, "Bio cannot be longer than 500 characters"],
     },
     frontId: {
       type: String,
@@ -92,21 +91,21 @@ const userSchema = new Schema<Iuser>(
       github: { type: String },
       twitter: { type: String },
       facebook: { type: String },
-      portfolio: { type: String }
-    }
+      portfolio: { type: String },
+    },
   },
   { timestamps: true }
 );
 
-userSchema.virtual('courses', {
-  ref: 'course',
-  localField: '_id',
-  foreignField: 'instructorId',
+userSchema.virtual("courses", {
+  ref: "course",
+  localField: "_id",
+  foreignField: "instructorId",
 });
 
 // Ensure virtual fields are included when converting documents to JSON or Objects
-userSchema.set('toObject', { virtuals: true });
-userSchema.set('toJSON', { virtuals: true });
+userSchema.set("toObject", { virtuals: true });
+userSchema.set("toJSON", { virtuals: true });
 
 const userModel = mongoose.model<Iuser>("user", userSchema);
 export default userModel;

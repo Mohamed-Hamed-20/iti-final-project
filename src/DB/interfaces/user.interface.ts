@@ -35,6 +35,7 @@ export interface Iuser extends Document {
   code?: number;
   verificationStatus: 'pending' | 'approved' | 'rejected' | 'none'; 
   socialLinks?: ISocialLinks;
+  url?: string;
 }
 
 
