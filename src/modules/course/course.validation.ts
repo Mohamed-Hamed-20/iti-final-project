@@ -67,6 +67,19 @@ export const searchCoursesScheam = {
       select: generalFields.select,
       search: generalFields.search,
       sort: generalFields.sort,
+      ids: joi
+        .alternatives()
+        .try(generalFields._id, joi.array().items(generalFields._id))
+        .optional()
+        .custom((value) => [].concat(value), "Convert single value to array"),
+    })
+    .required(),
+};
+
+export const idsSchema = {
+  params: joi
+    .object({
+      ids: joi.array().items(generalFields._id).optional(),
     })
     .required(),
 };
