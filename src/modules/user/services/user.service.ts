@@ -10,7 +10,8 @@ import redis from "../../../utils/redis";
 import { ICourse } from "../../../DB/interfaces/courses.interface";
 import { Iuser, Roles } from "../../../DB/interfaces/user.interface";
 import ApiPipeline from "../../../utils/apiFeacture";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
+import { userFileKey2 } from "./user.helper";
 
 export const profile = async (
   req: Request,
@@ -18,10 +19,13 @@ export const profile = async (
   next: NextFunction
 ): Promise<void | any> => {
   const user = req.user;
-  console.log("User object before sanitization:", user);
 
   if (!user) {
-    return next(new CustomError("user not found ERROR", 500));
+    return next(new CustomError("Missing Server ERROR", 500));
+  }
+
+  if (user?.avatar) {
+    user.url = await new S3Instance().getFile(user?.avatar as string);
   }
 
   return res.status(200).json({
@@ -110,8 +114,8 @@ export const instructors = async (
 
   const updatePromises = users.map(async (user) => {
     // Process course thumbnail if it exists
-    if (user?.thumbnail) {
-      user.url = await s3Instance.getFile(user.thumbnail);
+    if (user?.avatar) {
+      user.url = await s3Instance.getFile(user.avatar);
     }
     return user;
   });
@@ -216,27 +220,35 @@ export const uploadImage = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const userId = req.user?._id;
+
   if (!req.file) {
     return next(new CustomError("No file uploaded", 400));
   }
 
-  const imagePath = `${req.protocol}://${req.get("host")}/uploads/${
-    req.file.filename
-  }`;
-
-  const userId = req.user?._id;
-  if (!userId) {
-    return next(new CustomError("Unauthorized", 401));
-  }
-
-  const user = await userModel.findByIdAndUpdate(
-    userId,
-    { avatar: imagePath },
-    { new: true }
+  const folder = await userFileKey2(
+    userId as unknown as string,
+    req.file.originalname
   );
 
-  if (!user) {
-    return next(new CustomError("User not found", 404));
+  req.file.folder = folder;
+
+  const [user, isUploaded] = await Promise.all([
+    await userModel.findByIdAndUpdate(
+      userId,
+      { avatar: folder },
+      { new: true, lean: true }
+    ),
+    new S3Instance().uploadLargeFileWithPath(req.file),
+  ]);
+
+  if (!user || !isUploaded) {
+    await userModel.updateOne(
+      { _id: req.user?._id },
+      { avatar: req.user?.avatar }
+    );
+
+    return next(new CustomError("SERVER ERROR !", 500));
   }
 
   res.status(200).json({

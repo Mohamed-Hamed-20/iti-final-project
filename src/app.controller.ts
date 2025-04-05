@@ -16,6 +16,7 @@ const app: Application = express();
 app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
 app.use(express.json());
+
 app.use(
   cors({
     credentials: true,
