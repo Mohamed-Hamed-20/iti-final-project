@@ -31,6 +31,7 @@ export const profile = async (
     user: sanatizeUser(user),
   });
 };
+
 const allowSearchFields = [
   "firstName",
   "lastName",
@@ -51,6 +52,8 @@ const defaultFields = [
   "avatar",
   "socialLinks",
   "jobTitle",
+  "role",
+  "courses",
 ];
 
 export const instructors = async (
@@ -62,6 +65,9 @@ export const instructors = async (
   const { ids } = req.query;
 
   const pipeline = new ApiPipeline()
+    .addStage({
+      $match: { role: Roles.Instructor, verificationStatus: "approved" },
+    })
     .lookUp(
       {
         from: "courses",
@@ -72,7 +78,6 @@ export const instructors = async (
       },
       {
         title: 1,
-        description: 1,
         price: 1,
         rating: 1,
         totalVideos: 1,
