@@ -229,7 +229,7 @@ export const uploadImage = async (
   if (req.user?.avatar && req.user.avatar.startsWith("users")) {
     folder = req.user.avatar;
   } else {
-    folder = await userFileKey2(userId as string);
+    folder = await userFileKey2(userId as unknown as string);
   }
   req.file.folder = folder;
 
