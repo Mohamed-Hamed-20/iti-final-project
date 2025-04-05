@@ -302,6 +302,20 @@ export const getCourseById = async (
     )
     .lookUp(
       {
+        from: "courses",
+        localField: "category._id",
+        foreignField: "categoryId",
+        as: "coursesInCategory",
+        isArray: true
+      }
+    )
+    .addStage({
+      $addFields: {
+        "category.totalCourses": { $size: "$coursesInCategory" }
+      }
+    })
+    .lookUp(
+      {
         localField: "_id",
         from: "sections",
         foreignField: "courseId",
