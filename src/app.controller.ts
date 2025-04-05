@@ -9,6 +9,7 @@ import cors from "cors";
 import path from "path";
 import morgan from "morgan";
 import compression from "compression";
+import userModel from "./DB/models/user.model";
 
 const app: Application = express();
 
@@ -18,7 +19,7 @@ app.use(express.json());
 app.use(
   cors({
     credentials: true,
-    origin: ["http://localhost:5173","http://localhost:5174"],
+    origin: ["http://localhost:5173", "http://localhost:5174"],
   })
 );
 app.use(express.urlencoded({ extended: true }));
