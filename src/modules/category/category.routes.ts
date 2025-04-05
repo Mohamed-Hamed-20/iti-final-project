@@ -18,8 +18,10 @@ router.post(
   "/add",
   upload.single("thumbnail"),
   valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(categoryServices.addCategory)
 );
+
 
 router.get(
   "/all",
@@ -27,15 +29,17 @@ router.get(
 );
 
 router.put(
-  '/update/:categoryId',
-   isAuth([Roles.Admin]),
-   upload.single('thumbnail'),
-   asyncHandler(categoryServices.updateCategory)
+  '/:categoryId',
+  upload.single('thumbnail'),
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(categoryServices.updateCategory)
 );
 
 router.delete(
   '/:categoryId',
-   isAuth([Roles.Admin]),
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
    asyncHandler(categoryServices.deleteCategory)
 );
 
