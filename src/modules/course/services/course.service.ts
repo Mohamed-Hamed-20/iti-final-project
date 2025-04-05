@@ -163,13 +163,21 @@ export const getAllCourses = async (
     courseModel.aggregate(pipeline).exec(),
   ]);
 
+  const s3Instance = new S3Instance();
+
   const updatePromises = courses.map(async (course) => {
+    // Process course thumbnail if it exists
     if (course?.thumbnail) {
-      return {
-        ...course,
-        url: await new S3Instance().getFile(course.thumbnail),
-      };
+      course.url = await s3Instance.getFile(course.thumbnail);
     }
+
+    // Process instructor's thumbnail if instructor exists and has a thumbnail
+    if (course.instructor?.avatar) {
+      course.instructor.url = await s3Instance.getFile(
+        course.instructor.avatar
+      );
+    }
+
     return course;
   });
 
