@@ -671,72 +671,66 @@ export const filerCourses = async (
   next: NextFunction
 ) => {};
 
-
 export const requestCourseVerification = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-    const { courseId } = req.params;
-    const userId = req.user?._id;
+  const { courseId } = req.params;
+  const userId = req.user?._id;
 
-    const course = await courseModel.findOne({
-      _id: courseId,
-      instructorId: userId
-    });
+  const course = await courseModel.findOne({
+    _id: courseId,
+    instructorId: userId,
+  });
 
-    if (!course) {
-      return next(new CustomError("Course not found or unauthorized", 404));
-    }
+  if (!course) {
+    return next(new CustomError("Course not found or unauthorized", 404));
+  }
 
-    if (course.status !== "none") {
-      return next(new CustomError(
-        `Course verification is already ${course.status}`,
-        400
-      ));
-    }
+  if (course.status !== "none") {
+    return next(
+      new CustomError(`Course verification is already ${course.status}`, 400)
+    );
+  }
 
-    // Check if course has at least one section and one video
-    const sections = await sectionModel.find({ courseId });
-    if (sections.length === 0) {
-      return next(new CustomError(
+  // Check if course has at least one section and one video
+  const sections = await sectionModel.find({ courseId });
+  if (sections.length === 0) {
+    return next(
+      new CustomError(
         "Course must have at least one section to request verification",
         400
-      ));
-    }
+      )
+    );
+  }
 
-    // Check videos for each section
-    for (const section of sections) {
-      const videos = await videoModel.find({ sectionId: section._id });
-      if (videos.length === 0) {
-        return next(new CustomError(
+  // Check videos for each section
+  for (const section of sections) {
+    const videos = await videoModel.find({ sectionId: section._id });
+    if (videos.length === 0) {
+      return next(
+        new CustomError(
           `Section "${section.title}" must have at least one video`,
           400
-        ));
-      }
+        )
+      );
     }
+  }
 
-    const [updatedCourse] = await Promise.all([
-      courseModel.findByIdAndUpdate(
-        courseId,
-        { status: "pending" },
-        { new: true }
-      ),
-      sectionModel.updateMany(
-        { courseId },
-        { status: "pending" }
-      ),
-      videoModel.updateMany(
-        { courseId },
-        { status: "pending" }
-      )
-    ]);
+  const [updatedCourse] = await Promise.all([
+    courseModel.findByIdAndUpdate(
+      courseId,
+      { status: "pending" },
+      { new: true }
+    ),
+    sectionModel.updateMany({ courseId }, { status: "pending" }),
+    videoModel.updateMany({ courseId }, { status: "pending" }),
+  ]);
 
-
-    res.status(200).json({
-      success: true,
-      message: "Verification request submitted successfully",
-      course: updatedCourse
-    });
-
+  res.status(200).json({
+    success: true,
+    message: "Verification request submitted successfully",
+    course: updatedCourse,
+  });
 };
