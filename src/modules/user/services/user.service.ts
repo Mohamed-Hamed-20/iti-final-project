@@ -12,6 +12,7 @@ import { Iuser, Roles } from "../../../DB/interfaces/user.interface";
 import ApiPipeline from "../../../utils/apiFeacture";
 import mongoose, { Types } from "mongoose";
 import { userFileKey2 } from "./user.helper";
+import courseModel from "../../../DB/models/courses.model";
 
 export const profile = async (
   req: Request,
@@ -139,49 +140,36 @@ export const getInstructorById = async (
 ) => {
   const user = req.user as Iuser;
 
-  if (!user) {
-    return next(new CustomError("User not authenticated", 401));
-  }
+  const courses = await courseModel.find({ instructorId: user._id }).lean();
 
-  const instructor = await userModel
-    .findById(user._id)
-    .select("-password -email")
-    .populate<{ courses: ICourse[] }>({
-      path: "courses",
-      populate: {
-        path: "categoryId",
-        select: "title thumbnail",
-      },
-    })
-    .orFail(new CustomError("Instructor not found", 404));
+  // Prepare avatar promise
+  const avatarPromise = user.avatar
+    ? new S3Instance().getFile(user.avatar)
+    : Promise.resolve(null);
 
-  if (!Array.isArray(instructor.courses)) {
-    instructor.courses = [];
-  }
-
-  const keys = instructor.courses.map((course) => course.thumbnail);
-  const urls = await new S3Instance().getFiles(keys);
-
-  const result = instructor.toObject({
-    virtuals: true,
-    versionKey: false,
+  // Prepare course thumbnails promises
+  const coursePromises = courses.map(async (course) => {
+    const url = await new S3Instance().getFile(course.thumbnail);
+    return { ...course, url };
   });
 
-  result.courses = result.courses.map((course: ICourse, index: number) => ({
-    ...course,
-    url: urls[index],
-    instructor: {
-      firstName: result.firstName,
-      lastName: result.lastName,
-      avatar: result.avatar,
-    },
-  }));
+  // Execute promises
+  const [userAvatar, updatedCourses] = await Promise.all([
+    avatarPromise,
+    Promise.all(coursePromises),
+  ]);
 
+  if (userAvatar) {
+    user.url = userAvatar || undefined;
+  }
+
+  const instructor: any = sanatizeUser(user);
+  instructor.courses = updatedCourses;
   return res.status(200).json({
     message: "Instructor fetched successfully",
     statusCode: 200,
     success: true,
-    instructor: result,
+    instructor,
   });
 };
 
@@ -226,6 +214,7 @@ export const uploadImage = async (
     return next(new CustomError("No file uploaded", 400));
   }
   let folder = req.user?.avatar;
+
   if (req.user?.avatar && req.user.avatar.startsWith("users")) {
     folder = req.user.avatar;
   } else {

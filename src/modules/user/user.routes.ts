@@ -31,7 +31,7 @@ router.get("/instructors", asyncHandler(userServices.instructors));
 router.get(
   "/instructor-profile",
   valid(cokkiesSchema) as RequestHandler,
-  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
+  isAuth([Roles.Instructor]),
   asyncHandler(userServices.getInstructorById)
 );
 
