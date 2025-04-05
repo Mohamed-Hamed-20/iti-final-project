@@ -9,7 +9,7 @@ export interface IVideo extends Document {
   video_key: string;
   duration?: string;
   process?: "processing" | "completed" | "rejected";
-  status?: "pending" | "approved" | "rejected";
+  status?: "pending" | "approved" | "rejected" | "none";
   order?: number;
   publicView?: boolean;
 }
@@ -21,4 +21,5 @@ export interface Isection extends Document {
   totalDuration: number;
   title: string;
   order?: number;
+  status?: "pending" | "approved" | "rejected" | "none";
 }

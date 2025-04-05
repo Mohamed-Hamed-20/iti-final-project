@@ -33,12 +33,6 @@ router.get(
   asyncHandler(userServices.instructors)
 );
 
-router.get(
-  "/pending",
-  valid(cokkiesSchema) as RequestHandler,
-  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
-  asyncHandler(userServices.getPendingVerifications)
-);
 
 router.get(
   "/instructor-profile",
@@ -74,11 +68,7 @@ router.put(
   asyncHandler(userServices.instructorVerification)
 );
 
-router.put("/approve/:instructorId",
-  isAuth([Roles.Admin,Roles.Instructor]),
-  valid(cokkiesSchema) as RequestHandler,
-  asyncHandler(userServices.approveInstructor)
-);
+
 
 router.put(
 "/changePass", 

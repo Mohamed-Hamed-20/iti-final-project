@@ -62,7 +62,12 @@ router.put(
   asyncHandler(courseServices.updateCourse)
 );
 
-
+router.patch(
+  "/:courseId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor]),
+  asyncHandler(courseServices.requestCourseVerification)
+);
 
 // Delete Course (Only Instructors & Admins)
 router.delete(
