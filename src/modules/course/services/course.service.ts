@@ -665,12 +665,6 @@ export const searchCollection = async (
   }
 };
 
-export const filerCourses = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {};
-
 export const requestCourseVerification = async (
   req: Request,
   res: Response,
@@ -734,3 +728,9 @@ export const requestCourseVerification = async (
     course: updatedCourse,
   });
 };
+
+export const filerCourses = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {};
