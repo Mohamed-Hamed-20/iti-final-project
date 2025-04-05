@@ -225,12 +225,12 @@ export const uploadImage = async (
   if (!req.file) {
     return next(new CustomError("No file uploaded", 400));
   }
-
-  const folder = await userFileKey2(
-    userId as unknown as string,
-    req.file.originalname
-  );
-
+  let folder = req.user?.avatar;
+  if (req.user?.avatar && req.user.avatar.startsWith("users")) {
+    folder = req.user.avatar;
+  } else {
+    folder = await userFileKey2(userId as string);
+  }
   req.file.folder = folder;
 
   const [user, isUploaded] = await Promise.all([
