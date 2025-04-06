@@ -419,9 +419,28 @@ export const getCourseById = async (
 
   let course = courseArray[0];
 
-  if (course.thumbnail) {
-    course.url = await new S3Instance().getFile(course.thumbnail);
-  }
+const promises: Promise<void>[] = [];
+
+if (course.thumbnail) {
+  const courseUrlPromise = new S3Instance()
+    .getFile(course.thumbnail)
+    .then((url) => {
+      course.url = url;
+    });
+  promises.push(courseUrlPromise);
+}
+
+if (course.instructor?.avatar) {
+  const instructorUrlPromise = new S3Instance()
+    .getFile(course.instructor.avatar)
+    .then((url) => {
+      course.instructor.url = url;
+    });
+  promises.push(instructorUrlPromise);
+}
+
+await Promise.all(promises);
+
 
   return res.status(200).json({
     message: "Course fetched successfully",
