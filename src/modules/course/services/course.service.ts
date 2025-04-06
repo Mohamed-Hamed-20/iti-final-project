@@ -318,18 +318,6 @@ export const getCourseById = async (
         thumbnail: 1,
       }
     )
-    .lookUp({
-      from: "courses",
-      localField: "category._id",
-      foreignField: "categoryId",
-      as: "coursesInCategory",
-      isArray: true,
-    })
-    .addStage({
-      $addFields: {
-        "category.totalCourses": { $size: "$coursesInCategory" },
-      },
-    })
     .lookUp(
       {
         localField: "_id",
@@ -420,9 +408,36 @@ export const getCourseById = async (
 
   let course = courseArray[0];
 
+  const promises: Promise<void>[] = [];
+
   if (course.thumbnail) {
-    course.url = await new S3Instance().getFile(course.thumbnail);
+    const courseUrlPromise = new S3Instance()
+      .getFile(course.thumbnail)
+      .then((url) => {
+        course.url = url;
+      });
+    promises.push(courseUrlPromise);
   }
+
+  if (course.instructor?.avatar) {
+    const instructorUrlPromise = new S3Instance()
+      .getFile(course.instructor.avatar)
+      .then((url) => {
+        course.instructor.url = url;
+      });
+    promises.push(instructorUrlPromise);
+  }
+
+  if (course?.category?.thumbnail) {
+    const categoryUrlPromise = new S3Instance()
+      .getFile(course.category.thumbnail)
+      .then((url) => {
+        course.category.url = url;
+      });
+    promises.push(categoryUrlPromise);
+  }
+
+  await Promise.all(promises);
 
   return res.status(200).json({
     message: "Course fetched successfully",
