@@ -13,6 +13,7 @@ import videoRouter from "./modules/video/video.routes";
 import wishlistRoutes from "./modules/wishlist/wishlist.routes";
 import postRouter from "./modules/posts/posts.routes";
 import adminRouter from "./modules/adminDashboard/admin.routes";
+import paymentRoutes from "./modules/payment/payment.routes";
 
 const router = Router();
 router.use("/user", userRouter);
@@ -29,5 +30,6 @@ router.use("/course/cart" , cartRoutes)
 router.use("/notifications", notificationRouter);
 router.use("/posts", postRouter);
 router.use("/admin", adminRouter);
+router.use("/payment", paymentRoutes);
 
 export default router;
