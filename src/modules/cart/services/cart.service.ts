@@ -64,7 +64,7 @@ export const getCartCourses = async (
 
   try {
     const cartItems = await cartModel.find({ userId: user._id }).lean();
-    
+
     if (!cartItems || cartItems.length === 0) {
       return res.status(200).json({
         message: "No courses found in your cart",
@@ -74,13 +74,13 @@ export const getCartCourses = async (
       });
     }
 
-    const courseIds = cartItems.map(item => item.courseId);
+    const courseIds = cartItems.map((item) => item.courseId);
 
     const pipeline = [
       {
         $match: {
-          _id: { $in: courseIds }
-        }
+          _id: { $in: courseIds },
+        },
       },
       {
         $lookup: {
@@ -93,34 +93,34 @@ export const getCartCourses = async (
               $project: {
                 firstName: 1,
                 lastName: 1,
-                avatar: 1
-              }
-            }
-          ]
-        }
+                avatar: 1,
+              },
+            },
+          ],
+        },
       },
       {
-        $unwind: "$instructorId"
+        $unwind: "$instructorId",
       },
       {
         $lookup: {
           from: "categories",
           localField: "categoryId",
           foreignField: "_id",
-          as: "categoryId", 
+          as: "categoryId",
           pipeline: [
             {
               $project: {
                 title: 1,
-                thumbnail: 1
-              }
-            }
-          ]
-        }
+                thumbnail: 1,
+              },
+            },
+          ],
+        },
       },
       {
-        $unwind: "$categoryId"
-      }
+        $unwind: "$categoryId",
+      },
     ];
 
     // Get courses with populated data
@@ -129,9 +129,11 @@ export const getCartCourses = async (
     // Add URLs to courses and merge with cart info
     const cartCourses = await Promise.all(
       courses.map(async (course) => {
-        const cartItem = cartItems.find(item => item.courseId.toString() === course._id.toString());
-        
-        let url = '';
+        const cartItem = cartItems.find(
+          (item) => item.courseId.toString() === course._id.toString()
+        );
+
+        let url = "";
         if (course?.thumbnail) {
           url = await new S3Instance().getFile(course.thumbnail);
         }
@@ -142,8 +144,8 @@ export const getCartCourses = async (
             ...course,
             url,
             instructorId: course.instructorId,
-            categoryId: course.categoryId
-          }
+            categoryId: course.categoryId,
+          },
         };
       })
     );
@@ -252,9 +254,10 @@ export const getCoursesByCategory = async (
         $unwind: "$category",
       },
       {
-        $match: categoryArray.length > 0 
-          ? { "category.title": { $in: categoryArray } }
-          : {},
+        $match:
+          categoryArray.length > 0
+            ? { "category.title": { $in: categoryArray } }
+            : {},
       },
       {
         $lookup: {
@@ -293,15 +296,22 @@ export const getCoursesByCategory = async (
 
     const coursesWithUrls = await Promise.all(
       courses.map(async (course) => {
-        let url = '';
+        let url = "";
         if (course.thumbnail) {
           url = await new S3Instance().getFile(course.thumbnail);
+        }
+        if (course.instructor) {
+          course.instructor.url = await new S3Instance().getFile(
+            course.instructor.avatar
+          );
         }
         return {
           ...course,
           url,
-          duration: course.totalDuration 
-            ? `${Math.floor(course.totalDuration / 60)}h ${course.totalDuration % 60}m` 
+          duration: course.totalDuration
+            ? `${Math.floor(course.totalDuration / 60)}h ${
+                course.totalDuration % 60
+              }m`
             : "0h 0m",
           enrollments: course.purchaseCount || 0,
         };
@@ -324,7 +334,6 @@ export const getCoursesByCategory = async (
       success: true,
       data: coursesWithUrls,
     });
-
   } catch (error) {
     next(new CustomError("Failed to fetch courses by category", 500));
   }
