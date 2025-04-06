@@ -25,6 +25,11 @@ router.put("/approveIns/:instructorId",
   isAuth([Roles.Admin,Roles.Instructor]),
   asyncHandler(adminServices.approveInstructor)
 );
+router.put("/rejectIns/:instructorId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Admin,Roles.Instructor]),
+  asyncHandler(adminServices.rejectInstructor)
+);
 
 router.get(
   "/coursesPending",

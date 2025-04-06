@@ -64,6 +64,7 @@ const CourseSchema = new Schema<ICourse>(
       default: "none"
     },
     subTitle: { type: String, required: false },
+    rejectionReason: { type: String},
     requirements: { type: [String], required: false },
     categoryId: {
       type: Schema.Types.ObjectId,

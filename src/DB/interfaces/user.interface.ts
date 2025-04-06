@@ -29,6 +29,7 @@ export interface Iuser extends Document {
   bio?: string;
   frontId?: string;
   backId?: string;
+  rejectionReason?: string;
   requiredVideo?: string;
   optionalVideo?: string;
   jobTitle?: string;
