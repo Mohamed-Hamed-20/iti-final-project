@@ -234,7 +234,6 @@ export const getCoursesByCategory = async (
     return;
   }
 
-  try {
     const categoryArray: string[] = category
       ? typeof category === "string"
         ? category.split(",")
@@ -285,6 +284,7 @@ export const getCoursesByCategory = async (
           updatedAt: 1,
           "category.title": 1,
           "category.thumbnail": 1,
+          "instructor._id": 1,  
           "instructor.firstName": 1,
           "instructor.lastName": 1,
           "instructor.avatar": 1,
@@ -334,7 +334,4 @@ export const getCoursesByCategory = async (
       success: true,
       data: coursesWithUrls,
     });
-  } catch (error) {
-    next(new CustomError("Failed to fetch courses by category", 500));
-  }
 };

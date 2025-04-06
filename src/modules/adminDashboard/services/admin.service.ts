@@ -146,6 +146,44 @@ export const getPendingVerifications = async (
       verificationStatus: instructor.verificationStatus,
     });
   };
+
+  export const rejectInstructor = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void | any> => {
+    const { instructorId } = req.params;
+    const { reason } = req.body;
+  
+    if (!reason) {
+      return next(new CustomError("Rejection reason is required", 400));
+    }
+  
+    const instructor = await userModel.findById(instructorId);
+  
+    if (!instructor) {
+      return next(new CustomError("Instructor not found", 404));
+    }
+  
+    if (instructor.verificationStatus === "rejected") {
+      return res.status(200).json({
+        message: "Instructor is already rejected",
+        success: true,
+        statusCode: 200,
+      });
+    }
+  
+    instructor.verificationStatus = "rejected";
+    instructor.rejectionReason = reason;
+    await instructor.save();
+  
+    return res.status(200).json({
+      message: "Instructor rejected successfully",
+      success: true,
+      statusCode: 200,
+      verificationStatus: instructor.verificationStatus,
+    });
+  };
   
   export const getPendingCourseVerifications = async (
     req: Request,

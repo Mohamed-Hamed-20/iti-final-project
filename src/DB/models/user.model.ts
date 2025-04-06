@@ -76,6 +76,9 @@ const userSchema = new Schema<Iuser>(
     backId: {
       type: String,
     },
+    rejectionReason: {
+      type: String,
+    },
     requiredVideo: {
       type: String,
     },

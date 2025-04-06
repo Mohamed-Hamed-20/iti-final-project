@@ -141,31 +141,79 @@ export const getInstructorById = async (
 ) => {
   const user = req.user as Iuser;
 
-  const courses = await courseModel.find({ instructorId: user._id }).lean();
+  const pipeline = [
+    {
+      $match: { instructorId: user._id },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "instructorId",
+        foreignField: "_id",
+        as: "instructor",
+      },
+    },
+    {
+      $unwind: {
+        path: "$instructor",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        thumbnail: 1,
+        duration: 1,
+        price: 1,
+        originalPrice: 1,
+        access_type: 1,
+        enrollments: 1,
+        category: 1,
+        instructor: {
+          _id: 1,  
+          firstName: 1,
+          lastName: 1,
+          avatar: 1,
+        },
+      },
+    },
+  ];
+
+  const courses = await courseModel.aggregate(pipeline).exec();
 
   // Prepare avatar promise
   const avatarPromise = user.avatar
     ? new S3Instance().getFile(user.avatar)
     : Promise.resolve(null);
 
-  // Prepare course thumbnails promises
+  // Prepare course thumbnails + instructor avatar promises
   const coursePromises = courses.map(async (course) => {
-    const url = await new S3Instance().getFile(course.thumbnail);
-    return { ...course, url };
+    const courseUrl = course.thumbnail
+      ? await new S3Instance().getFile(course.thumbnail)
+      : null;
+
+    if (course.instructor?.avatar) {
+      course.instructor.url = await new S3Instance().getFile(course.instructor.avatar);
+    }
+
+    return {
+      ...course,
+      url: courseUrl,
+    };
   });
 
-  // Execute promises
   const [userAvatar, updatedCourses] = await Promise.all([
     avatarPromise,
     Promise.all(coursePromises),
   ]);
 
   if (userAvatar) {
-    user.url = userAvatar || undefined;
+    user.url = userAvatar;
   }
 
   const instructor: any = sanatizeUser(user);
   instructor.courses = updatedCourses;
+
   return res.status(200).json({
     message: "Instructor fetched successfully",
     statusCode: 200,
@@ -174,35 +222,104 @@ export const getInstructorById = async (
   });
 };
 
-// export const getInstructorById = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   const { id } = req.params;
+export const getInstructorFromURL = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
 
-//   const instructor = await userModel
-//     .findById(id)
-//     .select("-password -email")
-//     .populate({
-//       path: "courses",
-//       populate: {
-//         path: "categoryId",
-//       },
-//     })
-//     .lean();
+  const pipeline = [
+    {
+      $match: { instructorId: new mongoose.Types.ObjectId(id) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "instructorId",
+        foreignField: "_id",
+        as: "instructor",
+      },
+    },
+    {
+      $unwind: {
+        path: "$instructor",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        thumbnail: 1,
+        duration: 1,
+        price: 1,
+        originalPrice: 1,
+        access_type: 1,
+        enrollments: 1,
+        category: 1,
+        instructor: {
+          _id: 1,  
+          firstName: 1,
+          lastName: 1,
+          avatar: 1,
+        },
+      },
+    },
+  ];
 
-//   if (!instructor) {
-//     return next(new CustomError("Instructor not found", 404));
-//   }
+  const courses = await courseModel.aggregate(pipeline).exec();
+  
+  // First get the instructor details
+  const instructor = await userModel.findById(id).lean().exec();
+  
+  if (!instructor) {
+    return res.status(404).json({
+      message: "Instructor not found",
+      statusCode: 404,
+      success: false,
+    });
+  }
 
-//   return res.status(200).json({
-//     message: "Instructor fetched successfully",
-//     statusCode: 200,
-//     success: true,
-//     instructor,
-//   });
-// };
+  // Prepare avatar promise
+  const avatarPromise = instructor.avatar
+    ? new S3Instance().getFile(instructor.avatar)
+    : Promise.resolve(null);
+
+  // Prepare course thumbnails + instructor avatar promises
+  const coursePromises = courses.map(async (course) => {
+    const courseUrl = course.thumbnail
+      ? await new S3Instance().getFile(course.thumbnail)
+      : null;
+
+    if (course.instructor?.avatar) {
+      course.instructor.url = await new S3Instance().getFile(course.instructor.avatar);
+    }
+
+    return {
+      ...course,
+      url: courseUrl,
+    };
+  });
+
+  const [userAvatar, updatedCourses] = await Promise.all([
+    avatarPromise,
+    Promise.all(coursePromises),
+  ]);
+
+  if (userAvatar) {
+    instructor.url = userAvatar;
+  }
+
+  const sanitizedInstructor: any = sanatizeUser(instructor);
+  sanitizedInstructor.courses = updatedCourses;
+
+  return res.status(200).json({
+    message: "Instructor fetched successfully",
+    statusCode: 200,
+    success: true,
+    instructor: sanitizedInstructor,
+  });
+};
 
 export const uploadImage = async (
   req: Request,
