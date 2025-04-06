@@ -60,10 +60,6 @@ export const cart = async (
   });
 };
 
-// import { Request, Response } from 'express';
-// import Course from '../models/course';
-// import Instructor from '../models/instructor';
-
 const API_KEY = process.env.PAYMOB_API_KEY as string;
 const INTEGRATION_ID = Number(process.env.PAYMOB_INTEGRATION_ID);
 
