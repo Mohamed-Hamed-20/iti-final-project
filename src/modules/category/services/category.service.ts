@@ -176,10 +176,10 @@ export const updateCategory = async (
           
           if (category?.thumbnail) {
             try {
-              result.thumbnailUrl = await new S3Instance().getFile(category.thumbnail);
+              result.url = await new S3Instance().getFile(category.thumbnail);
             } catch (error) {
               console.error(`File not found for category ${category._id}:`, category.thumbnail);
-              result.thumbnailUrl = null;
+              result.url = null;
             }
           }
           return result;
