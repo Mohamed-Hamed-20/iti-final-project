@@ -179,8 +179,9 @@ export const getVideo = async (
   if (!video) return next(new CustomError("Video not found", 404));
 
   const { video_key } = video;
+  console.log(video.status);
 
-  if (video.status == "approved") {
+  if (video.status !== "approved") {
     return next(
       new CustomError("videp Not approved yet to be accessable", 400)
     );
