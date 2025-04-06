@@ -68,6 +68,7 @@ export const instructors = async (
 ): Promise<Response | void> => {
   const { page, size, select, sort, search } = req.query;
   const { values } = req.query;
+  console.log("hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
 
   const pipeline = new ApiPipeline()
     .addStage({
@@ -170,7 +171,7 @@ export const getInstructorById = async (
         enrollments: 1,
         category: 1,
         instructor: {
-          _id: 1,  
+          _id: 1,
           firstName: 1,
           lastName: 1,
           avatar: 1,
@@ -193,7 +194,9 @@ export const getInstructorById = async (
       : null;
 
     if (course.instructor?.avatar) {
-      course.instructor.url = await new S3Instance().getFile(course.instructor.avatar);
+      course.instructor.url = await new S3Instance().getFile(
+        course.instructor.avatar
+      );
     }
 
     return {
@@ -258,7 +261,7 @@ export const getInstructorFromURL = async (
         enrollments: 1,
         category: 1,
         instructor: {
-          _id: 1,  
+          _id: 1,
           firstName: 1,
           lastName: 1,
           avatar: 1,
@@ -268,10 +271,10 @@ export const getInstructorFromURL = async (
   ];
 
   const courses = await courseModel.aggregate(pipeline).exec();
-  
+
   // First get the instructor details
   const instructor = await userModel.findById(id).lean().exec();
-  
+
   if (!instructor) {
     return res.status(404).json({
       message: "Instructor not found",
@@ -292,7 +295,9 @@ export const getInstructorFromURL = async (
       : null;
 
     if (course.instructor?.avatar) {
-      course.instructor.url = await new S3Instance().getFile(course.instructor.avatar);
+      course.instructor.url = await new S3Instance().getFile(
+        course.instructor.avatar
+      );
     }
 
     return {

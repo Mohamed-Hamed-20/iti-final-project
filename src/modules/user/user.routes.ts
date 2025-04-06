@@ -12,7 +12,11 @@ import * as userServices from "./services/user.service";
 import { cokkiesSchema } from "../auth/auth.validation";
 import { isAuth } from "../../middleware/auth";
 import { configureMulter } from "../../utils/multer";
-import { changePassSchema, instructorsserchSchema } from "./user.validation";
+import {
+  changePassSchema,
+  instructorIdSchema,
+  instructorsserchSchema,
+} from "./user.validation";
 import { multerMemory } from "../../utils/multer";
 import { FileType } from "../../utils/files.allowed";
 
@@ -28,7 +32,6 @@ router.get(
 
 router.get(
   "/instructors",
-  valid(cokkiesSchema) as RequestHandler,
   valid(instructorsserchSchema) as RequestHandler,
   asyncHandler(userServices.instructors)
 );
@@ -42,11 +45,9 @@ router.get(
 
 router.get(
   "/:id",
-  valid(cokkiesSchema) as RequestHandler,
-  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  valid(instructorIdSchema) as RequestHandler,
   asyncHandler(userServices.getInstructorFromURL)
 );
-
 
 router.post(
   "/avatar",
