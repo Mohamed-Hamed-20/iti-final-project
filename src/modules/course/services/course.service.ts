@@ -316,6 +316,7 @@ export const getCourseById = async (
       {
         title: 1,
         thumbnail: 1,
+        courseCount: 1,
       }
     )
     .lookUp(
