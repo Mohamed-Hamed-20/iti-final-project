@@ -12,7 +12,7 @@ import * as userServices from "./services/user.service";
 import { cokkiesSchema } from "../auth/auth.validation";
 import { isAuth } from "../../middleware/auth";
 import { configureMulter } from "../../utils/multer";
-import { changePassSchema } from "./user.validation";
+import { changePassSchema, instructorsserchSchema } from "./user.validation";
 import { multerMemory } from "../../utils/multer";
 import { FileType } from "../../utils/files.allowed";
 
@@ -26,7 +26,11 @@ router.get(
   asyncHandler(userServices.profile)
 );
 
-router.get("/instructors", asyncHandler(userServices.instructors));
+router.get(
+  "/instructors",
+  valid(instructorsserchSchema) as RequestHandler,
+  asyncHandler(userServices.instructors)
+);
 
 router.get(
   "/instructor-profile",

@@ -194,6 +194,20 @@ export default class ApiPipeline {
     return this;
   }
 
+  matchInValues(field: string, values: Array<String>) {
+    if (!field || !values || values.length < 1) {
+      return this;
+    }
+
+    this.addStage({
+      $match: {
+        jobTitle: { $in: values },
+      },
+    });
+
+    return this;
+  }
+
   build(): PipelineStage[] {
     return this.pipeline;
   }

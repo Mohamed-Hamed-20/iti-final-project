@@ -67,12 +67,13 @@ export const instructors = async (
   next: NextFunction
 ): Promise<Response | void> => {
   const { page, size, select, sort, search } = req.query;
-  const { ids } = req.query;
+  const { values } = req.query;
 
   const pipeline = new ApiPipeline()
     .addStage({
       $match: { role: Roles.Instructor, verificationStatus: "approved" },
     })
+    .matchInValues("jobTitle", values as Array<string>)
     .lookUp(
       {
         from: "courses",

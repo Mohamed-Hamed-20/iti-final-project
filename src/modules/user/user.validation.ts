@@ -18,9 +18,9 @@ export const instructorsserchSchema = {
       select: generalFields.select,
       search: generalFields.search,
       sort: generalFields.sort,
-      ids: joi
+      values: joi
         .alternatives()
-        .try(generalFields._id, joi.array().items(generalFields._id))
+        .try(joi.string(), joi.array().items(joi.string()))
         .optional()
         .custom((value) => [].concat(value), "Convert single value to array"),
     })
