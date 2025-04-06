@@ -128,6 +128,7 @@ export const getAllCourses = async (
   const { ids } = req.query;
 
   const pipeline = new ApiPipeline()
+    .addStage({ $match: { status: "approved" } }) 
     .searchIds("categoryId", ids as unknown as Array<mongoose.Types.ObjectId>)
     .lookUp(
       {
@@ -170,7 +171,7 @@ export const getAllCourses = async (
     .build();
 
   const [total, courses] = await Promise.all([
-    courseModel.countDocuments().lean(),
+    courseModel.countDocuments({ status: "approved" }).lean(), 
     courseModel.aggregate(pipeline).exec(),
   ]);
 
