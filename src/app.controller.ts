@@ -3,7 +3,7 @@ import { errorHandler } from "./utils/errorHandling";
 import cookieParser from "cookie-parser";
 import redis from "./utils/redis";
 import apiRouter from "./index.Routes";
-import { ApiDocumentation, PORT } from "./config/env";
+import { ApiDocumentation, NODE_ENV, PORT } from "./config/env";
 import { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import path from "path";
@@ -29,7 +29,7 @@ redis;
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// app.use(morgan("dev"));
+app.use(NODE_ENV == "dev" ? morgan("dev") : morgan("combined"));
 
 // API routes
 app.use("/api/v1", apiRouter);

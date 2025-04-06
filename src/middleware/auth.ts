@@ -4,9 +4,11 @@ import { TokenService } from "../utils/tokens";
 import userModel from "../DB/models/user.model";
 import { Types } from "mongoose";
 import { Iuser, Roles } from "../DB/interfaces/user.interface";
-import { TokenConfigration } from "../config/env";
+import { CACHE_TTL, TokenConfigration } from "../config/env";
 import { TokenExpiredError } from "jsonwebtoken";
 import { cokkiesOptions } from "../utils/cookies";
+import redis from "../utils/redis";
+import { CacheService } from "../utils/redis.services";
 
 declare global {
   namespace Express {
@@ -53,9 +55,16 @@ export const isAuth = (roles: Array<Roles>) => {
 
         if (decodedToken) {
           const { userId } = decodedToken;
-          const user = await userModel.findById(new Types.ObjectId(userId), {
-            __v: 0,
-          });
+
+          const cache = new CacheService();
+          let user = await cache.get(`user:${userId}`);
+
+          if (!user) {
+            user = await userModel.findById(new Types.ObjectId(userId), {
+              __v: 0,
+            });
+            cache.set(`user:${userId}`, user, CACHE_TTL.USER);
+          }
 
           if (!user || !user.role) {
             return next(new CustomError("User not found", 404));

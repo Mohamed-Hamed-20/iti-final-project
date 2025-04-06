@@ -28,6 +28,7 @@ router.get(
 
 router.get(
   "/instructors",
+  valid(cokkiesSchema) as RequestHandler,
   valid(instructorsserchSchema) as RequestHandler,
   asyncHandler(userServices.instructors)
 );
