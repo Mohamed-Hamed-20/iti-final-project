@@ -68,7 +68,6 @@ export const instructors = async (
 ): Promise<Response | void> => {
   const { page, size, select, sort, search } = req.query;
   const { values } = req.query;
-  console.log("hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
 
   const pipeline = new ApiPipeline()
     .addStage({
