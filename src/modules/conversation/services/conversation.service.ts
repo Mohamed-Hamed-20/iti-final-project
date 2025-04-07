@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
-import { CustomError } from "../../../utils/errorHandling.js";
-import { Iuser } from "../../../DB/interfaces/user.interface.js";
-import conversationModel from "../../../DB/models/conversation.model.js";
-import userModel from "../../../DB/models/user.model.js";
-import ApiPipeline from "../../../utils/apiFeacture.js";
+import { CustomError } from "../../../utils/errorHandling";
+import { Iuser } from "../../../DB/interfaces/user.interface";
+import conversationModel from "../../../DB/models/conversation.model";
+import userModel from "../../../DB/models/user.model";
+import ApiPipeline from "../../../utils/apiFeacture";
 import { Types } from "mongoose";
 
 export const allowConversationSortFields = [
@@ -133,5 +133,32 @@ export const searchConversations = async (
     message: "Conversation returned success",
     success: true,
     conversations,
+  });
+};
+
+export const deleteConversation = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { conversationId } = req.params;
+
+  const conversation = await conversationModel.findById(conversationId).lean();
+
+  if (!conversation) {
+    return next(new CustomError("conversation not found", 400));
+  }
+
+  const deleted = await conversationModel.deleteOne({ _id: conversation });
+
+  if (!deleted) {
+    return next(new CustomError("Server error plz try again later", 500));
+  }
+
+  return res.status(200).json({
+    message: "conversation delete successfully",
+    success: true,
+    statusCode: 200,
+    conversation,
   });
 };
