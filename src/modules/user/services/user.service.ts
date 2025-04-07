@@ -664,106 +664,101 @@ export const instructorVerification = async (
   });
 };
 
-// we can take a look about this code
-// export const instructorVerification = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   const user = req.user;
-//   if (!user?._id) return next(new CustomError("Unauthorized", 401));
+export const followUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.params.id;
+  const loggedInUserId = req.user?._id;
 
-//   const files = req.files as Record<string, Express.Multer.File[]>;
-//   const requiredFiles = ["frontID", "backID", "requiredVideo"];
+  if (!loggedInUserId) {
+    return next(new CustomError("Unauthorized", 401));
+  }
 
-//   // Validate required files
-//   for (const file of requiredFiles) {
-//     if (!files?.[file]?.[0])
-//       return next(new CustomError(`Missing ${file}`, 400));
-//   }
+  if (userId === loggedInUserId.toString()) {
+    return res.status(400).json({ status: "You cannot follow yourself" });
+  }
 
-//   console.log("✅ Received Files:", files);
+  const userToFollowId = new Types.ObjectId(userId);
+  const loggedInUserIdObj = new Types.ObjectId(loggedInUserId.toString());
 
-//   // Generate unique S3 file keys
-//   const fileKeyPromises = requiredFiles.map((file) =>
-//     userFileKey(user._id.toString(), file, files[file][0].originalname)
-//   );
-//   const fileKeys = await Promise.all(fileKeyPromises);
+  const userToFollow = await userModel.findById(userToFollowId);
+  if (!userToFollow) {
+    return res.status(404).json({ status: "User to follow not found" });
+  }
 
-//   // Handle optional file if provided
-//   const optionalFile = files.optionalVideo?.[0];
-//   const optionalFileKey = optionalFile
-//     ? await userFileKey(
-//         user._id.toString(),
-//         "optionalVideo",
-//         optionalFile.originalname
-//       )
-//     : null;
+  const loggedInUser = await userModel.findById(loggedInUserIdObj);
+  if (!loggedInUser) {
+    return res.status(404).json({ status: "Logged-in user not found" });
+  }
 
-//   console.log("Generated File Keys:", {
-//     frontId: fileKeys[0],
-//     backId: fileKeys[1],
-//     requiredVideo: fileKeys[2],
-//     optionalVideo: optionalFileKey || "No optional video provided",
-//   });
+  // Check if already following
+  if (loggedInUser.following.includes(userToFollowId)) {
+    return res.status(400).json({ status: "Already following this user" });
+  }
 
-//   // Upload files to S3
-//   const uploadPromises = requiredFiles.map((file, index) => {
-//     const fileToUpload = files[file][0]; // Always use the first file in the array
-//     fileToUpload.folder = fileKeys[index]; // Assign unique key to folder
-//     return new S3Instance().uploadLargeFile(fileToUpload);
-//   });
+  loggedInUser.following.push(userToFollowId);
+  userToFollow.followers.push(loggedInUserIdObj);
 
-//   // Upload optional file if exists
-//   if (optionalFile && optionalFileKey) {
-//     optionalFile.folder = optionalFileKey;
-//     uploadPromises.push(new S3Instance().uploadLargeFile(optionalFile));
-//   }
+  await loggedInUser.save();
+  await userToFollow.save();
 
-//   const uploadResults = await Promise.allSettled(uploadPromises);
+  const updatedUser = await userModel.findById(loggedInUserIdObj).select('following');
 
-//   let uploadedFiles: Record<string, string> = {};
-//   let failedUploads: string[] = [];
+  res.status(200).json({
+    status: "success",
+    message: "Followed successfully",
+    followersCount: userToFollow.followers.length,
+    following: updatedUser?.following || [] 
+  });
+};
 
-//   uploadResults.forEach((result, index) => {
-//     if (result.status === "fulfilled") {
-//       const data = result.value as { Key: string; Location: string };
-//       const fileName = requiredFiles[index] || "optionalVideo";
-//       uploadedFiles[fileName] = data.Key;
-//     } else {
-//       failedUploads.push(requiredFiles[index] || "optionalVideo");
-//     }
-//   });
+export const unfollowUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.params.id;
+  const loggedInUserId = req.user?._id;
 
-//   if (failedUploads.length > 0) {
-//     return next(
-//       new CustomError(`Error uploading files: ${failedUploads.join(", ")}`, 500)
-//     );
-//   }
+  if (!loggedInUserId) {
+    return next(new CustomError("Unauthorized", 401));
+  }
 
-//   console.log("Uploaded File Keys:", uploadedFiles);
+  if (userId === loggedInUserId.toString()) {
+    return res.status(400).json({ status: "You cannot unfollow yourself" });
+  }
 
-//   // Update user document
-//   const updatedUser = await userModel.findByIdAndUpdate(
-//     user._id,
-//     {
-//       frontId: uploadedFiles.frontID,
-//       backId: uploadedFiles.backID,
-//       requiredVideo: uploadedFiles.requiredVideo,
-//       optionalVideo: uploadedFiles.optionalVideo || "",
-//     },
-//     { new: true }
-//   );
+  const userToUnfollowId = new Types.ObjectId(userId);
+  const loggedInUserIdObj = new Types.ObjectId(loggedInUserId.toString());
 
-//   if (!updatedUser) return next(new CustomError("User not found", 404));
+  const userToUnfollow = await userModel.findById(userToUnfollowId);
+  if (!userToUnfollow) {
+    return res.status(404).json({ status: "User to unfollow not found" });
+  }
 
-//   console.log("User Updated:", updatedUser);
+  const loggedInUser = await userModel.findById(loggedInUserIdObj);
+  if (!loggedInUser) {
+    return res.status(404).json({ status: "Logged-in user not found" });
+  }
 
-//   return res.status(200).json({
-//     message: "Verification files uploaded successfully",
-//     success: true,
-//     user: sanatizeUser(updatedUser),
-//   });
-// };
+  if (!loggedInUser.following.includes(userToUnfollowId)) {
+    return res.status(400).json({ status: "You are not following this user" });
+  }
 
-//Add It In Admin Panel
+  loggedInUser.following.pull(userToUnfollowId);
+  userToUnfollow.followers.pull(loggedInUserIdObj);
+
+  await loggedInUser.save();
+  await userToUnfollow.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "Unfollowed successfully",
+    followersCount: userToUnfollow.followers.length, 
+  });
+};
+
+
+

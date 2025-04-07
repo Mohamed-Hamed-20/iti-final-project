@@ -226,8 +226,7 @@ export const getAllCourses = async (
 
   const updatedCourses = await Promise.all(updatePromises);
 
-
-  // add cacheing 
+  // add cacheing
   if (JSON.stringify(req.query) == String(CACHE_TTL.courseBathCaching)) {
     if (updatedCourses && updateCourse.length > 0) {
       cache
@@ -333,7 +332,6 @@ export const getCourseById = async (
   const cached = new CacheService();
   const cachedCourse = await cached.get(`course:${id}`);
   console.log(cachedCourse);
-  
 
   if (cachedCourse) {
     return res.status(200).json({
@@ -673,6 +671,7 @@ export const searchCollection = async (
         title: string;
         thumbnail?: string;
         instructorId: {
+          _id: any; 
           firstName: string;
           lastName: string;
           avatar?: string;
@@ -691,7 +690,7 @@ export const searchCollection = async (
         .populate<
           Pick<CourseWithPopulatedFields, "instructorId" | "categoryId">
         >([
-          { path: "instructorId", select: "firstName lastName avatar" },
+          { path: "instructorId", select: "_id firstName lastName avatar" },
           { path: "categoryId", select: "title thumbnail" },
         ])
         .limit(8)
@@ -703,13 +702,19 @@ export const searchCollection = async (
             ? await new S3Instance().getFile(course.thumbnail)
             : undefined;
 
+          const avatarUrl = await new S3Instance().getFile(
+            course.instructorId.avatar as string
+          );
           return {
             ...course,
+            categoryId: undefined, 
             url: thumbnailUrl,
             instructor: {
+              _id: course.instructorId?._id,
               firstName: course.instructorId?.firstName || "",
               lastName: course.instructorId?.lastName || "",
               avatar: course.instructorId?.avatar || "",
+              url: avatarUrl,
             },
             category: {
               title: course.categoryId?.title || "",
@@ -775,7 +780,7 @@ export const searchCollection = async (
 
           return {
             ...instructor,
-            avatar: avatarUrl,
+            url: avatarUrl,
             courses: processedCourses,
           };
         })

@@ -15,6 +15,8 @@ import sectionRouter from "./modules/section/section.routes";
 import userRouter from "./modules/user/user.routes";
 import videoRouter from "./modules/video/video.routes";
 import wishlistRoutes from "./modules/wishlist/wishlist.routes";
+import paymentRoutes from "./modules/payment/payment.routes";
+import conversationRoutes from "./modules/conversation/conversation.routes";
 
 const router = Router();
 router.use("/user", userRouter);
@@ -34,5 +36,7 @@ router.use("/admin", adminRouter);
 router.use('/review', reviewRoutes);
 router.use('/enrollments', enrollmentRoutes);
 // router.use("/payment", paymentRoutes);
+router.use("/payment", paymentRoutes);
+router.use("/conversation", conversationRoutes);
 
 export default router;
