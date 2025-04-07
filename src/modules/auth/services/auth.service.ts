@@ -84,7 +84,7 @@ export const login = async (
   const findUser = await userModel
     .findOne({ email })
     .select(
-      "firstName lastName email password role avatar isConfirmed verificationStatus"
+      "firstName lastName email password role avatar isConfirmed verificationStatus following"
     )
     .lean();
 

@@ -10,6 +10,14 @@ export const changePassSchema = {
     .required(),
 };
 
+export const instructorIdSchema = {
+  params: joi
+    .object({
+      id: generalFields._id.required(),
+    })
+    .required(),
+};
+
 export const instructorsserchSchema = {
   query: joi
     .object({

@@ -11,6 +11,9 @@ import { createNotification } from "../../notification/notification.controller";
 import { courseKey } from "./courses.helper";
 import { sanatizeUser } from "../../../utils/sanatize.data";
 import { Iuser } from "../../../DB/interfaces/user.interface";
+import { CACHE_TTL } from "../../../config/env";
+import { CacheService } from "../../../utils/redis.services";
+import redis from "../../../utils/redis";
 
 export const addCourse = async (
   req: Request,
@@ -71,16 +74,28 @@ export const addCourse = async (
     return next(new CustomError("Error Uploading Image Server Error!", 500));
   }
 
-  await categoryModel.findByIdAndUpdate(categoryId, {
-    $inc: { courseCount: 1 },
-  });
-
   res.status(201).json({
     message: "Course added successfully",
     statusCode: 201,
     success: true,
     course: savedCourse,
   });
+
+  if (savedCourse) {
+    const cache = new CacheService();
+    cache.delete("courses").then((data) => {
+      console.log("Cached Data: deleted");
+    });
+    cache.delete(`course:${savedCourse._id.toString()}`);
+  }
+
+  categoryModel
+    .findByIdAndUpdate(categoryId, {
+      $inc: { courseCount: 1 },
+    })
+    .then((data) => {
+      console.log("updateded categorys:", data);
+    });
 
   // Create notification after course creation
   await createNotification(
@@ -125,10 +140,26 @@ export const getAllCourses = async (
   next: NextFunction
 ) => {
   const { page, size, select, sort, search } = req.query;
+
+  const cache = new CacheService();
+
+  if (JSON.stringify(req.query) == String(CACHE_TTL.courseBathCaching)) {
+    const data = await cache.get(CACHE_TTL.courseBathCaching);
+    if (data) {
+      return res.status(200).json({
+        message: "Courses fetched successfully",
+        statusCode: 200,
+        totalCourses: data.total,
+        totalPages: Math.ceil(data.total / Number(size || 23)),
+        success: true,
+        courses: data.updatedCourses,
+      });
+    }
+  }
   const { ids } = req.query;
 
   const pipeline = new ApiPipeline()
-    .addStage({ $match: { status: "approved" } }) 
+    .addStage({ $match: { status: "approved" } })
     .searchIds("categoryId", ids as unknown as Array<mongoose.Types.ObjectId>)
     .lookUp(
       {
@@ -171,7 +202,7 @@ export const getAllCourses = async (
     .build();
 
   const [total, courses] = await Promise.all([
-    courseModel.countDocuments({ status: "approved" }).lean(), 
+    courseModel.countDocuments({ status: "approved" }).lean(),
     courseModel.aggregate(pipeline).exec(),
   ]);
 
@@ -194,6 +225,21 @@ export const getAllCourses = async (
   });
 
   const updatedCourses = await Promise.all(updatePromises);
+
+  // add cacheing
+  if (JSON.stringify(req.query) == String(CACHE_TTL.courseBathCaching)) {
+    if (updatedCourses && updateCourse.length > 0) {
+      cache
+        .set(
+          CACHE_TTL.courseBathCaching,
+          { total, updatedCourses },
+          CACHE_TTL.Maincourses
+        )
+        .then(() => {
+          console.log("Courses Catched successfully");
+        });
+    }
+  }
 
   return res.status(200).json({
     message: "Courses fetched successfully",
@@ -283,6 +329,18 @@ export const getCourseById = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
+  const cached = new CacheService();
+  const cachedCourse = await cached.get(`course:${id}`);
+  console.log(cachedCourse);
+
+  if (cachedCourse) {
+    return res.status(200).json({
+      message: "Course fetched successfully",
+      statusCode: 200,
+      success: true,
+      course: cachedCourse,
+    });
+  }
 
   const pipeline = new ApiPipeline()
     .matchId({ Id: id as any, field: "_id" })
@@ -440,6 +498,12 @@ export const getCourseById = async (
 
   await Promise.all(promises);
 
+  if (course) {
+    cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
+      console.log("Course Cached successfully");
+    });
+  }
+
   return res.status(200).json({
     message: "Course fetched successfully",
     statusCode: 200,
@@ -492,6 +556,14 @@ export const updateCourse = async (
       updateData,
       { new: true, lean: true }
     );
+
+    if (updated) {
+      const cache = new CacheService();
+      cache.delete("courses").then((data) => {
+        console.log("Cached Data: deleted");
+      });
+      cache.delete(`course:${updated._id.toString()}`);
+    }
 
     return res.status(200).json({
       message: "Course updated successfully",
@@ -557,6 +629,12 @@ export const deleteCourse = async (
     throw new Error(error as any);
   }
 
+  const cache = new CacheService();
+  cache.delete("courses").then(() => {
+    console.log("Cached Data: deleted");
+  });
+  cache.delete(`course:${id}`);
+
   return res.status(200).json({
     message: "Course deleted successfully",
     statusCode: 200,
@@ -593,6 +671,7 @@ export const searchCollection = async (
         title: string;
         thumbnail?: string;
         instructorId: {
+          _id: any; 
           firstName: string;
           lastName: string;
           avatar?: string;
@@ -611,7 +690,7 @@ export const searchCollection = async (
         .populate<
           Pick<CourseWithPopulatedFields, "instructorId" | "categoryId">
         >([
-          { path: "instructorId", select: "firstName lastName avatar" },
+          { path: "instructorId", select: "_id firstName lastName avatar" },
           { path: "categoryId", select: "title thumbnail" },
         ])
         .limit(8)
@@ -623,13 +702,19 @@ export const searchCollection = async (
             ? await new S3Instance().getFile(course.thumbnail)
             : undefined;
 
+          const avatarUrl = await new S3Instance().getFile(
+            course.instructorId.avatar as string
+          );
           return {
             ...course,
+            categoryId: undefined, 
             url: thumbnailUrl,
             instructor: {
+              _id: course.instructorId?._id,
               firstName: course.instructorId?.firstName || "",
               lastName: course.instructorId?.lastName || "",
               avatar: course.instructorId?.avatar || "",
+              url: avatarUrl,
             },
             category: {
               title: course.categoryId?.title || "",
@@ -695,7 +780,7 @@ export const searchCollection = async (
 
           return {
             ...instructor,
-            avatar: avatarUrl,
+            url: avatarUrl,
             courses: processedCourses,
           };
         })

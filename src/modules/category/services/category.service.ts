@@ -3,10 +3,11 @@ import categoryModel from "../../../DB/models/category.model";
 import courseModel from "../../../DB/models/courses.model";
 import { CustomError } from "../../../utils/errorHandling";
 import S3Instance from "../../../utils/aws.sdk.s3";
-import {categoryKey} from "./category.helper";
-import mongoose from 'mongoose';
-
-
+import { categoryKey } from "./category.helper";
+import mongoose from "mongoose";
+import redis from "../../../utils/redis";
+import { CACHE_TTL } from "../../../config/env";
+import { CacheService } from "../../../utils/redis.services";
 
 export const addCategory = async (
   req: Request,
@@ -21,16 +22,18 @@ export const addCategory = async (
 
   // Case-insensitive check for existing category
   const existingCategory = await categoryModel.findOne({
-    title: { $regex: new RegExp(`^${title}$`, 'i') }
+    title: { $regex: new RegExp(`^${title}$`, "i") },
   });
 
   if (existingCategory) {
-    return next(new CustomError("Category with this title already exists", 400));
+    return next(
+      new CustomError("Category with this title already exists", 400)
+    );
   }
 
   const newCategory = new categoryModel({
     title,
-    courseCount: 0 
+    courseCount: 0,
   });
 
   const folder = await categoryKey(newCategory._id, newCategory.title);
@@ -50,6 +53,12 @@ export const addCategory = async (
   if (uploadImage instanceof Error) {
     await categoryModel.deleteOne({ _id: newCategory._id });
     return next(new CustomError("Error Uploading Image Server Error!", 500));
+  }
+
+  if (savedCategory) {
+    new CacheService().delete("categories").then(() => {
+      console.log("deleted Cached Data:");
+    });
   }
 
   res.status(201).json({
@@ -77,20 +86,22 @@ export const updateCategory = async (
   // Case-insensitive check for existing category with different ID
   if (title) {
     const existingCategory = await categoryModel.findOne({
-      title: { $regex: new RegExp(`^${title}$`, 'i') },
-      _id: { $ne: objectId }
+      title: { $regex: new RegExp(`^${title}$`, "i") },
+      _id: { $ne: objectId },
     });
 
     if (existingCategory) {
-      return next(new CustomError("Category with this title already exists", 400));
+      return next(
+        new CustomError("Category with this title already exists", 400)
+      );
     }
   }
 
   const updateData: any = { title };
 
   if (req.file) {
-    const folder = await categoryKey(objectId, title || '');
-    
+    const folder = await categoryKey(objectId, title || "");
+
     if (!folder) {
       return next(new CustomError("Failed to update category", 500));
     }
@@ -98,20 +109,28 @@ export const updateCategory = async (
     req.file.folder = folder;
     updateData.thumbnail = req.file.folder;
 
-    const uploadResult = await new S3Instance().uploadLargeFileWithPath(req.file);
+    const uploadResult = await new S3Instance().uploadLargeFileWithPath(
+      req.file
+    );
     if (uploadResult instanceof Error) {
       return next(new CustomError("Error Uploading Image Server Error!", 500));
     }
   }
 
   const updatedCategory = await categoryModel.findByIdAndUpdate(
-    objectId, 
-    updateData, 
+    objectId,
+    updateData,
     { new: true }
   );
 
   if (!updatedCategory) {
     return next(new CustomError("Category not found", 404));
+  }
+
+  if (updatedCategory) {
+    new CacheService().delete("categories").then((data) => {
+      console.log("Cached Data deleted");
+    });
   }
 
   res.status(200).json({
@@ -121,87 +140,107 @@ export const updateCategory = async (
     category: updatedCategory,
   });
 };
-  
-  export const deleteCategory = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-      const { categoryId } = req.params;
-  
-      if (!categoryId || !mongoose.Types.ObjectId.isValid(categoryId)) {
-        return next(new CustomError("Valid category ID is required", 400));
-      }
 
-      const objectId = new mongoose.Types.ObjectId(categoryId);
+export const deleteCategory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { categoryId } = req.params;
 
-      // First check if there are any courses in this category
-      const coursesInCategory = await courseModel.countDocuments({ categoryId: objectId });
-      if (coursesInCategory > 0) {
-        return next(new CustomError("Cannot delete category with existing courses", 400));
-      }
+  if (!categoryId || !mongoose.Types.ObjectId.isValid(categoryId)) {
+    return next(new CustomError("Valid category ID is required", 400));
+  }
 
-      const deletedCategory = await categoryModel.findByIdAndDelete(objectId);
-  
-      if (!deletedCategory) {
-        return next(new CustomError("Category not found", 404));
-      }
+  const objectId = new mongoose.Types.ObjectId(categoryId);
 
+  // First check if there are any courses in this category
+  const coursesInCategory = await courseModel.countDocuments({
+    categoryId: objectId,
+  });
+  if (coursesInCategory > 0) {
+    return next(
+      new CustomError("Cannot delete category with existing courses", 400)
+    );
+  }
+
+  const deletedCategory = await categoryModel.findByIdAndDelete(objectId);
+
+  if (!deletedCategory) {
+    return next(new CustomError("Category not found", 404));
+  }
+
+  try {
+    if (deletedCategory.thumbnail) {
+      await new S3Instance().deleteFile(deletedCategory.thumbnail);
+    }
+  } catch (error) {
+    console.error("Failed to delete thumbnail from S3:", error);
+  }
+
+  if (deletedCategory) {
+    new CacheService().delete("categories").then(() => {
+      console.log("Cached Data: deleted");
+    });
+  }
+
+  return res.status(200).json({
+    message: "Category deleted successfully",
+    statusCode: 200,
+    success: true,
+  });
+};
+
+export const getAllCategories = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const cache = new CacheService();
+
+  // check for cacheing
+  const cachedCategories = await cache.get(`categories`);
+
+  // add redis
+  if (cachedCategories) {
+    return res.status(200).json({
+      message: "Categories fetched successfully",
+      statusCode: 200,
+      success: true,
+      categories: cachedCategories,
+    });
+  }
+
+  const categories = await categoryModel.find().lean();
+  const S3 = new S3Instance();
+
+  const updatedPromise = categories.map(async (category) => {
+    if (category.thumbnail) {
       try {
-        if (deletedCategory.thumbnail) {
-          await new S3Instance().deleteFile(deletedCategory.thumbnail);
-        }
+        category.url = await S3.getFile(category.thumbnail);
       } catch (error) {
-        console.error("Failed to delete thumbnail from S3:", error);
+        console.log(`Error thumbnail for category ${category._id}:`);
+        category.url = undefined;
       }
-  
-      return res.status(200).json({
-        message: "Category deleted successfully",
-        statusCode: 200,
-        success: true,
-      });
+    }
+    return category;
+  });
 
-  };
-  
-  export const getAllCategories = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
-      const categories = await categoryModel.find().lean();
-  
-      const categoriesWithUrls = await Promise.all(
-        categories.map(async (category) => {
-          const result: any = { ...category };
-          
-          if (category?.thumbnail) {
-            try {
-              result.url = await new S3Instance().getFile(category.thumbnail);
-            } catch (error) {
-              console.error(`File not found for category ${category._id}:`, category.thumbnail);
-              result.url = null;
-            }
-          }
-          return result;
-        })
-      );
-  
-      return res.status(200).json({
-        message: "Categories fetched successfully",
-        statusCode: 200,
-        success: true,
-        categories: categoriesWithUrls,
+  const categoriesWithUrls = await Promise.all(updatedPromise);
+
+  // add cacheing
+  if (categoriesWithUrls) {
+    cache
+      .set("categories", categoriesWithUrls, CACHE_TTL.Categories)
+      .then(() => {
+        console.log("Cached Data:");
       });
-  };
-  
-    
-    
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  }
+
+  return res.status(200).json({
+    message: "Categories fetched successfully",
+    statusCode: 200,
+    success: true,
+    categories: categoriesWithUrls,
+  });
+};

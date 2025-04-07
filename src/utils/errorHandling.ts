@@ -26,7 +26,8 @@ type ControllerFunction = (
 export const asyncHandler = (controller: ControllerFunction) => {
   return (req: Request, res: Response, next: NextFunction) => {
     controller(req, res, next).catch((err) => {
-      next(err);
+      return res.json({ messgae: err.message, stack: err.stack });
+      // next(err);
     });
   };
 };
@@ -112,7 +113,7 @@ export const generalErrorHandler = (
     success: false,
     message: err.message || "Internal Server Error.",
     statusCode,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    stack: process.env.NODE_ENV === "dev" ? err.stack : undefined,
   });
 };
 

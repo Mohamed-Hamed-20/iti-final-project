@@ -1,6 +1,7 @@
 import jwt, { JsonWebTokenError, JwtPayload, Secret } from "jsonwebtoken";
 import mongoose from "mongoose";
 import { CustomError } from "./errorHandling";
+import { NODE_ENV } from "../config/env";
 
 type Payload = {
   userId?: mongoose.Types.ObjectId | any;
@@ -14,7 +15,7 @@ type Payload = {
 
 export class TokenService {
   private secretKey: string;
-  private expiresIn: string|Number|any;
+  private expiresIn: string | Number | any;
 
   constructor(secretKey: string, expiresIn: string = "1h") {
     if (!secretKey) {
@@ -37,7 +38,10 @@ export class TokenService {
 
       return token;
     } catch (error: unknown) {
-      throw new CustomError(`Token generation failed: ${(error as Error).message}`, 500);
+      throw new CustomError(
+        `Token generation failed: ${(error as Error).message}`,
+        500
+      );
     }
   }
 
@@ -49,9 +53,7 @@ export class TokenService {
       }
       return payload;
     } catch (error: unknown) {
-      throw process.env.NODE_ENV === "development"
-        ? error
-        : new CustomError("Unknown error occurred during token verification", 500);
+      throw error;
     }
   }
 }
