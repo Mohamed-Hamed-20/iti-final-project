@@ -559,6 +559,7 @@ export const getCourseById = async (
         level: { $first: "$level" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
+        status: { $first: "$status" }, 
         sections: {
           $push: {
             _id: "$sections._id",
@@ -570,8 +571,8 @@ export const getCourseById = async (
       },
     })
     .projection({
-      allowFields: [...defaultFields, "sections", "videos"],
-      defaultFields: [...defaultFields, "sections", "videos"],
+      allowFields: [...defaultFields, "sections", "videos" , "status"],
+      defaultFields: [...defaultFields, "sections", "videos" , "status"],
       select: undefined,
     })
     .build();
