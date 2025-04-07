@@ -1,28 +1,33 @@
 import express from "express";
-import * as CC from "./controller/conversation.controller.js";
-import { valid } from "../../middleware/validation.js";
-import { isAuth } from "../../middleware/auth.js";
-import { Roles } from "../../DB/interfaces/user.interface.js";
-import { asyncHandler } from "../../utils/errorHandling.js";
+import * as conversationService from './services/conversation.service'
+import { asyncHandler } from "../../utils/errorHandling";
+import { isAuth } from "../../middleware/auth";
+import { Roles } from "../../DB/interfaces/user.interface";
 
 const router = express.Router();
 
 router.post(
   "/",
   isAuth([Roles.Admin, Roles.User, Roles.Instructor]),
-  asyncHandler(CC.createconversation)
+  asyncHandler(conversationService.createconversation)
 );
 
 router.get(
   "/",
   isAuth([Roles.Admin, Roles.User, Roles.Instructor]),
-  asyncHandler(CC.searchConversations)
+  asyncHandler(conversationService.searchConversations)
 );
 
 router.get(
   "/:conversationId",
   isAuth([Roles.Admin, Roles.User, Roles.Instructor]),
-  asyncHandler(CC.getconversationById)
+  asyncHandler(conversationService.getconversationById)
+);
+
+router.delete(
+  "/:conversationId",
+  isAuth([Roles.Admin, Roles.User, Roles.Instructor]),
+  asyncHandler(conversationService.deleteConversation)
 );
 
 export default router;
