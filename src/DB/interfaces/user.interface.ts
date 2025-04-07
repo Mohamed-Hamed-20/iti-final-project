@@ -37,10 +37,6 @@ export interface Iuser extends Document {
   verificationStatus: 'pending' | 'approved' | 'rejected' | 'none'; 
   socialLinks?: ISocialLinks;
   url?: string;
-  followers: Types.Array<Types.ObjectId>; 
-  following: Types.Array<Types.ObjectId>; 
-  followersCount?: number;  
-  followingCount?: number; 
 }
 
 

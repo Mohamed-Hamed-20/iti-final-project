@@ -13,6 +13,7 @@ import ApiPipeline from "../../../utils/apiFeacture";
 import mongoose, { Types } from "mongoose";
 import { userFileKey2 } from "./user.helper";
 import courseModel from "../../../DB/models/courses.model";
+import followModel from "../../../DB/models/follow.model";
 
 export const profile = async (
   req: Request,
@@ -282,6 +283,8 @@ export const getInstructorFromURL = async (
     });
   }
 
+  const followerCount = await followModel.countDocuments({ following: id });
+
   // Prepare avatar promise
   const avatarPromise = instructor.avatar
     ? new S3Instance().getFile(instructor.avatar)
@@ -316,6 +319,7 @@ export const getInstructorFromURL = async (
 
   const sanitizedInstructor: any = sanatizeUser(instructor);
   sanitizedInstructor.courses = updatedCourses;
+  sanitizedInstructor.followerCount = followerCount;
 
   return res.status(200).json({
     message: "Instructor fetched successfully",
@@ -664,101 +668,91 @@ export const instructorVerification = async (
   });
 };
 
-export const followUser = async (
+export const followInstructor = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { instructorId } = req.params;
+  const { user } = req;
+
+  if (!user) throw new Error("User is undefined!");
+
+  if (user._id.toString() === instructorId) {
+    return next(new CustomError("You can't follow yourself!", 400));
+  }
+
+  const isAlreadyFollowing = await followModel.findOne({
+    follower: user._id,
+    following: instructorId,
+  });
+
+  if (isAlreadyFollowing) {
+    return next(new CustomError("Already following this instructor", 400));
+  }
+
+  const followDoc = new followModel({
+    follower: user._id,
+    following: instructorId,
+  });
+
+  const saved = await followDoc.save();
+
+  if (!saved) {
+    return next(new CustomError("Failed to follow instructor", 500));
+  }
+
+  res.status(200).json({
+    message: "Instructor followed successfully",
+    success: true,
+    data: saved,
+  });
+};
+
+export const unfollowInstructor = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { instructorId } = req.params;
+  const { user } = req;
+
+  if (!user) throw new Error("User is undefined!");
+
+  const deleted = await followModel.findOneAndDelete({
+    follower: user._id,
+    following: instructorId,
+  });
+
+  if (!deleted) {
+    return next(new CustomError("You are not following this instructor", 400));
+  }
+
+  res.status(200).json({
+    message: "Instructor unfollowed successfully",
+    success: true,
+  });
+};
+
+export const getMyFollowings = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.params.id;
-  const loggedInUserId = req.user?._id;
+  const { user } = req;
 
-  if (!loggedInUserId) {
-    return next(new CustomError("Unauthorized", 401));
-  }
+  if (!user) return next(new CustomError("Unauthorized", 401));
 
-  if (userId === loggedInUserId.toString()) {
-    return res.status(400).json({ status: "You cannot follow yourself" });
-  }
+  const followings = await followModel.find({ follower: user._id }).select("following");
 
-  const userToFollowId = new Types.ObjectId(userId);
-  const loggedInUserIdObj = new Types.ObjectId(loggedInUserId.toString());
-
-  const userToFollow = await userModel.findById(userToFollowId);
-  if (!userToFollow) {
-    return res.status(404).json({ status: "User to follow not found" });
-  }
-
-  const loggedInUser = await userModel.findById(loggedInUserIdObj);
-  if (!loggedInUser) {
-    return res.status(404).json({ status: "Logged-in user not found" });
-  }
-
-  // Check if already following
-  if (loggedInUser.following.includes(userToFollowId)) {
-    return res.status(400).json({ status: "Already following this user" });
-  }
-
-  loggedInUser.following.push(userToFollowId);
-  userToFollow.followers.push(loggedInUserIdObj);
-
-  await loggedInUser.save();
-  await userToFollow.save();
-
-  const updatedUser = await userModel.findById(loggedInUserIdObj).select('following');
+  const followingIds = followings.map(f => f.following);
 
   res.status(200).json({
-    status: "success",
-    message: "Followed successfully",
-    followersCount: userToFollow.followers.length,
-    following: updatedUser?.following || [] 
+    success: true,
+    data: followingIds,
   });
 };
 
-export const unfollowUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const userId = req.params.id;
-  const loggedInUserId = req.user?._id;
-
-  if (!loggedInUserId) {
-    return next(new CustomError("Unauthorized", 401));
-  }
-
-  if (userId === loggedInUserId.toString()) {
-    return res.status(400).json({ status: "You cannot unfollow yourself" });
-  }
-
-  const userToUnfollowId = new Types.ObjectId(userId);
-  const loggedInUserIdObj = new Types.ObjectId(loggedInUserId.toString());
-
-  const userToUnfollow = await userModel.findById(userToUnfollowId);
-  if (!userToUnfollow) {
-    return res.status(404).json({ status: "User to unfollow not found" });
-  }
-
-  const loggedInUser = await userModel.findById(loggedInUserIdObj);
-  if (!loggedInUser) {
-    return res.status(404).json({ status: "Logged-in user not found" });
-  }
-
-  if (!loggedInUser.following.includes(userToUnfollowId)) {
-    return res.status(400).json({ status: "You are not following this user" });
-  }
-
-  loggedInUser.following.pull(userToUnfollowId);
-  userToUnfollow.followers.pull(loggedInUserIdObj);
-
-  await loggedInUser.save();
-  await userToUnfollow.save();
-
-  res.status(200).json({
-    status: "success",
-    message: "Unfollowed successfully",
-    followersCount: userToUnfollow.followers.length, 
-  });
-};
 
 
 
