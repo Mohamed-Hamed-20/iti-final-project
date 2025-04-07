@@ -35,6 +35,11 @@ router.get(
   valid(searchCoursesScheam) as RequestHandler,
   asyncHandler(courseServices.getAllCourses)
 );
+router.get(
+  "/allPending",
+  valid(searchCoursesScheam) as RequestHandler,
+  asyncHandler(courseServices.getAllPendingCourses)
+);
 
 //get instructor course
 router.get(

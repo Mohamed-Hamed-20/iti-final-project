@@ -251,6 +251,123 @@ export const getAllCourses = async (
   });
 };
 
+export const getAllPendingCourses = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { page, size, select, sort, search } = req.query;
+
+  const cache = new CacheService();
+
+  if (JSON.stringify(req.query) == String(CACHE_TTL.courseBathCaching)) {
+    const data = await cache.get(CACHE_TTL.courseBathCaching);
+    if (data) {
+      return res.status(200).json({
+        message: "Courses fetched successfully",
+        statusCode: 200,
+        totalCourses: data.total,
+        totalPages: Math.ceil(data.total / Number(size || 23)),
+        success: true,
+        courses: data.updatedCourses,
+      });
+    }
+  }
+  const { ids } = req.query;
+
+  const pipeline = new ApiPipeline()
+    .addStage({ $match: { status: "pending" } })
+    .searchIds("categoryId", ids as unknown as Array<mongoose.Types.ObjectId>)
+    .lookUp(
+      {
+        from: "users",
+        localField: "instructorId",
+        foreignField: "_id",
+        as: "instructor",
+        isArray: false,
+      },
+      {
+        firstName: 1,
+        lastName: 1,
+        avatar: 1,
+      }
+    )
+    .lookUp(
+      {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+        isArray: false,
+      },
+      {
+        title: 1,
+      }
+    )
+    .match({
+      fields: allowSearchFields,
+      search: search?.toString() || "",
+      op: "$or",
+    })
+    .sort(sort?.toString() || "")
+    .paginate(Number(page) || 1, Number(size) || 100)
+    .projection({
+      allowFields: defaultFields,
+      defaultFields: defaultFields,
+      select: select?.toString() || "",
+    })
+    .build();
+
+  const [total, courses] = await Promise.all([
+    courseModel.countDocuments({ status: "pending" }).lean(),
+    courseModel.aggregate(pipeline).exec(),
+  ]);
+
+  const s3Instance = new S3Instance();
+
+  const updatePromises = courses.map(async (course) => {
+    // Process course thumbnail if it exists
+    if (course?.thumbnail) {
+      course.url = await s3Instance.getFile(course.thumbnail);
+    }
+
+    // Process instructor's thumbnail if instructor exists and has a thumbnail
+    if (course.instructor?.avatar) {
+      course.instructor.url = await s3Instance.getFile(
+        course.instructor.avatar
+      );
+    }
+
+    return course;
+  });
+
+  const updatedCourses = await Promise.all(updatePromises);
+
+  // add cacheing
+  if (JSON.stringify(req.query) == String(CACHE_TTL.courseBathCaching)) {
+    if (updatedCourses && updateCourse.length > 0) {
+      cache
+        .set(
+          CACHE_TTL.courseBathCaching,
+          { total, updatedCourses },
+          CACHE_TTL.Maincourses
+        )
+        .then(() => {
+          console.log("Courses Catched successfully");
+        });
+    }
+  }
+
+  return res.status(200).json({
+    message: "Courses fetched successfully",
+    statusCode: 200,
+    totalCourses: total,
+    totalPages: Math.ceil(total / Number(size || 23)),
+    success: true,
+    courses: updatedCourses,
+  });
+};
+
 // get all courses from
 export const getAllCoursesForInstructor = async (
   req: Request,
@@ -442,6 +559,7 @@ export const getCourseById = async (
         level: { $first: "$level" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
+        status: { $first: "$status" }, 
         sections: {
           $push: {
             _id: "$sections._id",
@@ -453,8 +571,8 @@ export const getCourseById = async (
       },
     })
     .projection({
-      allowFields: [...defaultFields, "sections", "videos"],
-      defaultFields: [...defaultFields, "sections", "videos"],
+      allowFields: [...defaultFields, "sections", "videos" , "status"],
+      defaultFields: [...defaultFields, "sections", "videos" , "status"],
       select: undefined,
     })
     .build();
