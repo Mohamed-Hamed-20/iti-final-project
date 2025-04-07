@@ -1,7 +1,16 @@
-import mongoose from "mongoose";
+import { Types } from 'mongoose';
 
-// Enrollment Schema
-export interface IEnrollment extends Document {
-  studentId: mongoose.Types.ObjectId;
-  courseId: mongoose.Types.ObjectId;
+export interface IEnrollment {
+  _id?: Types.ObjectId;
+  userId: Types.ObjectId;
+  courseId: Types.ObjectId;
+  enrollmentDate?: Date;
+  status: 'active' | 'completed' | 'cancelled';
+  progress?: number;
+  lastAccessedAt?: Date;
+  completedAt?: Date;
+  certificateIssued?: boolean;
+  paymentStatus: 'pending' | 'completed' | 'refunded';
+  createdAt?: Date;
+  updatedAt?: Date;
 }
