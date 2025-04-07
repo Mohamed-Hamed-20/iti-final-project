@@ -671,6 +671,7 @@ export const searchCollection = async (
         title: string;
         thumbnail?: string;
         instructorId: {
+          _id: any; 
           firstName: string;
           lastName: string;
           avatar?: string;
@@ -689,7 +690,7 @@ export const searchCollection = async (
         .populate<
           Pick<CourseWithPopulatedFields, "instructorId" | "categoryId">
         >([
-          { path: "instructorId", select: "firstName lastName avatar" },
+          { path: "instructorId", select: "_id firstName lastName avatar" },
           { path: "categoryId", select: "title thumbnail" },
         ])
         .limit(8)
@@ -706,8 +707,10 @@ export const searchCollection = async (
           );
           return {
             ...course,
+            categoryId: undefined, 
             url: thumbnailUrl,
             instructor: {
+              _id: course.instructorId?._id,
               firstName: course.instructorId?.firstName || "",
               lastName: course.instructorId?.lastName || "",
               avatar: course.instructorId?.avatar || "",

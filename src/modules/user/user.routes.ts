@@ -56,6 +56,20 @@ router.post(
   asyncHandler(userServices.uploadImage)
 );
 
+router.post(
+  "/follow/:id",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.followUser)
+  );
+
+router.post(
+  "/unfollow/:id",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.unfollowUser)
+  );
+
 router.put(
   "/verification",
   isAuth([Roles.Instructor]),
