@@ -52,6 +52,12 @@ router.get(
 
 // Get Course By ID
 router.get(
+  "/pend/:id",
+  valid(getCourseByIdSchema) as RequestHandler,
+  asyncHandler(courseServices.getPendingCourseById)
+);
+
+router.get(
   "/:id",
   valid(getCourseByIdSchema) as RequestHandler,
   asyncHandler(courseServices.getCourseById)
