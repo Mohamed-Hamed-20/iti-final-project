@@ -15,7 +15,7 @@ import { initSocket } from "./socket/socket";
 const app: Application = express();
 const server = http.createServer(app);
 
-initSocket(server);
+// initSocket(server);
 
 app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
