@@ -227,7 +227,7 @@ export default class S3Instance {
         Bucket: AWS_S3Keys.BUCKET_NAME,
         Key: key,
       }),
-      { expiresIn: 3 * 3600 } // 3 hour
+      { expiresIn: 2 * 60 } // 2 m
     );
 
     // console.log("✅ Signed URL generated successfully!");
