@@ -255,8 +255,8 @@ export const getCoursesByCategory = async (
       {
         $match:
           categoryArray.length > 0
-            ? { "category.title": { $in: categoryArray } }
-            : {},
+            ? { "category.title": { $in: categoryArray }, status: "approved" } 
+            : { status: "approved" }, 
       },
       {
         $lookup: {

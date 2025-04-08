@@ -378,6 +378,7 @@ export const getAllCoursesForInstructor = async (
   const { access_type } = req.query;
   const user = req.user;
   const pipeline = new ApiPipeline()
+    .addStage({ $match: { status: "approved" } }) 
     .searchOnString("access_type", access_type as string)
     .matchId({
       Id: req.user?._id as Types.ObjectId,
@@ -410,7 +411,7 @@ export const getAllCoursesForInstructor = async (
     .build();
 
   const [total, courses, urlAvatar] = await Promise.all([
-    courseModel.countDocuments().lean(),
+    courseModel.countDocuments({ status: "approved" }).lean(),
     courseModel.aggregate(pipeline).exec(),
     new S3Instance().getFile(user?.avatar as string),
   ]);
@@ -803,6 +804,7 @@ export const searchCollection = async (
 
       const courses = await courseModel
         .find({
+          status: "approved",
           $or: [{ title: searchRegex }, { description: searchRegex }],
         })
         .populate<
@@ -853,6 +855,7 @@ export const searchCollection = async (
         lastName: string;
         avatar?: string;
         role: string;
+        verificationStatus: string; 
         courses: Array<{
           _id: any;
           title: string;
@@ -865,6 +868,7 @@ export const searchCollection = async (
       const instructors = await userModel
         .find({
           role: "instructor",
+          verificationStatus: "approved",
           $or: [
             { firstName: searchRegex },
             { lastName: searchRegex },

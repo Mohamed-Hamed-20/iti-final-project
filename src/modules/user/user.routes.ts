@@ -52,6 +52,12 @@ router.get(
 
 
 router.get(
+  "/whole/:id",
+  valid(instructorIdSchema) as RequestHandler,
+  asyncHandler(userServices.getInstructorFromURLWithWholeCourses)
+);
+
+router.get(
   "/:id",
   valid(instructorIdSchema) as RequestHandler,
   asyncHandler(userServices.getInstructorFromURL)
