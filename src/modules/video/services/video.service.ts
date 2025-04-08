@@ -183,7 +183,7 @@ export const getVideo = async (
 
   if (video.status !== "approved") {
     return next(
-      new CustomError("videp Not approved yet to be accessable", 400)
+      new CustomError("video Not approved yet to be accessable", 400)
     );
   }
 
