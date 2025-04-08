@@ -10,10 +10,12 @@ import { CustomError } from "../../../utils/errorHandling";
 import { createNotification } from "../../notification/notification.controller";
 import { courseKey } from "./courses.helper";
 import { sanatizeUser } from "../../../utils/sanatize.data";
-import { Iuser } from "../../../DB/interfaces/user.interface";
+import { Iuser, Roles } from "../../../DB/interfaces/user.interface";
 import { CACHE_TTL } from "../../../config/env";
 import { CacheService } from "../../../utils/redis.services";
 import redis from "../../../utils/redis";
+import { isAuth } from "../../../middleware/auth";
+import EnrollmentModel from "../../../DB/models/enrollment.model";
 
 export const addCourse = async (
   req: Request,
@@ -378,7 +380,7 @@ export const getAllCoursesForInstructor = async (
   const { access_type } = req.query;
   const user = req.user;
   const pipeline = new ApiPipeline()
-    .addStage({ $match: { status: "approved" } }) 
+    .addStage({ $match: { status: "approved" } })
     .searchOnString("access_type", access_type as string)
     .matchId({
       Id: req.user?._id as Types.ObjectId,
@@ -560,7 +562,7 @@ export const getCourseById = async (
         level: { $first: "$level" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
-        status: { $first: "$status" }, 
+        status: { $first: "$status" },
         sections: {
           $push: {
             _id: "$sections._id",
@@ -572,8 +574,8 @@ export const getCourseById = async (
       },
     })
     .projection({
-      allowFields: [...defaultFields, "sections", "videos" , "status"],
-      defaultFields: [...defaultFields, "sections", "videos" , "status"],
+      allowFields: [...defaultFields, "sections", "videos", "status"],
+      defaultFields: [...defaultFields, "sections", "videos", "status"],
       select: undefined,
     })
     .build();
@@ -627,6 +629,7 @@ export const getCourseById = async (
     message: "Course fetched successfully",
     statusCode: 200,
     success: true,
+    purchased: req?.purchased || false,
     course,
   });
 };
@@ -790,7 +793,7 @@ export const searchCollection = async (
         title: string;
         thumbnail?: string;
         instructorId: {
-          _id: any; 
+          _id: any;
           firstName: string;
           lastName: string;
           avatar?: string;
@@ -827,7 +830,7 @@ export const searchCollection = async (
           );
           return {
             ...course,
-            categoryId: undefined, 
+            categoryId: undefined,
             url: thumbnailUrl,
             instructor: {
               _id: course.instructorId?._id,
@@ -855,7 +858,7 @@ export const searchCollection = async (
         lastName: string;
         avatar?: string;
         role: string;
-        verificationStatus: string; 
+        verificationStatus: string;
         courses: Array<{
           _id: any;
           title: string;
@@ -997,3 +1000,48 @@ export const filerCourses = async (
   res: Response,
   next: NextFunction
 ) => {};
+
+export const checkLogin = () => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const { accessToken, refreshToken } = req.cookies;
+
+    if (accessToken && refreshToken) {
+      console.log({ accessToken, refreshToken });
+      return isAuth([Roles.Admin, Roles.Instructor, Roles.User])(
+        req,
+        res,
+        next
+      );
+    } else {
+      console.log("hiiiiiiiiiiiiiiiiiiii");
+
+      req.user = undefined;
+      next();
+    }
+  };
+};
+
+export const isPurchased = () => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user;
+    const { id } = req.params;
+    if (user) {
+      const isEnrolement = await EnrollmentModel.findOne({
+        userId: req?.user?._id,
+        courseId: id,
+        paymentStatus: "completed",
+      });
+      console.log({isEnrolement});
+
+      if (isEnrolement) {
+        req.purchased = true;
+      } else {
+        req.purchased = false;
+      }
+      return next();
+    } else {
+      req.purchased = false;
+      return next();
+    }
+  };
+};

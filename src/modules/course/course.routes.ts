@@ -54,6 +54,8 @@ router.get(
 router.get(
   "/:id",
   valid(getCourseByIdSchema) as RequestHandler,
+  courseServices.checkLogin() as RequestHandler,
+  courseServices.isPurchased() as RequestHandler,
   asyncHandler(courseServices.getCourseById)
 );
 
@@ -62,7 +64,7 @@ router.put(
   "/:id",
   valid(cokkiesSchema) as RequestHandler,
   valid(updateCourseSchema) as RequestHandler,
-  multerMemory().single("image"), 
+  multerMemory().single("image"),
   isAuth([Roles.Instructor]),
   asyncHandler(courseServices.updateCourse)
 );
