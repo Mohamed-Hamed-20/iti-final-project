@@ -21,7 +21,6 @@ export const sanatizeUser = (user: Iuser) => {
     socialLinks: user?.socialLinks,
     verificationStatus: user?.verificationStatus,
     url : user?.url,
-    following: user?.following
   };
 
   return _.omitBy(sanitized, _.isNil);

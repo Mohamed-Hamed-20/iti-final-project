@@ -9,9 +9,13 @@ import cors from "cors";
 import path from "path";
 import morgan from "morgan";
 import compression from "compression";
-import userModel from "./DB/models/user.model";
+import http from "http";
+import { initSocket } from "./socket/socket";
 
 const app: Application = express();
+const server = http.createServer(app);
+
+// initSocket(server);
 
 app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
@@ -20,7 +24,11 @@ app.use(express.json());
 app.use(
   cors({
     credentials: true,
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:4200"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:4200",
+    ],
   })
 );
 app.use(express.urlencoded({ extended: true }));
@@ -48,4 +56,4 @@ app.all("*", (req: Request, res: Response, next: NextFunction) => {
 
 app.use(errorHandler);
 
-export default app;
+export default server;

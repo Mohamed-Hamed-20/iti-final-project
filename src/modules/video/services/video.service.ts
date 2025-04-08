@@ -183,7 +183,7 @@ export const getVideo = async (
 
   if (video.status !== "approved") {
     return next(
-      new CustomError("videp Not approved yet to be accessable", 400)
+      new CustomError("video Not approved yet to be accessable", 400)
     );
   }
 
@@ -199,7 +199,7 @@ export const getVideo = async (
   }
 
   // Fetch video and thumbnail URLs in parallel
-  const video_url = await new S3Instance().getFile(video_key);
+  const video_url = await new S3Instance().getVideoFile(video_key);
 
   if (!video_url) {
     return next(new CustomError("Error fetching video or thumbnail", 500));

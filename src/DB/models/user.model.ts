@@ -96,19 +96,9 @@ const userSchema = new Schema<Iuser>(
       facebook: { type: String },
       portfolio: { type: String },
     },
-    followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }], 
-    following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'user' }],
   },
   { timestamps: true }
 );
-
-userSchema.virtual('followersCount').get(function (this: Iuser) {
-  return this.followers.length;
-});
-
-userSchema.virtual('followingCount').get(function (this: Iuser) {
-  return this.following.length;
-});
 
 userSchema.virtual("courses", {
   ref: "course",

@@ -13,6 +13,8 @@
         "@aws-sdk/client-s3": "^3.758.0",
         "@aws-sdk/lib-storage": "^3.758.0",
         "@aws-sdk/s3-request-presigner": "^3.758.0",
+        "@paypal/checkout-server-sdk": "^1.0.3",
+        "@paypal/paypal-server-sdk": "^0.6.0",
         "@types/compression": "^1.7.5",
         "@types/ffprobe-static": "^2.0.3",
         "@types/fluent-ffmpeg": "^2.1.27",
@@ -42,6 +44,8 @@
         "node-cron": "^3.0.3",
         "node-fetch": "^3.3.2",
         "nodemailer": "^6.9.16",
+        "socket.io": "^4.8.1",
+        "stripe": "^14.21.0",
         "uuid": "^11.1.0"
     },
     "devDependencies": {
@@ -56,6 +60,9 @@
         "@types/node": "^22.13.10",
         "@types/node-cron": "^3.0.11",
         "@types/nodemailer": "^6.4.17",
+        "@types/paypal__checkout-server-sdk": "^1.0.8",
+        "@types/socket.io": "^3.0.1",
+        "@types/stripe": "^8.0.417",
         "@types/uuid": "^10.0.0",
         "ts-node-dev": "^2.0.0",
         "typescript": "^5.8.2"

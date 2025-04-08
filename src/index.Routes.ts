@@ -3,6 +3,7 @@ import adminRouter from "./modules/adminDashboard/admin.routes";
 import authRouter from "./modules/auth/auth.routes";
 import cartRoutes from "./modules/cart/cart.routes";
 import categoryRouter from "./modules/category/category.routes";
+import conversationRoutes from "./modules/conversation/conversation.routes";
 import courseRouter from "./modules/course/course.routes";
 import customerRouter from './modules/customerSupport/customerSupport.routes';
 import deleteRequestRouter from "./modules/delete/delete.controller";
@@ -15,7 +16,7 @@ import sectionRouter from "./modules/section/section.routes";
 import userRouter from "./modules/user/user.routes";
 import videoRouter from "./modules/video/video.routes";
 import wishlistRoutes from "./modules/wishlist/wishlist.routes";
-// import paymentRoutes from "./modules/payment/payment.routes";
+import paymentRoutes from "./modules/payment/payment.routes";
 import conversationRoutes from "./modules/conversation/conversation.routes";
 
 const router = Router();
@@ -33,6 +34,8 @@ router.use("/course/cart" , cartRoutes)
 router.use("/notifications", notificationRouter);
 router.use("/posts", postRouter);
 router.use("/admin", adminRouter);
+router.use('/review', reviewRoutes);
+router.use('/enrollments', enrollmentRoutes);
 router.use("/payment", paymentRoutes);
 
 export default router;
