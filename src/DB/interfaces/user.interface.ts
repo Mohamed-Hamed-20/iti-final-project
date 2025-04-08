@@ -34,9 +34,8 @@ export interface Iuser extends Document {
   optionalVideo?: string;
   jobTitle?: string;
   code?: number;
-  verificationStatus: 'pending' | 'approved' | 'rejected' | 'none'; 
+  verificationStatus: "pending" | "approved" | "rejected" | "none";
   socialLinks?: ISocialLinks;
   url?: string;
+  socketId?: string | null;
 }
-
-
