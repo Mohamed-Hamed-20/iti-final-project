@@ -54,6 +54,8 @@ router.get(
 router.get(
   "/pend/:id",
   valid(getCourseByIdSchema) as RequestHandler,
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor]),
   asyncHandler(courseServices.getPendingCourseById)
 );
 
