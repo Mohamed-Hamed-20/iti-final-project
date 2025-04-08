@@ -44,6 +44,20 @@ router.get(
 );
 
 router.get(
+  "/followings",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.getMyFollowings)
+  );
+
+
+router.get(
+  "/whole/:id",
+  valid(instructorIdSchema) as RequestHandler,
+  asyncHandler(userServices.getInstructorFromURLWithWholeCourses)
+);
+
+router.get(
   "/:id",
   valid(instructorIdSchema) as RequestHandler,
   asyncHandler(userServices.getInstructorFromURL)
@@ -55,6 +69,20 @@ router.post(
   upload.single("avatar"),
   asyncHandler(userServices.uploadImage)
 );
+
+router.post(
+  "/follow/:instructorId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.followInstructor)
+  );
+
+router.delete(
+  "/unfollow/:instructorId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
+  asyncHandler(userServices.unfollowInstructor)
+  );
 
 router.put(
   "/verification",

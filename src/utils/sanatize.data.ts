@@ -20,7 +20,7 @@ export const sanatizeUser = (user: Iuser) => {
     jobTitle: user.jobTitle,
     socialLinks: user?.socialLinks,
     verificationStatus: user?.verificationStatus,
-    url : user.url,
+    url : user?.url,
   };
 
   return _.omitBy(sanitized, _.isNil);

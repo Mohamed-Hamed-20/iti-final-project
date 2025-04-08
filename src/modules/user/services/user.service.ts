@@ -13,6 +13,7 @@ import ApiPipeline from "../../../utils/apiFeacture";
 import mongoose, { Types } from "mongoose";
 import { userFileKey2 } from "./user.helper";
 import courseModel from "../../../DB/models/courses.model";
+import followModel from "../../../DB/models/follow.model";
 
 export const profile = async (
   req: Request,
@@ -143,12 +144,12 @@ export const getInstructorById = async (
 
   const pipeline = [
     {
-      $match: { instructorId: user._id },
+      $match: { instructor: new mongoose.Types.ObjectId(user._id) } 
     },
     {
       $lookup: {
         from: "users",
-        localField: "instructorId",
+        localField: "instructor", 
         foreignField: "_id",
         as: "instructor",
       },
@@ -158,6 +159,24 @@ export const getInstructorById = async (
         path: "$instructor",
         preserveNullAndEmptyArrays: true,
       },
+    },
+    {
+      $lookup: {
+        from: "courses", 
+        localField: "_id",
+        foreignField: "instructorId", 
+        as: "courses",
+        pipeline: [
+          {
+            $match: {
+              status: "approved", 
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$courses",
     },
     {
       $project: {
@@ -175,6 +194,7 @@ export const getInstructorById = async (
           lastName: 1,
           avatar: 1,
         },
+        courses: 1, 
       },
     },
   ];
@@ -250,6 +270,11 @@ export const getInstructorFromURL = async (
       },
     },
     {
+      $match: {
+        status: "approved", 
+      },
+    },
+    {
       $project: {
         title: 1,
         thumbnail: 1,
@@ -281,6 +306,8 @@ export const getInstructorFromURL = async (
       success: false,
     });
   }
+
+  const followerCount = await followModel.countDocuments({ following: id });
 
   // Prepare avatar promise
   const avatarPromise = instructor.avatar
@@ -316,6 +343,111 @@ export const getInstructorFromURL = async (
 
   const sanitizedInstructor: any = sanatizeUser(instructor);
   sanitizedInstructor.courses = updatedCourses;
+  sanitizedInstructor.followerCount = followerCount;
+
+  return res.status(200).json({
+    message: "Instructor fetched successfully",
+    statusCode: 200,
+    success: true,
+    instructor: sanitizedInstructor,
+  });
+};
+
+export const getInstructorFromURLWithWholeCourses = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+
+  const pipeline = [
+    {
+      $match: { instructorId: new mongoose.Types.ObjectId(id) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "instructorId",
+        foreignField: "_id",
+        as: "instructor",
+      },
+    },
+    {
+      $unwind: {
+        path: "$instructor",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        thumbnail: 1,
+        duration: 1,
+        price: 1,
+        originalPrice: 1,
+        access_type: 1,
+        enrollments: 1,
+        category: 1,
+        instructor: {
+          _id: 1,
+          firstName: 1,
+          lastName: 1,
+          avatar: 1,
+        },
+      },
+    },
+  ];
+
+  const courses = await courseModel.aggregate(pipeline).exec();
+
+  // First get the instructor details
+  const instructor = await userModel.findById(id).lean().exec();
+
+  if (!instructor) {
+    return res.status(404).json({
+      message: "Instructor not found",
+      statusCode: 404,
+      success: false,
+    });
+  }
+
+  const followerCount = await followModel.countDocuments({ following: id });
+
+  // Prepare avatar promise
+  const avatarPromise = instructor.avatar
+    ? new S3Instance().getFile(instructor.avatar)
+    : Promise.resolve(null);
+
+  // Prepare course thumbnails + instructor avatar promises
+  const coursePromises = courses.map(async (course) => {
+    const courseUrl = course.thumbnail
+      ? await new S3Instance().getFile(course.thumbnail)
+      : null;
+
+    if (course.instructor?.avatar) {
+      course.instructor.url = await new S3Instance().getFile(
+        course.instructor.avatar
+      );
+    }
+
+    return {
+      ...course,
+      url: courseUrl,
+    };
+  });
+
+  const [userAvatar, updatedCourses] = await Promise.all([
+    avatarPromise,
+    Promise.all(coursePromises),
+  ]);
+
+  if (userAvatar) {
+    instructor.url = userAvatar;
+  }
+
+  const sanitizedInstructor: any = sanatizeUser(instructor);
+  sanitizedInstructor.courses = updatedCourses;
+  sanitizedInstructor.followerCount = followerCount;
 
   return res.status(200).json({
     message: "Instructor fetched successfully",
@@ -664,106 +796,91 @@ export const instructorVerification = async (
   });
 };
 
-// we can take a look about this code
-// export const instructorVerification = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   const user = req.user;
-//   if (!user?._id) return next(new CustomError("Unauthorized", 401));
+export const followInstructor = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { instructorId } = req.params;
+  const { user } = req;
 
-//   const files = req.files as Record<string, Express.Multer.File[]>;
-//   const requiredFiles = ["frontID", "backID", "requiredVideo"];
+  if (!user) throw new Error("User is undefined!");
 
-//   // Validate required files
-//   for (const file of requiredFiles) {
-//     if (!files?.[file]?.[0])
-//       return next(new CustomError(`Missing ${file}`, 400));
-//   }
+  if (user._id.toString() === instructorId) {
+    return next(new CustomError("You can't follow yourself!", 400));
+  }
 
-//   console.log("✅ Received Files:", files);
+  const isAlreadyFollowing = await followModel.findOne({
+    follower: user._id,
+    following: instructorId,
+  });
 
-//   // Generate unique S3 file keys
-//   const fileKeyPromises = requiredFiles.map((file) =>
-//     userFileKey(user._id.toString(), file, files[file][0].originalname)
-//   );
-//   const fileKeys = await Promise.all(fileKeyPromises);
+  if (isAlreadyFollowing) {
+    return next(new CustomError("Already following this instructor", 400));
+  }
 
-//   // Handle optional file if provided
-//   const optionalFile = files.optionalVideo?.[0];
-//   const optionalFileKey = optionalFile
-//     ? await userFileKey(
-//         user._id.toString(),
-//         "optionalVideo",
-//         optionalFile.originalname
-//       )
-//     : null;
+  const followDoc = new followModel({
+    follower: user._id,
+    following: instructorId,
+  });
 
-//   console.log("Generated File Keys:", {
-//     frontId: fileKeys[0],
-//     backId: fileKeys[1],
-//     requiredVideo: fileKeys[2],
-//     optionalVideo: optionalFileKey || "No optional video provided",
-//   });
+  const saved = await followDoc.save();
 
-//   // Upload files to S3
-//   const uploadPromises = requiredFiles.map((file, index) => {
-//     const fileToUpload = files[file][0]; // Always use the first file in the array
-//     fileToUpload.folder = fileKeys[index]; // Assign unique key to folder
-//     return new S3Instance().uploadLargeFile(fileToUpload);
-//   });
+  if (!saved) {
+    return next(new CustomError("Failed to follow instructor", 500));
+  }
 
-//   // Upload optional file if exists
-//   if (optionalFile && optionalFileKey) {
-//     optionalFile.folder = optionalFileKey;
-//     uploadPromises.push(new S3Instance().uploadLargeFile(optionalFile));
-//   }
+  res.status(200).json({
+    message: "Instructor followed successfully",
+    success: true,
+    data: saved,
+  });
+};
 
-//   const uploadResults = await Promise.allSettled(uploadPromises);
+export const unfollowInstructor = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { instructorId } = req.params;
+  const { user } = req;
 
-//   let uploadedFiles: Record<string, string> = {};
-//   let failedUploads: string[] = [];
+  if (!user) throw new Error("User is undefined!");
 
-//   uploadResults.forEach((result, index) => {
-//     if (result.status === "fulfilled") {
-//       const data = result.value as { Key: string; Location: string };
-//       const fileName = requiredFiles[index] || "optionalVideo";
-//       uploadedFiles[fileName] = data.Key;
-//     } else {
-//       failedUploads.push(requiredFiles[index] || "optionalVideo");
-//     }
-//   });
+  const deleted = await followModel.findOneAndDelete({
+    follower: user._id,
+    following: instructorId,
+  });
 
-//   if (failedUploads.length > 0) {
-//     return next(
-//       new CustomError(`Error uploading files: ${failedUploads.join(", ")}`, 500)
-//     );
-//   }
+  if (!deleted) {
+    return next(new CustomError("You are not following this instructor", 400));
+  }
 
-//   console.log("Uploaded File Keys:", uploadedFiles);
+  res.status(200).json({
+    message: "Instructor unfollowed successfully",
+    success: true,
+  });
+};
 
-//   // Update user document
-//   const updatedUser = await userModel.findByIdAndUpdate(
-//     user._id,
-//     {
-//       frontId: uploadedFiles.frontID,
-//       backId: uploadedFiles.backID,
-//       requiredVideo: uploadedFiles.requiredVideo,
-//       optionalVideo: uploadedFiles.optionalVideo || "",
-//     },
-//     { new: true }
-//   );
+export const getMyFollowings = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user } = req;
 
-//   if (!updatedUser) return next(new CustomError("User not found", 404));
+  if (!user) return next(new CustomError("Unauthorized", 401));
 
-//   console.log("User Updated:", updatedUser);
+  const followings = await followModel.find({ follower: user._id }).select("following");
 
-//   return res.status(200).json({
-//     message: "Verification files uploaded successfully",
-//     success: true,
-//     user: sanatizeUser(updatedUser),
-//   });
-// };
+  const followingIds = followings.map(f => f.following);
 
-//Add It In Admin Panel
+  res.status(200).json({
+    success: true,
+    data: followingIds,
+  });
+};
+
+
+
+
