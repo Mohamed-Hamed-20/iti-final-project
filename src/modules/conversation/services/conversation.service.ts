@@ -95,6 +95,7 @@ export const searchConversations = async (
 ) => {
   const userId = req.user?._id;
   const { search, select, sort, page, size } = req.query;
+  console.log("fk you mohamed beshbishi");
 
   const pipeline = new ApiPipeline()
     .matchId({
