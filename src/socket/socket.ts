@@ -204,5 +204,6 @@ export const getSocketIO = (): SocketIOServer => {
   if (!io) {
     throw new Error("Socket.io instance not initialized!");
   }
+
   return io;
 };
