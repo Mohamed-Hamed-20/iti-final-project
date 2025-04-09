@@ -7,7 +7,6 @@ import S3Instance from "../../../utils/aws.sdk.s3";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
 
-
 export const wishList = async (
   req: Request,
   res: Response,
@@ -16,17 +15,23 @@ export const wishList = async (
   const { courseId } = req.params;
   const { user } = req;
   const userId = req.user?._id;
-  
+
   if (!user) throw new Error("User is undefined!");
 
-  const isCourseExist = await wishListModel.findOne({userId: user._id , courseId});
+  const isCourseExist = await wishListModel.findOne({
+    userId: user._id,
+    courseId,
+  });
 
   if (isCourseExist) {
     return next(new CustomError("Course already exists", 400));
   }
 
-  const wishlistItem = await wishListModel.create({ userId, courseId, isWishlistAdded: true });
-
+  const wishlistItem = await wishListModel.create({
+    userId,
+    courseId,
+    isWishlistAdded: true,
+  });
 
   await userModel.findByIdAndUpdate(
     userId,
@@ -39,164 +44,167 @@ export const wishList = async (
       new CustomError("Something went wrong during saving course", 400)
     );
   }
-  res
-    .status(200)
-    .json({
-      message: "Course added successfully in wishlist",
-      statusCode: 200,
-      success: true,
-      data: {
-        wishlistItem,
-      },
-    });
-  };
+  res.status(200).json({
+    message: "Course added successfully in wishlist",
+    statusCode: 200,
+    success: true,
+    data: {
+      wishlistItem,
+    },
+  });
+};
 
-  export const removeCourse = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void | any> => {
-    const { user } = req;
-    const userId = req.user?._id;
-    const {courseId} = req.params;
-    
-    if (!user) throw new Error("User is not found!");
+export const removeCourse = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void | any> => {
+  const { user } = req;
+  const userId = req.user?._id;
+  const { courseId } = req.params;
 
-    const isCourseExist = await wishListModel.find({userId: user._id , courseId});
-    if(!isCourseExist){
-      return next(new CustomError("Course is not found" , 400));
-    }
+  if (!user) throw new Error("User is not found!");
 
-    const deleteCourse = await wishListModel.findOneAndDelete({userId: user._id , courseId});
-  
-    if(!deleteCourse){
-      return next(new CustomError("course id is not found" , 400));
-    }
+  const isCourseExist = await wishListModel.find({
+    userId: user._id,
+    courseId,
+  });
+  if (!isCourseExist) {
+    return next(new CustomError("Course is not found", 400));
+  }
 
-    await userModel.findByIdAndUpdate(
-      userId,
-      { $pull: { wishlist: courseId } },
-      { new: true }
-    );
-    
-    res
-      .status(200)
-      .json({
-        message: "Course deleted successfully",
-        statusCode: 200,
-        success: true,
-        data: null,
-      });
-  };
+  const deleteCourse = await wishListModel.findOneAndDelete({
+    userId: user._id,
+    courseId,
+  });
+
+  if (!deleteCourse) {
+    return next(new CustomError("course id is not found", 400));
+  }
+
+  await userModel.findByIdAndUpdate(
+    userId,
+    { $pull: { wishlist: courseId } },
+    { new: true }
+  );
+
+  res.status(200).json({
+    message: "Course deleted successfully",
+    statusCode: 200,
+    success: true,
+    data: null,
+  });
+};
 
 export const getWishListCourses = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { user } = req as { user: Iuser };
+  const userId = req.user?._id;
 
-  if (!user) {
-    return next(new CustomError("User not found", 404));
+  if (!userId) {
+    throw new CustomError("Authentication required", 401);
   }
 
-  try {
+  const wishlistItems = await wishListModel
+    .find({ userId })
+    .sort({ createdAt: -1 })
+    .lean()
+    .exec();
 
-    const wishlistItems = await wishListModel.find({ userId: user._id }).lean();
-    
-    if (!wishlistItems || wishlistItems.length === 0) {
-      return res.status(200).json({
-        message: "No courses found in your wishlist",
-        statusCode: 200,
-        success: true,
-        data: [],
-      });
-    }
+  if (!wishlistItems.length) {
+    return res.status(200).json({
+      message: "No courses in wishlist",
+      statusCode: 200,
+      success: true,
+      data: [],
+    });
+  }
 
-    const courseIds = wishlistItems.map(item => item.courseId);
+  const courseIds = wishlistItems.map((item) => item.courseId);
 
-    const pipeline = [
-      {
-        $match: {
-          _id: { $in: courseIds }
-        }
-      },
+  const courses = await courseModel
+    .aggregate([
+      { $match: { _id: { $in: courseIds } } },
       {
         $lookup: {
           from: "users",
           localField: "instructorId",
           foreignField: "_id",
-          as: "instructorId",
+          as: "instructor",
           pipeline: [
             {
-              $project: {
-                firstName: 1,
-                lastName: 1,
-                avatar: 1
-              }
-            }
-          ]
-        }
+              $project: { firstName: 1, lastName: 1, avatar: 1 },
+            },
+          ],
+        },
       },
-      {
-        $unwind: "$instructorId"
-      },
+      { $unwind: "$instructor" },
       {
         $lookup: {
           from: "categories",
           localField: "categoryId",
           foreignField: "_id",
-          as: "categoryId",
+          as: "category",
           pipeline: [
             {
-              $project: {
-                title: 1,
-                thumbnail: 1
-              }
-            }
-          ]
-        }
+              $project: { title: 1, thumbnail: 1 },
+            },
+          ],
+        },
       },
+      { $unwind: "$category" },
       {
-        $unwind: "$categoryId"
-      }
-    ];
+        $project: {
+          title: 1,
+          description: 1,
+          thumbnail: 1,
+          price: 1,
+          duration: 1,
+          instructor: 1,
+          category: 1,
+          access_type: 1,
+          enrollments: 1,
+          originalPrice: 1,
+        },
+      },
+    ])
+    .exec();
 
-    const courses = await courseModel.aggregate(pipeline).exec();
+  const wishlistCourses = await Promise.all(
+    courses.map(async (course) => {
+      const wishlistItem = wishlistItems.find(
+        (item) => item.courseId.toString() === course._id.toString()
+      );
 
-    // Add URLs to courses and merge with wishlist info
-    const wishlistCourses = await Promise.all(
-      courses.map(async (course) => {
-        const wishlistItem = wishlistItems.find(item => 
-          item.courseId.toString() === course._id.toString()
-        );
-        
-        let url = '';
-        if (course?.thumbnail) {
-          url = await new S3Instance().getFile(course.thumbnail);
+      let thumbnailUrl = "";
+      try {
+        if (course.thumbnail) {
+          thumbnailUrl = await new S3Instance().getFile(course.thumbnail);
         }
+      } catch (error) {
+        console.error("Failed to get thumbnail URL:", error);
+      }
 
-        return {
-          ...wishlistItem,
-          courseId: {
-            ...course,
-            url, 
-            instructorId: course.instructorId, 
-            categoryId: course.categoryId    
-          }
-        };
-      })
-    );
+      return {
+        ...wishlistItem,
+        courseId: {
+          ...course,
+          url: thumbnailUrl,
+          instructorId: course.instructor,
+          categoryId: course.category,
+        },
+      };
+    })
+  );
 
-    return res.status(200).json({
-      message: "Wishlist courses fetched successfully",
-      statusCode: 200,
-      success: true,
-      data: wishlistCourses,
-    });
-  } catch (error) {
-    next(new CustomError("Failed to fetch wishlist courses", 500));
-  }
+  res.status(200).json({
+    message: "Wishlist courses fetched",
+    statusCode: 200,
+    success: true,
+    data: wishlistCourses,
+  });
 };
 
 export const addToCartIcon = async (
@@ -206,32 +214,37 @@ export const addToCartIcon = async (
 ): Promise<void | any> => {
   const { courseId } = req.params;
   const { user } = req;
-  const {isCartAdded} = req.body;
+  const { isCartAdded } = req.body;
   console.log(isCartAdded);
-   
+
   if (!user) throw new Error("User is undefined!");
 
-  const isCourseExist = await wishListModel.findOne({userId: user._id , courseId});
+  const isCourseExist = await wishListModel.findOne({
+    userId: user._id,
+    courseId,
+  });
 
   // if (isCourseExist) {
   //   return next(new CustomError("Course already exists", 400));
   // }
-    
-  const updateCartIcon = await wishListModel.findOneAndUpdate({ userId: user._id, courseId },{isCartAdded:isCartAdded},{new: true});
+
+  const updateCartIcon = await wishListModel.findOneAndUpdate(
+    { userId: user._id, courseId },
+    { isCartAdded: isCartAdded },
+    { new: true }
+  );
 
   if (!updateCartIcon) {
     return next(
       new CustomError("Something went wrong during saving course", 400)
     );
   }
-  res
-    .status(200)
-    .json({
-      message: "cart icon change successfully",
-      statusCode: 200,
-      success: true,
-      data: updateCartIcon
-    });
+  res.status(200).json({
+    message: "cart icon change successfully",
+    statusCode: 200,
+    success: true,
+    data: updateCartIcon,
+  });
 };
 
 export const getCourseById = async (
@@ -240,29 +253,30 @@ export const getCourseById = async (
   next: NextFunction
 ): Promise<void | any> => {
   const { user } = req;
-  const {courseId} = req.params;
-  
+  const { courseId } = req.params;
+
   if (!user) throw new Error("User is not found!");
 
-  const isCourseExist = await wishListModel.find({userId: user._id , courseId});
-  if(!isCourseExist){
-    return next(new CustomError("Course is not found" , 400));
+  const isCourseExist = await wishListModel.find({
+    userId: user._id,
+    courseId,
+  });
+  if (!isCourseExist) {
+    return next(new CustomError("Course is not found", 400));
   }
 
-  const getCourse = await wishListModel.findOne({userId: user._id , courseId});
+  const getCourse = await wishListModel.findOne({ userId: user._id, courseId });
 
-  if(!getCourse){
-    return next(new CustomError("course id is not found" , 400));
+  if (!getCourse) {
+    return next(new CustomError("course id is not found", 400));
   }
-  
-  res
-    .status(200)
-    .json({
-      message: "Course deleted successfully",
-      statusCode: 200,
-      success: true,
-      data: getCourse
-    });
+
+  res.status(200).json({
+    message: "Course deleted successfully",
+    statusCode: 200,
+    success: true,
+    data: getCourse,
+  });
 };
 
 export const getCourseAddedCart = async (
@@ -271,29 +285,34 @@ export const getCourseAddedCart = async (
   next: NextFunction
 ): Promise<void | any> => {
   const { user } = req;
-  const {courseId} = req.params;
-  
+  const { courseId } = req.params;
+
   if (!user) throw new Error("User is not found!");
 
-  const isCourseExist = await wishListModel.find({userId: user._id , courseId});
-  if(!isCourseExist){
-    return next(new CustomError("Course is not found" , 400));
+  const isCourseExist = await wishListModel.find({
+    userId: user._id,
+    courseId,
+  });
+  if (!isCourseExist) {
+    return next(new CustomError("Course is not found", 400));
   }
 
-  const getCourse = await cartModel.findOneAndUpdate({userId: user._id , courseId} , {isCartAdded: true}, {new: true});
+  const getCourse = await cartModel.findOneAndUpdate(
+    { userId: user._id, courseId },
+    { isCartAdded: true },
+    { new: true }
+  );
 
-  if(!getCourse){
-    return next(new CustomError("course id is not found" , 400));
+  if (!getCourse) {
+    return next(new CustomError("course id is not found", 400));
   }
-  
-  res
-    .status(200)
-    .json({
-      message: "Course deleted successfully",
-      statusCode: 200,
-      success: true,
-      data: getCourse
-    });
+
+  res.status(200).json({
+    message: "Course deleted successfully",
+    statusCode: 200,
+    success: true,
+    data: getCourse,
+  });
 };
 
 export const wishlistCheckCourse = async (
@@ -303,21 +322,22 @@ export const wishlistCheckCourse = async (
 ): Promise<void | any> => {
   const { courseId } = req.params;
   const { user } = req;
-   
+
   if (!user) throw new Error("User is undefined!");
 
-  const isCourseExist = await wishListModel.findOne({userId: user._id , courseId});
-  
-  if(!isCourseExist){
-    return new CustomError("Course Not Found in Wishlist" , 400);
+  const isCourseExist = await wishListModel.findOne({
+    userId: user._id,
+    courseId,
+  });
+
+  if (!isCourseExist) {
+    return new CustomError("Course Not Found in Wishlist", 400);
   }
 
-  res
-    .status(200)
-    .json({
-      message: "Course founded in wishlist",
-      statusCode: 200,
-      success: true,
-      data: {isWishlistAdded: !!isCourseExist , id: isCourseExist._id}
-    });
+  res.status(200).json({
+    message: "Course founded in wishlist",
+    statusCode: 200,
+    success: true,
+    data: { isWishlistAdded: !!isCourseExist, id: isCourseExist._id },
+  });
 };
