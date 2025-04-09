@@ -21,7 +21,7 @@ router.post(
 router.post(
     "/tickets-without-auth",
     valid(createTicketWithoutAuthSchema) as RequestHandler,
-    asyncHandler(controller.createTicketWithoutAuth.bind(controller))  // Changed this line
+    asyncHandler(controller.createTicketWithoutAuth.bind(controller))  
 );
 
 router.get(
