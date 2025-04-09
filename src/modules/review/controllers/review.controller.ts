@@ -1,10 +1,21 @@
-import { Request, Response } from 'express';
-import reviewService from '../services/review.service';
+import { NextFunction, Request, Response } from "express";
+import reviewService from "../services/review.service";
+import ReviewModel from "../../../DB/models/review.model";
+import { CustomError } from "../../../utils/errorHandling";
 
 class ReviewController {
-  async createReview(req: Request, res: Response) {
+  async createReview(req: Request, res: Response, next: NextFunction) {
     const userId = req.user?._id;
-    if (!userId) throw new Error('User not authenticated');
+    if (!userId) throw new Error("User not authenticated");
+
+    const chkreview = await ReviewModel.findOne({
+      userId: req.user?._id,
+      referenceId: req.body.referenceId,
+    });
+
+    if (chkreview) {
+      return next(new CustomError("Review Is Already Exist", 400));
+    }
 
     const review = await reviewService.createReview(
       userId.toString(),
@@ -12,9 +23,9 @@ class ReviewController {
     );
 
     res.status(201).json({
-      status: 'success',
-      message: 'Review created successfully',
-      data: review
+      status: "success",
+      message: "Review created successfully",
+      data: review,
     });
   }
 
@@ -22,9 +33,9 @@ class ReviewController {
     const reviews = await reviewService.getReviews(req.query);
 
     res.status(200).json({
-      status: 'success',
-      message: 'Reviews retrieved successfully',
-      data: reviews
+      status: "success",
+      message: "Reviews retrieved successfully",
+      data: reviews,
     });
   }
 
@@ -33,16 +44,16 @@ class ReviewController {
     const review = await reviewService.getReviewById(id);
 
     res.status(200).json({
-      status: 'success',
-      message: 'Review retrieved successfully',
-      data: review
+      status: "success",
+      message: "Review retrieved successfully",
+      data: review,
     });
   }
 
   async updateReview(req: Request, res: Response) {
     const { id } = req.params;
     const userId = req.user?._id;
-    if (!userId) throw new Error('User not authenticated');
+    if (!userId) throw new Error("User not authenticated");
 
     const review = await reviewService.updateReview(
       id,
@@ -51,22 +62,22 @@ class ReviewController {
     );
 
     res.status(200).json({
-      status: 'success',
-      message: 'Review updated successfully',
-      data: review
+      status: "success",
+      message: "Review updated successfully",
+      data: review,
     });
   }
 
   async deleteReview(req: Request, res: Response) {
     const { id } = req.params;
     const userId = req.user?._id;
-    if (!userId) throw new Error('User not authenticated');
+    if (!userId) throw new Error("User not authenticated");
 
     await reviewService.deleteReview(id, userId.toString());
 
     res.status(200).json({
-      status: 'success',
-      message: 'Review deleted successfully'
+      status: "success",
+      message: "Review deleted successfully",
     });
   }
 
@@ -74,15 +85,15 @@ class ReviewController {
     const { referenceId, referenceType } = req.params;
     const stats = await reviewService.getReviewStats(
       referenceId,
-      referenceType as 'course' | 'instructor'
+      referenceType as "course" | "instructor"
     );
 
     res.status(200).json({
-      status: 'success',
-      message: 'Review statistics retrieved successfully',
-      data: stats
+      status: "success",
+      message: "Review statistics retrieved successfully",
+      data: stats,
     });
   }
 }
 
-export default new ReviewController(); 
+export default new ReviewController();
