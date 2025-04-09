@@ -39,6 +39,10 @@ const CustomerSupportSchema = new Schema<ICustomerSupport>(
     resolution: {
       type: String,
     },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "user",
+    },
   },
   { timestamps: true }
 );

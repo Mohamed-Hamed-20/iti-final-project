@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import { ICustomerSupport } from "../../../DB/interfaces/customerSupport.interface";
 import customerSupportModel from "../../../DB/models/customerSupport.model";
+import ApiPipeline from "../../../utils/apiFeacture";
 import { CustomError } from "../../../utils/errorHandling";
 
 export class CustomerSupportService {
@@ -27,7 +29,15 @@ export class CustomerSupportService {
     return tickets;
   }
   async getTicketById(id: string) {
-    const ticket = await customerSupportModel.findById(id).populate("assignedTo");
+    const ticket = await customerSupportModel
+      .findById(id)
+      .populate({
+        path: 'createdBy',
+        select: 'firstName lastName email avatar'
+      })
+      .lean()
+      .exec();
+      
     if (!ticket) throw new CustomError("Ticket not found", 404);
     return ticket;
   }
