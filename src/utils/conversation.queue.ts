@@ -8,15 +8,14 @@ export const addNewconversation = async (
   userId: Types.ObjectId,
   message: string
 ) => {
-  const conversation = new conversationModel({
-    participants: [userId, instructorId],
-    lastMessage: {
-      sender: instructorId,
-      content: message,
-      createdAt: Date.now(),
+  await conversationQueue.add(
+    {
+      userId,
+      instructorId,
+      message,
     },
-  });
-  await conversationQueue.add({ conversation });
+    { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+  );
 };
 
 // Initialize a Bull queue for conversation processing with Redis configuration
@@ -25,7 +24,17 @@ const conversationQueue = new Queue("create-conversation", {
 });
 
 conversationQueue.process(async (job) => {
-  const { conversation } = job.data;
+  const { userId, instructorId, message } = job.data;
+
+  const conversation = new conversationModel({
+    participants: [userId, instructorId],
+    lastMessage: {
+      sender: instructorId,
+      content: message,
+      createdAt: Date.now(),
+    },
+  });
+
   await conversation.save();
   console.log(conversation, "conversation created success");
 

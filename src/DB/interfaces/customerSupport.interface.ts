@@ -1,3 +1,6 @@
+import mongoose from "mongoose";
+import { Iuser } from "./user.interface";
+
 export interface ICustomerSupport {
   name: string;
   email: string;
@@ -9,4 +12,5 @@ export interface ICustomerSupport {
   priority: "low" | "medium" | "high" | "urgent";
   assignedTo?: string;
   resolution?: string;
+  createdBy: Iuser;
 }
