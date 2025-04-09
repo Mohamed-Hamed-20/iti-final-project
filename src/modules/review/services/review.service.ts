@@ -176,7 +176,6 @@ class ReviewService {
       console.log(review.rating);
 
       TotalRating = TotalRating + review.rating;
-      console.log(TotalRating);
 
       return review;
     });
