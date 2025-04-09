@@ -1,6 +1,6 @@
 import { model, Schema, Types, Document } from "mongoose";
 
-interface IWishlist extends Document {
+export interface IWishlist extends Document {
   userId: Types.ObjectId;
   courseId: Types.ObjectId;
   isCartAdded: Boolean;
