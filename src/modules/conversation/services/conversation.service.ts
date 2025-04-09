@@ -5,6 +5,7 @@ import conversationModel from "../../../DB/models/conversation.model";
 import userModel from "../../../DB/models/user.model";
 import ApiPipeline from "../../../utils/apiFeacture";
 import { Types } from "mongoose";
+import S3Instance from "../../../utils/aws.sdk.s3";
 
 export const allowConversationSortFields = [
   "participants",
@@ -102,39 +103,62 @@ export const searchConversations = async (
       Id: userId as Types.ObjectId,
       field: "participants",
     })
-    .sort(sort as string)
-    .paginate(Number(page), Number(size))
-    .lookUp({
-      from: "users",
-      localField: "participants",
-      foreignField: "_id",
-      as: "participants",
-      isArray: true,
+    .addStage({
+      $project: {
+        _id: 1,
+        lastMessage: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        otherParticipant: {
+          $arrayElemAt: [
+            {
+              $filter: {
+                input: "$participants",
+                as: "participant",
+                cond: { $ne: ["$$participant", userId] },
+              },
+            },
+            0,
+          ],
+        },
+      },
     })
-    .lookUp({
-      from: "users",
-      localField: "lastMessage.sender",
-      foreignField: "_id",
-      as: "sender",
-    })
-    .match({
-      search: search as string,
-      op: "$or",
-      fields: ["lastMessage.sender", "participants"],
-    })
-    .projection({
-      allowFields: allowConversationSortFields,
-      select: select as string,
-      defaultFields: allowConversationFields,
-    })
+    .lookUp(
+      {
+        from: "users",
+        localField: "otherParticipant",
+        foreignField: "_id",
+        as: "otherParticipant",
+        isArray: false,
+      },
+      {
+        firstName: 1,
+        lastName: 1,
+        email: 1,
+        avatar: 1,
+      }
+    )
     .build();
 
   const conversations = await conversationModel.aggregate(pipeline);
 
+  const S3 = new S3Instance();
+  const conversationsPromises = conversations.map(async (conversation) => {
+    if (conversation.otherParticipant && conversation.otherParticipant.avatar) {
+      conversation.otherParticipant.url = await S3.getFile(
+        conversation.otherParticipant.avatar
+      );
+    }
+
+    return conversation;
+  });
+
+  const resolvedConversations = await Promise.all(conversationsPromises);
+
   return res.status(200).json({
     message: "Conversation returned success",
     success: true,
-    conversations,
+    conversations: resolvedConversations,
   });
 };
 
