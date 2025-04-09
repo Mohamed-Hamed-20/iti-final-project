@@ -7,7 +7,17 @@ import { PaymentService } from "../services/payment.service";
 import { TokenService } from "../../../utils/tokens";
 import { stripePayment, TokenConfigration } from "../../../config/env";
 import { CustomError } from "../../../utils/errorHandling";
-import { canceledTemplet, successTemplet } from "../../../utils/htmlTemplet";
+import {
+  canceledTemplet,
+  purchaseEmail,
+  successTemplet,
+} from "../../../utils/htmlTemplet";
+import emailQueue from "../../../utils/email.Queue";
+import S3Instance from "../../../utils/aws.sdk.s3";
+import { ICourse } from "../../../DB/interfaces/courses.interface";
+import { IEnrollment } from "../../../DB/interfaces/enrollment.interface";
+import { Iuser } from "../../../DB/interfaces/user.interface";
+import { addNewconversation } from "../../../utils/conversation.queue";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -227,22 +237,63 @@ export class PaymentController {
       return res.redirect(stripePayment.CANCELED_URL);
     }
 
-    const updateEnroleMent = await EnrollmentModel.findByIdAndUpdate(
+    // Update payment status
+    await EnrollmentModel.findByIdAndUpdate(
+      enrollmentId,
+      { paymentStatus: "completed" },
+      { new: true }
+    );
+
+    const updatedEnrollment = await EnrollmentModel.findById(enrollmentId)
+      .populate<{ courseId: ICourse }>("courseId")
+      .populate<{ userId: Iuser }>("userId")
+      .lean<IEnrollment & { courseId: ICourse; userId: Iuser }>();
+
+    if (!updatedEnrollment || !updatedEnrollment.courseId) {
+      return res.redirect(stripePayment.CANCELED_URL);
+    }
+
+    // Get course thumbnail image from S3
+    const imgUrl = await new S3Instance().getFile(
+      updatedEnrollment.courseId.thumbnail as string
+    );
+    console.log({ updatedEnrollment });
+
+    // Prepare and send email to queue
+    await emailQueue.add(
       {
-        _id: enrollmentId,
+        to: updatedEnrollment?.userId?.email,
+        subject:
+          "Congratulations, your course has been successfully purchased.",
+        text: "Welcome to Mentora! 🎉",
+        html: purchaseEmail({
+          transactionId: updatedEnrollment._id,
+          name: `${updatedEnrollment.userId?.firstName} ${updatedEnrollment.userId?.lastName}`,
+          amountPaid: updatedEnrollment.courseId.price,
+          paymentDate: updatedEnrollment.updatedAt,
+          contactLink: "https://mentora.com/contact",
+          courseImage: imgUrl,
+          courseTitle: updatedEnrollment.courseId.title,
+          dashboardLink: "https://mentora.com/dashboard",
+          year: "2025",
+        }),
+        message: "Mentora",
       },
       {
-        paymentStatus: "completed",
-      },
-      {
-        new: true,
-        lean: true,
+        attempts: 1,
+        backoff: 5000,
+        removeOnComplete: true,
+        removeOnFail: true,
       }
     );
 
-    if (!updateEnroleMent) {
-      return res.redirect(stripePayment.CANCELED_URL);
-    }
+    // TODO: create conversation between instructor and user
+    // TODO: send welcome message
+    await addNewconversation(
+      updatedEnrollment?.courseId.instructorId,
+      updatedEnrollment?.userId._id,
+      process.env.welcome_message as string
+    );
 
     return res.redirect(stripePayment.SUCCESS_URL);
   }
@@ -267,7 +318,6 @@ export class PaymentController {
         lean: true,
       }
     );
-
-      return res.redirect(stripePayment.CANCELED_URL);
+    return res.redirect(stripePayment.CANCELED_URL);
   }
 }
