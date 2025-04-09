@@ -52,8 +52,18 @@ router.get(
 
 // Get Course By ID
 router.get(
+  "/pend/:id",
+  valid(getCourseByIdSchema) as RequestHandler,
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor]),
+  asyncHandler(courseServices.getPendingCourseById)
+);
+
+router.get(
   "/:id",
   valid(getCourseByIdSchema) as RequestHandler,
+  courseServices.checkLogin() as RequestHandler,
+  courseServices.isPurchased() as RequestHandler,
   asyncHandler(courseServices.getCourseById)
 );
 
@@ -62,7 +72,7 @@ router.put(
   "/:id",
   valid(cokkiesSchema) as RequestHandler,
   valid(updateCourseSchema) as RequestHandler,
-  multerMemory().single("image"), 
+  multerMemory().single("image"),
   isAuth([Roles.Instructor]),
   asyncHandler(courseServices.updateCourse)
 );

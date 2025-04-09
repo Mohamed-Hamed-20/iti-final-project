@@ -191,6 +191,7 @@ export const getVideo = async (
     const isEnrollMent = await enrollmentModel.findOne({
       studentId: req?.user?._id,
       courseId: video.courseId,
+      paymentStatus: "completeds",
     });
 
     if (!isEnrollMent) {
@@ -211,5 +212,45 @@ export const getVideo = async (
     statusCode: 200,
     video,
     video_url,
+  });
+};
+
+export const deleteVideo = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { videoId } = req.params;
+  const user = req.user;
+
+  const video = await videoModel.findById(videoId);
+  if (!video) return next(new CustomError("Video not found", 404));
+
+  const course = await courseModel.findById(video.courseId);
+  if (!course) return next(new CustomError("Course not found", 404));
+
+  const section = await sectionModel.findById(video.sectionId);
+  if (!section) return next(new CustomError("Section not found", 404));
+
+  if (course.instructorId.toString() !== user?._id.toString()) {
+    return next(
+      new CustomError("You are not allowed to delete this video", 403)
+    );
+  }
+
+  await videoModel.findByIdAndDelete(videoId);
+
+  await courseModel.updateOne(
+    { _id: video.courseId },
+    { $inc: { totalVideos: -1 } }
+  );
+
+  await sectionModel.updateOne(
+    { _id: video.sectionId },
+    { $inc: { totalVideos: -1 } }
+  );
+
+  return res.status(200).json({
+    message: "Video deleted successfully",
   });
 };

@@ -10,10 +10,12 @@ import { CustomError } from "../../../utils/errorHandling";
 import { createNotification } from "../../notification/notification.controller";
 import { courseKey } from "./courses.helper";
 import { sanatizeUser } from "../../../utils/sanatize.data";
-import { Iuser } from "../../../DB/interfaces/user.interface";
+import { Iuser, Roles } from "../../../DB/interfaces/user.interface";
 import { CACHE_TTL } from "../../../config/env";
 import { CacheService } from "../../../utils/redis.services";
 import redis from "../../../utils/redis";
+import { isAuth } from "../../../middleware/auth";
+import EnrollmentModel from "../../../DB/models/enrollment.model";
 
 export const addCourse = async (
   req: Request,
@@ -378,7 +380,7 @@ export const getAllCoursesForInstructor = async (
   const { access_type } = req.query;
   const user = req.user;
   const pipeline = new ApiPipeline()
-    .addStage({ $match: { status: "approved" } }) 
+    .addStage({ $match: { status: "approved" } })
     .searchOnString("access_type", access_type as string)
     .matchId({
       Id: req.user?._id as Types.ObjectId,
@@ -441,7 +443,7 @@ export const getAllCoursesForInstructor = async (
 };
 
 // get single course
-export const getCourseById = async (
+export const getPendingCourseById = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -539,6 +541,199 @@ export const getCourseById = async (
         as: "sections.videos",
       },
     })
+    .addStage({
+      $group: {
+        _id: "$_id",
+        title: { $first: "$title" },
+        description: { $first: "$description" },
+        price: { $first: "$price" },
+        thumbnail: { $first: "$thumbnail" },
+        rating: { $first: "$rating" },
+        totalSections: { $first: "$totalSections" },
+        totalVideos: { $first: "$totalVideos" },
+        totalDuration: { $first: "$totalDuration" },
+        purchaseCount: { $first: "$purchaseCount" },
+        learningPoints: { $first: "$learningPoints" },
+        subTitle: { $first: "$subTitle" },
+        requirements: { $first: "$requirements" },
+        instructor: { $first: "$instructor" },
+        category: { $first: "$category" },
+        access_type: { $first: "$access_type" },
+        level: { $first: "$level" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
+        status: { $first: "$status" },
+        sections: {
+          $push: {
+            _id: "$sections._id",
+            title: "$sections.title",
+            order: "$sections.order",
+            videos: "$sections.videos",
+          },
+        },
+      },
+    })
+    .projection({
+      allowFields: [...defaultFields, "sections", "videos", "status"],
+      defaultFields: [...defaultFields, "sections", "videos", "status"],
+      select: undefined,
+    })
+    .build();
+
+  const courseArray = await courseModel.aggregate(pipeline);
+
+  if (!courseArray.length) {
+    return next(new CustomError("Course not found", 404));
+  }
+
+  let course = courseArray[0];
+
+  const promises: Promise<void>[] = [];
+
+  if (course.thumbnail) {
+    const courseUrlPromise = new S3Instance()
+      .getFile(course.thumbnail)
+      .then((url) => {
+        course.url = url;
+      });
+    promises.push(courseUrlPromise);
+  }
+
+  if (course.instructor?.avatar) {
+    const instructorUrlPromise = new S3Instance()
+      .getFile(course.instructor.avatar)
+      .then((url) => {
+        course.instructor.url = url;
+      });
+    promises.push(instructorUrlPromise);
+  }
+
+  if (course?.category?.thumbnail) {
+    const categoryUrlPromise = new S3Instance()
+      .getFile(course.category.thumbnail)
+      .then((url) => {
+        course.category.url = url;
+      });
+    promises.push(categoryUrlPromise);
+  }
+
+  await Promise.all(promises);
+
+  if (course) {
+    cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
+      console.log("Course Cached successfully");
+    });
+  }
+
+  return res.status(200).json({
+    message: "Course fetched successfully",
+    statusCode: 200,
+    success: true,
+    purchased: req?.purchased || false,
+    course,
+  });
+};
+
+export const getCourseById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+  const cached = new CacheService();
+  const cachedCourse = await cached.get(`course:${id}`);
+  console.log(cachedCourse);
+
+  if (cachedCourse) {
+    return res.status(200).json({
+      message: "Course fetched successfully",
+      statusCode: 200,
+      success: true,
+      course: cachedCourse,
+    });
+  }
+
+  const pipeline = new ApiPipeline()
+    .matchId({ Id: id as any, field: "_id" })
+    .lookUp(
+      {
+        localField: "instructorId",
+        from: "users",
+        foreignField: "_id",
+        as: "instructor",
+        isArray: false,
+      },
+      {
+        firstName: 1,
+        lastName: 1,
+        age: 1,
+        phone: 1,
+        isOnline: 1,
+        avatar: 1,
+        bio: 1,
+        jobTitle: 1,
+      }
+    )
+    .lookUp(
+      {
+        from: "categories",
+        localField: "categoryId",
+        foreignField: "_id",
+        as: "category",
+        isArray: false,
+      },
+      {
+        title: 1,
+        thumbnail: 1,
+        courseCount: 1,
+      }
+    )
+    .addStage({
+      $lookup: {
+        from: "sections",
+        let: { courseId: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$courseId", "$$courseId"] } } },
+          { $match: { status: "approved" } },
+          {
+            $project: {
+              _id: 1,
+              title: 1,
+              order: 1,
+              status: 1,
+            },
+          },
+        ],
+        as: "sections",
+      },
+    })    
+    .addStage({
+      $unwind: { path: "$sections", preserveNullAndEmptyArrays: true },
+    })
+    .addStage({
+      $lookup: {
+        from: "videos",
+        let: { sectionId: "$sections._id" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$sectionId", "$$sectionId"] } } },
+          { $match: { status: "approved" } },
+          {
+            $project: {
+              _id: 1,
+              sectionId: 1,
+              title: 1,
+              order: 1,
+              video_key: 1,
+              publicView: 1,
+              status: 1,
+              process: 1,
+              duration: 1,
+            },
+          },
+        ],
+        as: "sections.videos",
+      },
+    })    
     .addStage({
       $group: {
         _id: "$_id",
@@ -790,7 +985,7 @@ export const searchCollection = async (
         title: string;
         thumbnail?: string;
         instructorId: {
-          _id: any; 
+          _id: any;
           firstName: string;
           lastName: string;
           avatar?: string;
@@ -827,7 +1022,7 @@ export const searchCollection = async (
           );
           return {
             ...course,
-            categoryId: undefined, 
+            categoryId: undefined,
             url: thumbnailUrl,
             instructor: {
               _id: course.instructorId?._id,
@@ -855,7 +1050,7 @@ export const searchCollection = async (
         lastName: string;
         avatar?: string;
         role: string;
-        verificationStatus: string; 
+        verificationStatus: string;
         courses: Array<{
           _id: any;
           title: string;
@@ -997,3 +1192,48 @@ export const filerCourses = async (
   res: Response,
   next: NextFunction
 ) => {};
+
+export const checkLogin = () => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const { accessToken, refreshToken } = req.cookies;
+
+    if (accessToken && refreshToken) {
+      console.log({ accessToken, refreshToken });
+      return isAuth([Roles.Admin, Roles.Instructor, Roles.User])(
+        req,
+        res,
+        next
+      );
+    } else {
+      console.log("hiiiiiiiiiiiiiiiiiiii");
+
+      req.user = undefined;
+      next();
+    }
+  };
+};
+
+export const isPurchased = () => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user;
+    const { id } = req.params;
+    if (user) {
+      const isEnrolement = await EnrollmentModel.findOne({
+        userId: req?.user?._id,
+        courseId: id,
+        paymentStatus: "completed",
+      });
+      console.log({isEnrolement});
+
+      if (isEnrolement) {
+        req.purchased = true;
+      } else {
+        req.purchased = false;
+      }
+      return next();
+    } else {
+      req.purchased = false;
+      return next();
+    }
+  };
+};

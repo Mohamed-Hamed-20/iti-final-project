@@ -32,4 +32,11 @@ router.get(
   asyncHandler(videoService.getVideo)
 );
 
+router.delete(
+  "/:videoId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(videoService.deleteVideo)
+);
+
 export default router;
