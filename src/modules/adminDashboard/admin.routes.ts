@@ -24,7 +24,7 @@ router.get(
   "/allInstructors",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
-  asyncHandler(adminServices.getPendingVerifications)
+  asyncHandler(adminServices.getAllInstructors)
 );
 
 router.put("/approveIns/:instructorId",

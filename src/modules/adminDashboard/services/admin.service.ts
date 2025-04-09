@@ -204,7 +204,7 @@ export const getPendingVerifications = async (
       );
   
       return res.status(200).json({
-        message: "Pending instructor verifications retrieved successfully",
+        message: "All instructors verifications retrieved successfully",
         status: "success",
         count: instructorsWithFiles.length,
         data: instructorsWithFiles,
