@@ -57,4 +57,5 @@ router.get(
   "/cancel-payment/:token",
   asyncHandler(paymentController.cancel.bind(paymentController))
 );
+
 export default router;

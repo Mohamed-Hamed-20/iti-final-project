@@ -108,6 +108,7 @@ export const searchConversations = async (
       localField: "participants",
       foreignField: "_id",
       as: "participants",
+      isArray: true,
     })
     .lookUp({
       from: "users",
