@@ -19,6 +19,7 @@ export const TokenConfigration = {
   REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
   ACCESS_EXPIRE: process.env.ACCESS_EXPIRE,
   REFRESH_EXPIRE: process.env.REFRESH_EXPIRE,
+  PAYMENT_TOKEN_SECRET: process.env.PAYMENT_TOKEN_SECRET,
 };
 
 export const EmailSendConfigration = {
@@ -56,4 +57,11 @@ export const CACHE_TTL = {
   Maincourses: 60,
   courseBathCaching:
     '{"page":1,"size":6,"select":"title,price,rating,access_type,thumbnail,instructor,category"}',
+};
+
+export const stripePayment = {
+  SUCCESS_URL:
+    process.env.SUCCESS_URL || `http://localhost:5173/success-payment`,
+  CANCELED_URL:
+    process.env.CANCELED_URL || "http://localhost:5173/cancel-payment",
 };
