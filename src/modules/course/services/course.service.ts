@@ -449,18 +449,6 @@ export const getPendingCourseById = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
-  const cached = new CacheService();
-  const cachedCourse = await cached.get(`course:${id}`);
-  console.log(cachedCourse);
-
-  if (cachedCourse) {
-    return res.status(200).json({
-      message: "Course fetched successfully",
-      statusCode: 200,
-      success: true,
-      course: cachedCourse,
-    });
-  }
 
   const pipeline = new ApiPipeline()
     .matchId({ Id: id as any, field: "_id" })
@@ -619,12 +607,6 @@ export const getPendingCourseById = async (
 
   await Promise.all(promises);
 
-  if (course) {
-    cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
-      console.log("Course Cached successfully");
-    });
-  }
-
   return res.status(200).json({
     message: "Course fetched successfully",
     statusCode: 200,
@@ -633,6 +615,7 @@ export const getPendingCourseById = async (
     course,
   });
 };
+
 
 export const getCourseById = async (
   req: Request,
@@ -896,64 +879,67 @@ export const deleteCourse = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
-  const session = await mongoose.startSession();
-
-  try {
-    session.startTransaction();
 
     const [Course, sections, videos] = await Promise.all([
-      courseModel.findById(id).lean().session(session),
-      sectionModel.find({ courseId: id }).session(session),
-      videoModel.find({ courseId: id }).session(session),
+      courseModel.findById(id).lean(),
+      sectionModel.find({ courseId: id }),
+      videoModel.find({ courseId: id }),
     ]);
 
     if (!Course) {
-      await session.abortTransaction();
       return next(new CustomError("Course not found", 404));
     }
 
-    // add all keys to delete
-    let keys = [];
-    keys.push(Course.thumbnail);
-    keys.push(
-      videos.map((video) => {
-        return video.video_key;
-      })
+    const hasApproved = [...sections, ...videos].some(
+      (item) => item.status === "approved"
     );
 
+    if (hasApproved) {
+      await courseModel.updateOne({ _id: id }, { status: "delete" });
+
+      return res.status(200).json({
+        message: "Course marked as deleted (has approved content)",
+        statusCode: 200,
+        success: true,
+      });
+    }
+
+    // Build key list for deletion
+    const keys: string[] = [];
+    if (Course.thumbnail) keys.push(Course.thumbnail);
+
+    videos.forEach((video) => {
+      if (video.video_key) keys.push(video.video_key);
+    });
+
     const [deleteCourse, filesDelete] = await Promise.all([
-      courseModel.deleteOne({ _id: id }).session(session),
-      new S3Instance().deleteFiles(keys as Array<string>),
+      courseModel.deleteOne({ _id: id }),
+      new S3Instance().deleteFiles(keys),
     ]);
 
     if (
-      deleteCourse.deletedCount < 0 ||
+      deleteCourse.deletedCount <= 0 ||
       !filesDelete ||
       filesDelete.length <= 0
     ) {
-      await session.abortTransaction();
       return next(
-        new CustomError("Error when delete course Server Error", 500)
+        new CustomError("Error when deleting course or media files", 500)
       );
     }
 
-    await session.commitTransaction();
-  } catch (error) {
-    await session.abortTransaction();
-    throw new Error(error as any);
-  }
+    // Delete cache
+    const cache = new CacheService();
+    await Promise.all([
+      cache.delete("courses"),
+      cache.delete(`course:${id}`),
+    ]);
 
-  const cache = new CacheService();
-  cache.delete("courses").then(() => {
-    console.log("Cached Data: deleted");
-  });
-  cache.delete(`course:${id}`);
+    return res.status(200).json({
+      message: "Course deleted successfully",
+      statusCode: 200,
+      success: true,
+    });
 
-  return res.status(200).json({
-    message: "Course deleted successfully",
-    statusCode: 200,
-    success: true,
-  });
 };
 
 export const searchCollection = async (

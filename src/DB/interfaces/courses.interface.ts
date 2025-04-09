@@ -20,6 +20,6 @@ export interface ICourse extends Document {
   categoryId: mongoose.Types.ObjectId;
   url?: string;
   rejectionReason?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'none'; 
+  status: 'pending' | 'approved' | 'rejected' | 'none' | 'delete'; 
   featured:boolean
 }

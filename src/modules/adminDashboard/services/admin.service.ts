@@ -5,8 +5,7 @@ import courseModel from "../../../DB/models/courses.model";
 import {sectionModel} from "../../../DB/models/videos.model";
 import {videoModel} from "../../../DB/models/videos.model";
 import S3Instance from "../../../utils/aws.sdk.s3";
-
-
+import { CacheService } from "../../../utils/redis.services";
 
 export const getPendingVerifications = async (
     req: Request,
@@ -418,3 +417,139 @@ export const getPendingVerifications = async (
       });
 
   };
+
+  export const getDeleteCourseVerifications = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<Response | void> => {
+      const pendingCourses = await courseModel
+        .find({
+          status: "delete",
+        })
+        .populate({
+          path: "instructorId",
+          select: "firstName lastName email",
+        })
+        .populate({
+          path: "categoryId",
+          select: "name",
+        })
+        .lean();
+  
+      if (!pendingCourses || pendingCourses.length === 0) {
+        return res.status(200).json({
+          message: "No delete course verifications found",
+          status: "success",
+          data: [],
+        });
+      }
+  
+      const coursesWithDetails = await Promise.all(
+        pendingCourses.map(async (course) => {
+          try {
+            // Get thumbnail URL from S3 if it exists
+            let thumbnailUrl = course.thumbnail;
+            if (course.thumbnail && !course.thumbnail.startsWith("http")) {
+              thumbnailUrl = await new S3Instance().getFile(course.thumbnail);
+            }
+  
+            // Get sections and videos count
+            const sections = await sectionModel.find({ courseId: course._id });
+            const videos = await videoModel.find({ courseId: course._id });
+  
+            return {
+              ...course,
+              thumbnail: thumbnailUrl,
+              sectionsCount: sections.length,
+              videosCount: videos.length,
+              totalDuration: course.totalDuration,
+            };
+          } catch (error) {
+            console.error(`Error processing course ${course._id}:`, error);
+            return {
+              ...course,
+              thumbnail: null,
+              sectionsCount: 0,
+              videosCount: 0,
+              error: "Failed to load course details",
+            };
+          }
+        })
+      );
+  
+      return res.status(200).json({
+        message: "Deleted course verifications retrieved successfully",
+        status: "success",
+        count: coursesWithDetails.length,
+        data: coursesWithDetails,
+      });
+
+  };
+
+  export const deleteCourse = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    const { id } = req.params;
+  
+    try {
+      const [Course, videos] = await Promise.all([
+        courseModel.findById(id).lean(),
+        videoModel.find({ courseId: id }),
+      ]);
+  
+      if (!Course) {
+        return next(new CustomError("Course not found", 404));
+      }
+  
+      // Collect all file keys to delete
+      const keys: string[] = [];
+  
+      if (Course.thumbnail) keys.push(Course.thumbnail);
+  
+      if (videos.length) {
+        keys.push(...videos.map((video) => video.video_key));
+      }
+  
+      // Delete course and files
+      const [deleteCourse, filesDelete] = await Promise.all([
+        courseModel.deleteOne({ _id: id }),
+        new S3Instance().deleteFiles(keys),
+      ]);
+  
+      if (
+        deleteCourse.deletedCount <= 0 ||
+        !filesDelete ||
+        filesDelete.length <= 0
+      ) {
+        return next(
+          new CustomError("Error while deleting course or files", 500)
+        );
+      }
+  
+      // Optionally: delete related sections and videos (if needed)
+      await Promise.all([
+        sectionModel.deleteMany({ courseId: id }),
+        videoModel.deleteMany({ courseId: id }),
+      ]);
+  
+      // Clear cache
+      const cache = new CacheService();
+      cache.delete("courses").then(() => {
+        console.log("Cached Data: deleted");
+      });
+      cache.delete(`course:${id}`);
+  
+      return res.status(200).json({
+        message: "Course deleted successfully",
+        statusCode: 200,
+        success: true,
+      });
+    } catch (error) {
+      return next(new CustomError("Server Error", 500));
+    }
+  };
+  
+  
