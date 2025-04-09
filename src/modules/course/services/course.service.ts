@@ -442,7 +442,6 @@ export const getAllCoursesForInstructor = async (
   });
 };
 
-// get single course
 export const getPendingCourseById = async (
   req: Request,
   res: Response,
@@ -616,6 +615,7 @@ export const getPendingCourseById = async (
   });
 };
 
+// get single course
 export const getCourseById = async (
   req: Request,
   res: Response,
@@ -631,6 +631,7 @@ export const getCourseById = async (
       message: "Course fetched successfully",
       statusCode: 200,
       success: true,
+      purchased: req.purchased || false,
       course: cachedCourse,
     });
   }
@@ -1178,17 +1179,15 @@ export const filerCourses = async (
 export const checkLogin = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const { accessToken, refreshToken } = req.cookies;
+    console.log({ accessToken, refreshToken });
 
     if (accessToken && refreshToken) {
-      console.log({ accessToken, refreshToken });
       return isAuth([Roles.Admin, Roles.Instructor, Roles.User])(
         req,
         res,
         next
       );
     } else {
-      console.log("hiiiiiiiiiiiiiiiiiiii");
-
       req.user = undefined;
       next();
     }

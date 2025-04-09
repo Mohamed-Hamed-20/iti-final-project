@@ -58,6 +58,7 @@ router.get(
   isAuth([Roles.Instructor]),
   asyncHandler(courseServices.getPendingCourseById)
 );
+// Get Course By ID
 
 router.get(
   "/:id",
