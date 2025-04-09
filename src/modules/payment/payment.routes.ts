@@ -17,8 +17,8 @@
 
 // paymentRoutes.post(
 //   "/webhook",
-// //   valid(cokkiesSchema) as RequestHandler,
-// //   isAuth([Roles.User , Roles.Instructor]),
+//   valid(cokkiesSchema) as RequestHandler,
+//   isAuth([Roles.User , Roles.Instructor]),
 //   asyncHandler(paymentService.handleWebhook)
 // );
 
