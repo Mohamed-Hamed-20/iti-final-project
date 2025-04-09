@@ -36,5 +36,6 @@ router.use("/admin", adminRouter);
 router.use("/review", reviewRoutes);
 router.use("/enrollments", enrollmentRoutes);
 router.use("/payment", paymentRoutes);
+router.use("/conversation", conversationRoutes);
 
 export default router;
