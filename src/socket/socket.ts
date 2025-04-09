@@ -22,6 +22,8 @@ const isSocketConnected = (io: SocketIOServer, socketId: string): boolean => {
   return !!socket?.connected;
 };
 
+let io: SocketIOServer | null = null;
+
 export const initSocket = (server: HTTPServer) => {
   const io = new SocketIOServer(server, {
     cors: {
@@ -196,4 +198,11 @@ const handleDisconnect = async (socket: CustomSocket) => {
     console.log("Removed socketId for user:", socket.userId);
   }
   console.log("User disconnected:", socket.id);
+};
+
+export const getSocketIO = (): SocketIOServer => {
+  if (!io) {
+    throw new Error("Socket.io instance not initialized!");
+  }
+  return io;
 };

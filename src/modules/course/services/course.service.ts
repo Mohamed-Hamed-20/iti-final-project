@@ -442,7 +442,6 @@ export const getAllCoursesForInstructor = async (
   });
 };
 
-// get single course
 export const getPendingCourseById = async (
   req: Request,
   res: Response,
@@ -635,6 +634,7 @@ export const getPendingCourseById = async (
   });
 };
 
+// get single course
 export const getCourseById = async (
   req: Request,
   res: Response,
@@ -650,6 +650,7 @@ export const getCourseById = async (
       message: "Course fetched successfully",
       statusCode: 200,
       success: true,
+      purchased: req.purchased || false,
       course: cachedCourse,
     });
   }
@@ -707,7 +708,7 @@ export const getCourseById = async (
         ],
         as: "sections",
       },
-    })    
+    })
     .addStage({
       $unwind: { path: "$sections", preserveNullAndEmptyArrays: true },
     })
@@ -734,7 +735,7 @@ export const getCourseById = async (
         ],
         as: "sections.videos",
       },
-    })    
+    })
     .addStage({
       $group: {
         _id: "$_id",
@@ -756,7 +757,7 @@ export const getCourseById = async (
         level: { $first: "$level" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
-        status: { $first: "$status" }, 
+        status: { $first: "$status" },
         sections: {
           $push: {
             _id: "$sections._id",
@@ -768,8 +769,8 @@ export const getCourseById = async (
       },
     })
     .projection({
-      allowFields: [...defaultFields, "sections", "videos" , "status"],
-      defaultFields: [...defaultFields, "sections", "videos" , "status"],
+      allowFields: [...defaultFields, "sections", "videos", "status"],
+      defaultFields: [...defaultFields, "sections", "videos", "status"],
       select: undefined,
     })
     .build();
@@ -822,6 +823,7 @@ export const getCourseById = async (
   return res.status(200).json({
     message: "Course fetched successfully",
     statusCode: 200,
+    purchased: req.purchased || false,
     success: true,
     course,
   });
@@ -898,66 +900,62 @@ export const deleteCourse = async (
 ) => {
   const { id } = req.params;
 
-    const [Course, sections, videos] = await Promise.all([
-      courseModel.findById(id).lean(),
-      sectionModel.find({ courseId: id }),
-      videoModel.find({ courseId: id }),
-    ]);
+  const [Course, sections, videos] = await Promise.all([
+    courseModel.findById(id).lean(),
+    sectionModel.find({ courseId: id }),
+    videoModel.find({ courseId: id }),
+  ]);
 
-    if (!Course) {
-      return next(new CustomError("Course not found", 404));
-    }
+  if (!Course) {
+    return next(new CustomError("Course not found", 404));
+  }
 
-    const hasApproved = [...sections, ...videos].some(
-      (item) => item.status === "approved"
-    );
+  const hasApproved = [...sections, ...videos].some(
+    (item) => item.status === "approved"
+  );
 
-    if (hasApproved) {
-      await courseModel.updateOne({ _id: id }, { status: "delete" });
-
-      return res.status(200).json({
-        message: "Course marked as deleted (has approved content)",
-        statusCode: 200,
-        success: true,
-      });
-    }
-
-    // Build key list for deletion
-    const keys: string[] = [];
-    if (Course.thumbnail) keys.push(Course.thumbnail);
-
-    videos.forEach((video) => {
-      if (video.video_key) keys.push(video.video_key);
-    });
-
-    const [deleteCourse, filesDelete] = await Promise.all([
-      courseModel.deleteOne({ _id: id }),
-      new S3Instance().deleteFiles(keys),
-    ]);
-
-    if (
-      deleteCourse.deletedCount <= 0 ||
-      !filesDelete ||
-      filesDelete.length <= 0
-    ) {
-      return next(
-        new CustomError("Error when deleting course or media files", 500)
-      );
-    }
-
-    // Delete cache
-    const cache = new CacheService();
-    await Promise.all([
-      cache.delete("courses"),
-      cache.delete(`course:${id}`),
-    ]);
+  if (hasApproved) {
+    await courseModel.updateOne({ _id: id }, { status: "delete" });
 
     return res.status(200).json({
-      message: "Course deleted successfully",
+      message: "Course marked as deleted (has approved content)",
       statusCode: 200,
       success: true,
     });
+  }
 
+  // Build key list for deletion
+  const keys: string[] = [];
+  if (Course.thumbnail) keys.push(Course.thumbnail);
+
+  videos.forEach((video) => {
+    if (video.video_key) keys.push(video.video_key);
+  });
+
+  const [deleteCourse, filesDelete] = await Promise.all([
+    courseModel.deleteOne({ _id: id }),
+    new S3Instance().deleteFiles(keys),
+  ]);
+
+  if (
+    deleteCourse.deletedCount <= 0 ||
+    !filesDelete ||
+    filesDelete.length <= 0
+  ) {
+    return next(
+      new CustomError("Error when deleting course or media files", 500)
+    );
+  }
+
+  // Delete cache
+  const cache = new CacheService();
+  await Promise.all([cache.delete("courses"), cache.delete(`course:${id}`)]);
+
+  return res.status(200).json({
+    message: "Course deleted successfully",
+    statusCode: 200,
+    success: true,
+  });
 };
 
 export const searchCollection = async (
@@ -1200,17 +1198,15 @@ export const filerCourses = async (
 export const checkLogin = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const { accessToken, refreshToken } = req.cookies;
+    console.log({ accessToken, refreshToken });
 
     if (accessToken && refreshToken) {
-      console.log({ accessToken, refreshToken });
       return isAuth([Roles.Admin, Roles.Instructor, Roles.User])(
         req,
         res,
         next
       );
     } else {
-      console.log("hiiiiiiiiiiiiiiiiiiii");
-
       req.user = undefined;
       next();
     }
@@ -1227,7 +1223,7 @@ export const isPurchased = () => {
         courseId: id,
         paymentStatus: "completed",
       });
-      console.log({isEnrolement});
+      console.log({ isEnrolement });
 
       if (isEnrolement) {
         req.purchased = true;

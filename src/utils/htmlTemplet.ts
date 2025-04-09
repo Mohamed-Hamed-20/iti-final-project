@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 export const SignUpTemplet = (link: string) => `<!DOCTYPE html>
 <html>
   <head>
@@ -308,4 +310,92 @@ export const canceledTemplet = () => {
 </body>
 </html>
 `;
+};
+
+type PaymentParameter = {
+  name?: string;
+  courseTitle?: string;
+  courseImage?: string;
+  transactionId?: Types.ObjectId;
+  paymentDate?: Date;
+  amountPaid?: number;
+  dashboardLink?: string;
+  contactLink?: string;
+  year?: string;
+};
+
+export const purchaseEmail = (param: PaymentParameter): string => {
+  return `
+  <!DOCTYPE html>
+  <html lang="en" style="margin: 0; padding: 0;">
+  
+  <head>
+    <meta charset="UTF-8" />
+    <title>Course Purchase Confirmation</title>
+  </head>
+  
+  <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+    <table width="100%" cellspacing="0" cellpadding="0" style="padding: 40px 0;">
+      <tr>
+        <td align="center">
+          <table width="600"
+            style="background-color: #ffffff; border-radius: 10px; overflow: hidden; padding: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <tr>
+              <td align="center">
+                <h1 style="color: #410445;">Thank You for Your Purchase!</h1>
+                <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
+                  style="margin: 20px 0;" />
+                <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                  Hello <strong>${param.name}</strong>,<br /><br />
+                  Your payment was successful, and you've been enrolled in:<br />
+                  <strong style="color: #410445;">${param.courseTitle}</strong>
+                </p>
+  
+                <img src="${param.courseImage}" alt="${
+    param.courseTitle
+  }" width="100%"
+                  style="margin: 20px 0; border-radius: 8px;" />
+  
+                <table width="100%" style="margin: 20px 0; font-size: 15px; color: #555;">
+                  <tr>
+                    <td><strong>Transaction ID:</strong></td>
+                    <td>${param.transactionId}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Payment Date:</strong></td>
+                    <td>${param.paymentDate?.toDateString()}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Amount Paid:</strong></td>
+                    <td>$${param.amountPaid}</td>
+                  </tr>
+                </table>
+  
+                <a href="${param.dashboardLink}"
+                  style="display: inline-block; margin: 25px 0; padding: 12px 30px; background-color: #410445; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Go
+                  to Dashboard</a>
+  
+                <p style="margin-top: 20px; font-size: 14px; color: #777;">
+                  Need help? <a href="${
+                    param.contactLink
+                  }" style="color: #410445;">Contact our support team</a>.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding-top: 40px;">
+                <p style="font-size: 13px; color: #aaaaaa;">
+                  &copy; ${
+                    param.year || new Date().getFullYear()
+                  } <strong>Mentora</strong>. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  
+  </html>`;
 };
