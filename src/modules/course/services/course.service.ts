@@ -449,6 +449,19 @@ export const getPendingCourseById = async (
 ) => {
   const { id } = req.params;
 
+  // const cached = new CacheService();
+  // const cachedCourse = await cached.get(`course:${id}`);
+  // console.log(cachedCourse);
+
+  // if (cachedCourse) {
+  //   return res.status(200).json({
+  //     message: "Course fetched successfully",
+  //     statusCode: 200,
+  //     success: true,
+  //     course: cachedCourse,
+  //   });
+  // }
+
   const pipeline = new ApiPipeline()
     .matchId({ Id: id as any, field: "_id" })
     .lookUp(
@@ -605,6 +618,12 @@ export const getPendingCourseById = async (
   }
 
   await Promise.all(promises);
+
+  // if (course) {
+  //   cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
+  //     console.log("Course Cached successfully");
+  //   });
+  // }
 
   return res.status(200).json({
     message: "Course fetched successfully",
