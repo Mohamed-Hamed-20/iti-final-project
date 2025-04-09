@@ -54,6 +54,7 @@ const defaultFields = [
   "phone",
   "age",
   "isOnline",
+  "verificationStatus",
   "bio",
   "avatar",
   "socialLinks",
@@ -73,6 +74,79 @@ export const instructors = async (
   const pipeline = new ApiPipeline()
     .addStage({
       $match: { role: Roles.Instructor, verificationStatus: "approved" },
+    })
+    .matchInValues("jobTitle", values as Array<string>)
+    .lookUp(
+      {
+        from: "courses",
+        localField: "_id",
+        foreignField: "instructorId",
+        as: "courses",
+        isArray: true,
+      },
+      {
+        title: 1,
+        price: 1,
+        rating: 1,
+        totalVideos: 1,
+        totalSections: 1,
+        purchaseCount: 1,
+        instructorId: 1,
+        totalDuration: 1,
+      }
+    )
+    .match({
+      fields: allowSearchFields,
+      search: search?.toString() || "",
+      op: "$or",
+    })
+    .sort(sort?.toString() || "")
+    .paginate(Number(page) || 1, Number(size) || 100)
+    .projection({
+      allowFields: defaultFields,
+      defaultFields: defaultFields,
+      select: select?.toString() || "",
+    })
+    .build();
+
+  const [total, users] = await Promise.all([
+    userModel.countDocuments({ role: Roles.Instructor }),
+    userModel.aggregate(pipeline).exec(),
+  ]);
+
+  const s3Instance = new S3Instance();
+
+  const updatePromises = users.map(async (user) => {
+    // Process course thumbnail if it exists
+    if (user?.avatar) {
+      user.url = await s3Instance.getFile(user.avatar);
+    }
+    return user;
+  });
+
+  const updatedUsers = await Promise.all(updatePromises);
+
+  return res.status(200).json({
+    message: "instructors fetched successfully",
+    success: true,
+    statusCode: 200,
+    totalUsers: total,
+    totalPages: Math.ceil(total / Number(size || 23)),
+    data: updatedUsers,
+  });
+};
+
+export const allInstructors = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  const { page, size, select, sort, search } = req.query;
+  const { values } = req.query;
+
+  const pipeline = new ApiPipeline()
+    .addStage({
+      $match: { role: Roles.Instructor },
     })
     .matchInValues("jobTitle", values as Array<string>)
     .lookUp(

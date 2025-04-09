@@ -1,55 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Player</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        text-align: center;
-        padding: 20px;
-      }
-      .video-container {
-        max-width: 800px;
-        margin: auto;
-        background: #fff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-      }
-      .thumbnail {
-        width: 100%;
-        border-radius: 10px;
-        margin-bottom: 10px;
-      }
-      .video-title {
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 10px;
-      }
-      video {
-        width: 100%;
-        border-radius: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="video-container">
-      <img
-        class="thumbnail"
-        src="https://coursebucket.s3.eu-central-2.wasabisys.com//courses/67d646399dfc9a3b3d263e26/videos/67d82072a121896c2948d7c4/thumbnail-67d82072a121896c2948d7c4-video-typescript-%D8%AA%D9%86%D8%B2%D9%8A%D9%84.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=6NNRAO22THCPJTHNCP5K%2F20250317%2Feu-central-2%2Fs3%2Faws4_request&X-Amz-Date=20250317T131711Z&X-Amz-Expires=10800&X-Amz-Signature=1539c14bae749fbd4e6c62aab1383c461b084e1a49e0dfc6e0b4cec4975e8e69&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject"
-        alt="Video Thumbnail"
-      />
-      <div class="video-title">Video: TypeScript</div>
-      <video controls>
-        <source
-          src="https://coursebucket.s3.eu-central-2.wasabisys.com//courses/67d646399dfc9a3b3d263e26/videos/67d82072a121896c2948d7c4/video-67d82072a121896c2948d7c4-video-typescript-Second-Video.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=6NNRAO22THCPJTHNCP5K%2F20250317%2Feu-central-2%2Fs3%2Faws4_request&X-Amz-Date=20250317T131711Z&X-Amz-Expires=10800&X-Amz-Signature=51a08692f0a69e7a7c03f6bc453fc63daa0bbf4b1589a15078732ccc73b96629&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject"
-          type="video/mp4"
-        />
-        Your browser does not support the video tag.
-      </video>
-    </div>
-  </body>
+<html lang="en" style="margin: 0; padding: 0;">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Course Purchase Confirmation</title>
+</head>
+
+<body
+  style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+  <table width="100%" cellspacing="0" cellpadding="0" style="padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600"
+          style="background-color: #ffffff; border-radius: 10px; overflow: hidden; padding: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <tr>
+            <td align="center">
+              <h1 style="color: #410445;">Thank You for Your Purchase!</h1>
+              <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
+                style="margin: 20px 0;" />
+              <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                Hello <strong>{{userName}}</strong>,<br /><br />
+                Your payment was successful, and you've been enrolled in:<br />
+                <strong style="color: #410445;">{{courseTitle}}</strong>
+              </p>
+
+              <!-- Course image -->
+              <img src="{{courseImage}}" alt="{{courseTitle}}" width="100%"
+                style="margin: 20px 0; border-radius: 8px;" />
+
+              <!-- Info Table -->
+              <table width="100%" style="margin: 20px 0; font-size: 15px; color: #555;">
+                <tr>
+                  <td><strong>Transaction ID:</strong></td>
+                  <td>{{transactionId}}</td>
+                </tr>
+                <tr>
+                  <td><strong>Payment Date:</strong></td>
+                  <td>{{paymentDate}}</td>
+                </tr>
+                <tr>
+                  <td><strong>Amount Paid:</strong></td>
+                  <td>${{amountPaid}}</td>
+                </tr>
+              </table>
+
+              <a href="{{dashboardLink}}"
+                style="display: inline-block; margin: 25px 0; padding: 12px 30px; background-color: #410445; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Go
+                to Dashboard</a>
+
+              <p style="margin-top: 20px; font-size: 14px; color: #777;">
+                Need help? <a href="{{contactLink}}" style="color: #410445;">Contact our support team</a>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding-top: 40px;">
+              <p style="font-size: 13px; color: #aaaaaa;">
+                &copy; {{year}} <strong>Mentora</strong>. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
 </html>

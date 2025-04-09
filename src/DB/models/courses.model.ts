@@ -60,7 +60,7 @@ const CourseSchema = new Schema<ICourse>(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "none"],
+      enum: ["pending", "approved", "rejected", "none", "delete"],
       default: "none"
     },
     subTitle: { type: String, required: false },

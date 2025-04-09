@@ -227,7 +227,21 @@ export default class S3Instance {
         Bucket: AWS_S3Keys.BUCKET_NAME,
         Key: key,
       }),
-      { expiresIn: 2 * 60 } // 2 m
+      { expiresIn: 5 * 60 } // 5 m
+    );
+
+    // console.log("✅ Signed URL generated successfully!");
+    return url;
+  }
+
+  async getVideoFile(key: string) {
+    const url = await getSignedUrl(
+      this.s3,
+      new GetObjectCommand({
+        Bucket: AWS_S3Keys.BUCKET_NAME,
+        Key: key,
+      }),
+      { expiresIn: 10 } // 10 sec
     );
 
     // console.log("✅ Signed URL generated successfully!");

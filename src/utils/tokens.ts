@@ -5,6 +5,8 @@ import { NODE_ENV } from "../config/env";
 
 type Payload = {
   userId?: mongoose.Types.ObjectId | any;
+  enrollmentId?: mongoose.Types.ObjectId | any;
+  courseId?: mongoose.Types.ObjectId | any;
   role?: string;
   iat?: number;
   exp?: number;
