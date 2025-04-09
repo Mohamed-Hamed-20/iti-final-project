@@ -39,6 +39,13 @@ router.get(
 );
 
 router.get(
+  "/coursesDelete",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
+  asyncHandler(adminServices.getDeleteCourseVerifications)  
+);
+
+router.get(
   "/verificationDetails/:courseId",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
@@ -57,6 +64,13 @@ router.put(
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin,Roles.Instructor]),
   asyncHandler(adminServices.rejectCourse)
+);
+
+router.delete(
+  "/:id",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(adminServices.deleteCourse)
 );
 
 
