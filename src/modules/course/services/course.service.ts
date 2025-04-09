@@ -442,25 +442,25 @@ export const getAllCoursesForInstructor = async (
   });
 };
 
-// get single course
 export const getPendingCourseById = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const { id } = req.params;
-  const cached = new CacheService();
-  const cachedCourse = await cached.get(`course:${id}`);
-  console.log(cachedCourse);
 
-  if (cachedCourse) {
-    return res.status(200).json({
-      message: "Course fetched successfully",
-      statusCode: 200,
-      success: true,
-      course: cachedCourse,
-    });
-  }
+  // const cached = new CacheService();
+  // const cachedCourse = await cached.get(`course:${id}`);
+  // console.log(cachedCourse);
+
+  // if (cachedCourse) {
+  //   return res.status(200).json({
+  //     message: "Course fetched successfully",
+  //     statusCode: 200,
+  //     success: true,
+  //     course: cachedCourse,
+  //   });
+  // }
 
   const pipeline = new ApiPipeline()
     .matchId({ Id: id as any, field: "_id" })
@@ -619,11 +619,11 @@ export const getPendingCourseById = async (
 
   await Promise.all(promises);
 
-  if (course) {
-    cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
-      console.log("Course Cached successfully");
-    });
-  }
+  // if (course) {
+  //   cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
+  //     console.log("Course Cached successfully");
+  //   });
+  // }
 
   return res.status(200).json({
     message: "Course fetched successfully",
@@ -634,6 +634,7 @@ export const getPendingCourseById = async (
   });
 };
 
+// get single course
 export const getCourseById = async (
   req: Request,
   res: Response,
@@ -649,6 +650,7 @@ export const getCourseById = async (
       message: "Course fetched successfully",
       statusCode: 200,
       success: true,
+      purchased: req.purchased || false,
       course: cachedCourse,
     });
   }
@@ -706,7 +708,7 @@ export const getCourseById = async (
         ],
         as: "sections",
       },
-    })    
+    })
     .addStage({
       $unwind: { path: "$sections", preserveNullAndEmptyArrays: true },
     })
@@ -733,7 +735,7 @@ export const getCourseById = async (
         ],
         as: "sections.videos",
       },
-    })    
+    })
     .addStage({
       $group: {
         _id: "$_id",
@@ -755,7 +757,7 @@ export const getCourseById = async (
         level: { $first: "$level" },
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
-        status: { $first: "$status" }, 
+        status: { $first: "$status" },
         sections: {
           $push: {
             _id: "$sections._id",
@@ -767,8 +769,8 @@ export const getCourseById = async (
       },
     })
     .projection({
-      allowFields: [...defaultFields, "sections", "videos" , "status"],
-      defaultFields: [...defaultFields, "sections", "videos" , "status"],
+      allowFields: [...defaultFields, "sections", "videos", "status"],
+      defaultFields: [...defaultFields, "sections", "videos", "status"],
       select: undefined,
     })
     .build();
@@ -821,6 +823,7 @@ export const getCourseById = async (
   return res.status(200).json({
     message: "Course fetched successfully",
     statusCode: 200,
+    purchased: req.purchased || false,
     success: true,
     course,
   });
@@ -896,58 +899,57 @@ export const deleteCourse = async (
   next: NextFunction
 ) => {
   const { id } = req.params;
-  const session = await mongoose.startSession();
 
-  try {
-    session.startTransaction();
+  const [Course, sections, videos] = await Promise.all([
+    courseModel.findById(id).lean(),
+    sectionModel.find({ courseId: id }),
+    videoModel.find({ courseId: id }),
+  ]);
 
-    const [Course, sections, videos] = await Promise.all([
-      courseModel.findById(id).lean().session(session),
-      sectionModel.find({ courseId: id }).session(session),
-      videoModel.find({ courseId: id }).session(session),
-    ]);
-
-    if (!Course) {
-      await session.abortTransaction();
-      return next(new CustomError("Course not found", 404));
-    }
-
-    // add all keys to delete
-    let keys = [];
-    keys.push(Course.thumbnail);
-    keys.push(
-      videos.map((video) => {
-        return video.video_key;
-      })
-    );
-
-    const [deleteCourse, filesDelete] = await Promise.all([
-      courseModel.deleteOne({ _id: id }).session(session),
-      new S3Instance().deleteFiles(keys as Array<string>),
-    ]);
-
-    if (
-      deleteCourse.deletedCount < 0 ||
-      !filesDelete ||
-      filesDelete.length <= 0
-    ) {
-      await session.abortTransaction();
-      return next(
-        new CustomError("Error when delete course Server Error", 500)
-      );
-    }
-
-    await session.commitTransaction();
-  } catch (error) {
-    await session.abortTransaction();
-    throw new Error(error as any);
+  if (!Course) {
+    return next(new CustomError("Course not found", 404));
   }
 
-  const cache = new CacheService();
-  cache.delete("courses").then(() => {
-    console.log("Cached Data: deleted");
+  const hasApproved = [...sections, ...videos].some(
+    (item) => item.status === "approved"
+  );
+
+  if (hasApproved) {
+    await courseModel.updateOne({ _id: id }, { status: "delete" });
+
+    return res.status(200).json({
+      message: "Course marked as deleted (has approved content)",
+      statusCode: 200,
+      success: true,
+    });
+  }
+
+  // Build key list for deletion
+  const keys: string[] = [];
+  if (Course.thumbnail) keys.push(Course.thumbnail);
+
+  videos.forEach((video) => {
+    if (video.video_key) keys.push(video.video_key);
   });
-  cache.delete(`course:${id}`);
+
+  const [deleteCourse, filesDelete] = await Promise.all([
+    courseModel.deleteOne({ _id: id }),
+    new S3Instance().deleteFiles(keys),
+  ]);
+
+  if (
+    deleteCourse.deletedCount <= 0 ||
+    !filesDelete ||
+    filesDelete.length <= 0
+  ) {
+    return next(
+      new CustomError("Error when deleting course or media files", 500)
+    );
+  }
+
+  // Delete cache
+  const cache = new CacheService();
+  await Promise.all([cache.delete("courses"), cache.delete(`course:${id}`)]);
 
   return res.status(200).json({
     message: "Course deleted successfully",
@@ -1196,17 +1198,15 @@ export const filerCourses = async (
 export const checkLogin = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const { accessToken, refreshToken } = req.cookies;
+    console.log({ accessToken, refreshToken });
 
     if (accessToken && refreshToken) {
-      console.log({ accessToken, refreshToken });
       return isAuth([Roles.Admin, Roles.Instructor, Roles.User])(
         req,
         res,
         next
       );
     } else {
-      console.log("hiiiiiiiiiiiiiiiiiiii");
-
       req.user = undefined;
       next();
     }
@@ -1223,7 +1223,7 @@ export const isPurchased = () => {
         courseId: id,
         paymentStatus: "completed",
       });
-      console.log({isEnrolement});
+      console.log({ isEnrolement });
 
       if (isEnrolement) {
         req.purchased = true;

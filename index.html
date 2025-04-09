@@ -1,131 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="margin: 0; padding: 0;">
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payment Successful</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <title>Course Purchase Confirmation</title>
 </head>
-<style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f9fafb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 48px 16px;
-  }
 
-  .container {
-    max-width: 400px;
-    width: 100%;
-    text-align: center;
-  }
+<body
+  style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+  <table width="100%" cellspacing="0" cellpadding="0" style="padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600"
+          style="background-color: #ffffff; border-radius: 10px; overflow: hidden; padding: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <tr>
+            <td align="center">
+              <h1 style="color: #410445;">Thank You for Your Purchase!</h1>
+              <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
+                style="margin: 20px 0;" />
+              <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                Hello <strong>{{userName}}</strong>,<br /><br />
+                Your payment was successful, and you've been enrolled in:<br />
+                <strong style="color: #410445;">{{courseTitle}}</strong>
+              </p>
 
-  .icon-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+              <!-- Course image -->
+              <img src="{{courseImage}}" alt="{{courseTitle}}" width="100%"
+                style="margin: 20px 0; border-radius: 8px;" />
 
-  .success-icon {
-    font-size: 96px;
-    color: #22c55e;
-    margin-bottom: 24px;
-  }
+              <!-- Info Table -->
+              <table width="100%" style="margin: 20px 0; font-size: 15px; color: #555;">
+                <tr>
+                  <td><strong>Transaction ID:</strong></td>
+                  <td>{{transactionId}}</td>
+                </tr>
+                <tr>
+                  <td><strong>Payment Date:</strong></td>
+                  <td>{{paymentDate}}</td>
+                </tr>
+                <tr>
+                  <td><strong>Amount Paid:</strong></td>
+                  <td>${{amountPaid}}</td>
+                </tr>
+              </table>
 
-  .title {
-    margin-top: 24px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #111827;
-  }
+              <a href="{{dashboardLink}}"
+                style="display: inline-block; margin: 25px 0; padding: 12px 30px; background-color: #410445; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Go
+                to Dashboard</a>
 
-  .subtitle {
-    margin-top: 8px;
-    font-size: 14px;
-    color: #6b7280;
-  }
-
-  .extra-info {
-    margin-top: 32px;
-  }
-
-  .email-info {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 16px;
-  }
-
-  .button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  @media (min-width: 640px) {
-    .button-group {
-      flex-direction: row;
-      justify-content: center;
-    }
-  }
-
-  .btn {
-    padding: 12px 20px;
-    font-size: 16px;
-    font-weight: 500;
-    border-radius: 6px;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-  }
-
-  .btn-primary {
-    background-color: #410445;
-    color: white;
-    border: none;
-  }
-
-  .btn-primary:hover {
-    background-color: #5b21b6;
-  }
-
-  .btn-secondary {
-    background-color: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-  }
-
-  .btn-secondary:hover {
-    background-color: #f9fafb;
-  }
-</style>
-
-<body>
-  <div class="container">
-    <div class="content">
-      <div class="icon-section">
-        <i class="fas fa-check-circle success-icon"></i>
-        <h2 class="title">Payment Successful!</h2>
-        <p class="subtitle">
-          Thank you for your purchase. Your payment has been processed successfully.
-        </p>
-      </div>
-      <div class="extra-info">
-        <p class="email-info">
-          A confirmation email has been sent to your registered email address.
-        </p>
-        <div class="button-group">
-          <a href="/dashboard/main" class="btn btn-primary">Go to Dashboard</a>
-          <a href="/courses" class="btn btn-secondary">Browse More Courses</a>
-        </div>
-      </div>
-    </div>
-  </div>
+              <p style="margin-top: 20px; font-size: 14px; color: #777;">
+                Need help? <a href="{{contactLink}}" style="color: #410445;">Contact our support team</a>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding-top: 40px;">
+              <p style="font-size: 13px; color: #aaaaaa;">
+                &copy; {{year}} <strong>Mentora</strong>. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 
 </html>
