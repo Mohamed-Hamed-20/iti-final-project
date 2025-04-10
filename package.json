@@ -25,6 +25,7 @@
         "bull": "^4.16.5",
         "code": "^5.2.4",
         "compression": "^1.8.0",
+        "cookie": "^1.0.2",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "crypto-js": "^4.2.0",

@@ -1,69 +1,174 @@
 <!DOCTYPE html>
-<html lang="en" style="margin: 0; padding: 0;">
+<html lang="ar">
 
 <head>
-  <meta charset="UTF-8" />
-  <title>Course Purchase Confirmation</title>
+  <meta charset="UTF-8">
+  <title>Socket.IO Chat Example</title>
+  <style>
+    /* تصميم صفحة الدردشة */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      direction: rtl;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-header {
+      background: #410445;
+      color: white;
+      padding: 15px;
+      font-size: 1.2rem;
+      text-align: center;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background: #f0f2f5;
+      font-size: 1rem;
+    }
+
+    .chat-messages div {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      background: #e1ffc7;
+      border-radius: 5px;
+      max-width: 70%;
+      word-wrap: break-word;
+    }
+
+    .chat-messages .self {
+      background: #c7eaff;
+      margin-left: auto;
+    }
+
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #ddd;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      outline: none;
+    }
+
+    .chat-input button {
+      padding: 10px 20px;
+      background: #410445;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .chat-input button:hover {
+      background: #520a57;
+    }
+  </style>
 </head>
 
-<body
-  style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
-  <table width="100%" cellspacing="0" cellpadding="0" style="padding: 40px 0;">
-    <tr>
-      <td align="center">
-        <table width="600"
-          style="background-color: #ffffff; border-radius: 10px; overflow: hidden; padding: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-          <tr>
-            <td align="center">
-              <h1 style="color: #410445;">Thank You for Your Purchase!</h1>
-              <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
-                style="margin: 20px 0;" />
-              <p style="font-size: 16px; color: #333; line-height: 1.6;">
-                Hello <strong>{{userName}}</strong>,<br /><br />
-                Your payment was successful, and you've been enrolled in:<br />
-                <strong style="color: #410445;">{{courseTitle}}</strong>
-              </p>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">دردشة Socket.IO</div>
+    <div class="chat-messages" id="messages">
+      <!-- الرسائل هتظهر هنا -->
+    </div>
+    <div class="chat-input">
+      <input type="text" id="messageInput" placeholder="اكتب رسالتك...">
+      <button id="sendButton">أرسل</button>
+    </div>
+  </div>
 
-              <!-- Course image -->
-              <img src="{{courseImage}}" alt="{{courseTitle}}" width="100%"
-                style="margin: 20px 0; border-radius: 8px;" />
+  <!-- استدعاء Socket.IO client من CDN -->
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
 
-              <!-- Info Table -->
-              <table width="100%" style="margin: 20px 0; font-size: 15px; color: #555;">
-                <tr>
-                  <td><strong>Transaction ID:</strong></td>
-                  <td>{{transactionId}}</td>
-                </tr>
-                <tr>
-                  <td><strong>Payment Date:</strong></td>
-                  <td>{{paymentDate}}</td>
-                </tr>
-                <tr>
-                  <td><strong>Amount Paid:</strong></td>
-                  <td>${{amountPaid}}</td>
-                </tr>
-              </table>
+  <script>
+    // إعداد الاتصال بالـ socket
+    // تأكد من تغيير عنوان السيرفر (http://localhost:3000) ليتوافق مع بيئتك
+    const socket = io("http://localhost:3000", {
+      withCredentials: true,
+      // يمكنك تمرير التوكن هنا إذا مش عايز استخراج من الكوكيز
+      // auth: { token: 'YOUR_ACCESS_TOKEN' }
+    });
 
-              <a href="{{dashboardLink}}"
-                style="display: inline-block; margin: 25px 0; padding: 12px 30px; background-color: #410445; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Go
-                to Dashboard</a>
+    // عند الاتصال الناجح
+    socket.on("connect", () => {
+      console.log("متصل بالـ socket، المعرف: " + socket.id);
+      // لو عندك غرف للمحادثة مثلاً:
+      // socket.emit('joinConversation', 'conversation123');
+    });
 
-              <p style="margin-top: 20px; font-size: 14px; color: #777;">
-                Need help? <a href="{{contactLink}}" style="color: #410445;">Contact our support team</a>.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding-top: 40px;">
-              <p style="font-size: 13px; color: #aaaaaa;">
-                &copy; {{year}} <strong>Mentora</strong>. All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+    // الاستماع للرسائل الجديدة من السيرفر
+    socket.on("newMessage", (data) => {
+      console.log("رسالة جديدة:", data);
+      addMessage("الرسائل الواردة: " + data);
+    });
+
+    // التعامل مع أخطاء الاتصال
+    socket.on("connect_error", (error) => {
+      console.error("خطأ في الاتصال:", error);
+    });
+
+    // عناصر DOM
+    const sendButton = document.getElementById("sendButton");
+    const messageInput = document.getElementById("messageInput");
+    const messagesDiv = document.getElementById("messages");
+
+    // دالة لإضافة رسالة لمنطقة الدردشة
+    function addMessage(message, self = false) {
+      const msgElem = document.createElement("div");
+      msgElem.textContent = message;
+      if (self) msgElem.classList.add("self");
+      messagesDiv.appendChild(msgElem);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // إرسال الرسالة للباك اند عبر socket
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      // إرسال الرسالة للباك اند
+      socket.emit("sendMessage", {
+        conversationId: "conversation123", // مثال لمعرّف المحادثة
+        message: message
+      });
+
+      // عرض الرسالة في الدردشة (كإرسال محلي)
+      addMessage("أنت: " + message, true);
+      messageInput.value = "";
+    }
+
+    // استقبال حدث الضغط على الزر وأيضًا عند الضغط على Enter
+    sendButton.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
 </body>
 
 </html>

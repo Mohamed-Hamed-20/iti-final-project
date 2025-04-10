@@ -1,209 +1,104 @@
-import { Server as HTTPServer } from "http";
-import { Server as SocketIOServer, Socket } from "socket.io";
-import messageModel from "../DB/models/message.model";
-import conversationModel from "../DB/models/conversation.model";
+import { Server, Socket } from "socket.io";
+import jwt from "jsonwebtoken";
 import handleToken from "../utils/hadleToken";
-import redis from "../utils/redis";
-import { Iuser } from "../DB/interfaces/user.interface";
-import { CustomError } from "../utils/errorHandling";
-import { IMessage } from "../DB/interfaces/conversation.interface";
+import { TokenService } from "../utils/tokens";
+import { TokenConfigration } from "../config/env";
+import cookie from "cookie";
 
-interface SeenPayload {
-  receiverId: string;
-  messageId: string;
-}
+type SocketCallback = (socket: Socket, userId: string) => void;
+type SocketEventHandler = (socket: Socket, data: any, userId: string) => void;
 
-interface CustomSocket extends Socket {
-  userId?: string;
-}
+class SocketManager {
+  private static io: Server;
+  private static connectedSockets = new Map<
+    string,
+    { socket: Socket; userId: string }
+  >();
+  private static connectListeners: SocketCallback[] = [];
 
-const isSocketConnected = (io: SocketIOServer, socketId: string): boolean => {
-  const socket = io.sockets.sockets.get(socketId);
-  return !!socket?.connected;
-};
+  static initialize(ioInstance: Server) {
+    this.io = ioInstance;
 
-let io: SocketIOServer | null = null;
+    ioInstance.on("connection", (socket: Socket) => {
+      const userId = this.extractUserIdFromSocket(socket);
 
-export const initSocket = (server: HTTPServer) => {
-  const io = new SocketIOServer(server, {
-    cors: {
-      origin: "*",
-    },
-    transports: ["websocket", "polling"],
-    path: "/socket.io/",
-  });
-
-  io.on("connection", async (socket: CustomSocket) => {
-    console.log("User connected:", socket.id);
-
-    socket.on("login", async (token: string) => {
-      await handleJoin(socket, token);
-    });
-
-    socket.on("send_message", async (data: IMessage) => {
-      await handleSendMessage(io, socket, data);
-    });
-
-    socket.on("message_seen", async (data: SeenPayload) => {
-      const { receiverId, messageId } = data;
-
-      const message = await messageModel.findByIdAndUpdate(
-        messageId,
-        { isRead: true },
-        { new: true }
-      );
-
-      const receiverData = await redis.get(`user-${receiverId}`);
-      let receiverSocketId: string | null = null;
-
-      if (receiverData) {
-        const receiver = JSON.parse(receiverData) as Iuser;
-        receiverSocketId = receiver.socketId || null;
+      if (!userId) {
+        console.warn("Socket connected without valid token.");
+        socket.disconnect();
+        return;
       }
 
-      if (receiverSocketId && isSocketConnected(io, receiverSocketId)) {
-        io.to(receiverSocketId).emit("message_watched", {
-          receiverId,
-          message,
-        });
-      }
+      console.log(`Socket connected: ${socket.id}, user: ${userId}`);
+
+      this.connectedSockets.set(socket.id, { socket, userId });
+
+      // join room with userId
+      socket.join(`room-${userId}`);
+
+      this.handleDefaultEvents(socket);
+
+      // run all listeners
+      this.connectListeners.forEach((cb) => cb(socket, userId));
     });
+  }
 
-    socket.on("disconnect", async () => {
-      console.log(
-        `User with Id ${socket.userId} and socketId ${socket.id} disconnected`
-      );
-      await handleDisconnect(socket);
+  static onConnect(callback: SocketCallback) {
+    this.connectListeners.push(callback);
+  }
+
+  static on(event: string, handler: SocketEventHandler) {
+    this.connectListeners.push((socket, userId) => {
+      socket.on(event, (data) => handler(socket, data, userId));
     });
-  });
+  }
 
-  return io;
-};
-
-const handleJoin = async (socket: CustomSocket, token: string) => {
-  try {
-    const user = await handleToken(token, socket.id);
-    if (!user?._id) {
-      socket.emit("error", { message: "Authentication failed" });
-      return;
-    }
-
-    user.socketId = socket.id;
-    await redis.set(`user-${user._id}`, JSON.stringify(user));
-    await redis.expire(`user-${user._id}`, 900);
-
-    socket.userId = user._id.toString();
-
-    socket.emit("logged_success", {
-      message: `User logged in _id : ${user._id}`,
+  private static handleDefaultEvents(socket: Socket) {
+    socket.on("disconnect", () => {
+      console.log(`Socket disconnected: ${socket.id}`);
+      this.connectedSockets.delete(socket.id);
     });
+  }
 
-    console.log(`User ${user._id} logged in.`);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      socket.emit("error", { message: error.message });
+  static emitToUser(userId: string, event: string, data: any) {
+    const room = this.io.sockets.adapter.rooms.get(`room-${userId}`);
+    if (room && room.size > 0) {
+      this.io.to(`room-${userId}`).emit(event, data);
     } else {
-      socket.emit("error", { message: "Error during authentication" });
+      console.log(`User ${userId} not in room, event "${event}" not emitted.`);
     }
-    console.error("Error in join handler:", error);
-  }
-};
-
-const handleSendMessage = async (
-  io: SocketIOServer,
-  socket: CustomSocket,
-  data: IMessage | any
-) => {
-  try {
-    const { content, receiverId } = data;
-    const senderId = socket.userId;
-
-    if (!senderId) {
-      socket.emit("error", { message: "User not authenticated" });
-      return;
-    }
-
-    const lastMessage = {
-      content,
-      sender: senderId,
-      createdAt: Date.now(),
-    };
-
-    let conversation = await conversationModel
-      .findOneAndUpdate(
-        { participants: { $all: [receiverId, senderId] } },
-        { $set: { lastMessage } },
-        { new: true }
-      )
-      .lean();
-
-    if (!conversation) {
-      const conversationValues = {
-        participants: [senderId, receiverId],
-        lastMessage,
-      };
-      conversation = await conversationModel
-        .create(conversationValues)
-        .then((doc) => doc.toObject() as any);
-    }
-
-    if (!conversation) {
-      throw new CustomError("server Error", 500);
-    }
-
-    const newMessage = await messageModel.create({
-      conversationId: conversation._id,
-      sender: senderId,
-      content,
-    });
-
-    const receiverData = await redis.get(`user-${receiverId}`);
-    let receiverSocketId: string | null = null;
-
-    if (receiverData) {
-      const receiver = JSON.parse(receiverData) as Iuser;
-      receiverSocketId = receiver.socketId || null;
-    }
-
-    if (receiverSocketId && isSocketConnected(io, receiverSocketId)) {
-      newMessage.isdelivered = true;
-      const messageReturned = await messageModel
-        .findByIdAndUpdate(newMessage._id, { isdelivered: true }, { new: true })
-        .populate("sender", "name email image");
-
-      io.to(receiverSocketId).emit("receive_message", messageReturned);
-    }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      socket.emit("error", { message: error.message });
-    } else {
-      socket.emit("error", { message: "Unknown error" });
-    }
-    console.error("Error in send_message handler:", error);
-  }
-};
-
-const handleDisconnect = async (socket: CustomSocket) => {
-  if (socket.userId) {
-    const userData = await redis.get(`user-${socket.userId}`);
-
-    if (userData) {
-      const user = JSON.parse(userData) as Iuser;
-      user.socketId = null;
-
-      await redis.set(`user-${socket.userId}`, JSON.stringify(user));
-      await redis.expire(`user-${socket.userId}`, 900);
-    }
-
-    console.log("Removed socketId for user:", socket.userId);
-  }
-  console.log("User disconnected:", socket.id);
-};
-
-export const getSocketIO = (): SocketIOServer => {
-  if (!io) {
-    throw new Error("Socket.io instance not initialized!");
   }
 
-  return io;
-};
+  static broadcastExceptUser(userId: string, event: string, data: any) {
+    const targetRoom = `room-${userId}`;
+    this.io.except(targetRoom).emit(event, data);
+  }
+
+  static extractUserIdFromSocket(socket: Socket): string | null {
+    let token: string | undefined;
+
+    if (socket.handshake.headers.cookie) {
+      const cookies = cookie.parse(socket.handshake.headers.cookie);
+      token = cookies.accessToken;
+    }
+
+    if (!token && socket.handshake.auth?.token) {
+      token = socket.handshake.auth.token;
+    }
+
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const decoded = new TokenService(
+        TokenConfigration.ACCESS_TOKEN_SECRET as string
+      ).verifyToken(token as string);
+
+      return decoded.userId;
+    } catch {
+      return null;
+    }
+  }
+}
+
+export default SocketManager;

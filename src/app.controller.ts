@@ -9,17 +9,38 @@ import cors from "cors";
 import path from "path";
 import morgan from "morgan";
 import compression from "compression";
-import http from "http";
-import { initSocket } from "./socket/socket";
+import http, { Server } from "http";
+import SocketManager from "./socket/socket";
+import { Server as SocketIOServer } from "socket.io";
 
 const app: Application = express();
 const server = http.createServer(app);
-
-// initSocket(server);
-
 app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
 app.use(express.json());
+
+const io = new SocketIOServer(server, { cors: { origin: "*" } });
+// SocketManager.initialize(io);
+
+io.on("connection", (socket) => {
+  console.log("new user connected ", socket.id);
+
+  socket.on("joinConversation", (conversationId: string) => {
+    socket.join(`conversation-${conversationId}`);
+    console.log(`Socket ${socket.id} joined conversation-${conversationId}`);
+  });
+
+  socket.on("leaveConversation", (conversationId: string) => {
+    socket.leave(`conversation-${conversationId}`);
+    console.log(`Socket ${socket.id} left conversation-${conversationId}`);
+  });
+
+  socket.on("sendMessage", (data) => {
+    const { conversationId, message } = data;
+    io.to(`conversation-${conversationId}`).emit("newMessage", message);
+    console.log(`Message sent in conversation-${conversationId}`);
+  });
+});
 
 app.use(
   cors({

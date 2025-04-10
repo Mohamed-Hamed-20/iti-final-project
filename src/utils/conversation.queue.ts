@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { REDIS } from "../config/env";
 import conversationModel from "../DB/models/conversation.model";
 import messageModel from "../DB/models/message.model";
+import SocketManager from "../socket/socket";
 
 export const addNewconversation = async (
   instructorId: Types.ObjectId,
@@ -63,7 +64,7 @@ conversationQueue.process(async (job) => {
     console.log("Conversation created successfully:", conversation);
   }
 
-  await messageModel.create({
+  const messageDoc = await messageModel.create({
     conversationId: conversation._id,
     sender: instructorId,
     content: message,
@@ -71,7 +72,7 @@ conversationQueue.process(async (job) => {
     isdelivered: false,
     isRead: false,
   });
+
   // TODO: emit event if needed
-  // const io = getSocketIO();
-  // io.to(`room-${conversation._id}`).emit("send-msg", conversation);
+  SocketManager.emitToUser(userId, "send-msg", messageDoc);
 });

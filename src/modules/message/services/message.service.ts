@@ -121,13 +121,12 @@ export const sendMessage = async (
     return next(new CustomError("Conversation not found", 404));
   }
 
-  const participantIds = conversation.participants.map((user: Types.ObjectId) =>
-    user.toString()
-  );
-
   if (
-    !participantIds.includes(userId) ||
-    !participantIds.includes(receiverId.toString())
+    ![userId, receiverId].every((id) =>
+      conversation.participants.some(
+        (participant: string) => participant.toString() === id.toString()
+      )
+    )
   ) {
     return next(
       new CustomError(
