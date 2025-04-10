@@ -102,8 +102,7 @@ export const getMessages = async (
     .findById(conversationId)
     .lean()
     .select("participants");
-  console.log(conversation);
-  console.log({ userId });
+
 
   if (!conversation) {
     return next(new CustomError("Invaild conversation Id", 400));
