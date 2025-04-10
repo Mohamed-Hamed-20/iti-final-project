@@ -309,10 +309,10 @@ export const getCoursesByCategory = async (
           ...course,
           url,
           duration: course.totalDuration
-            ? `${Math.floor(course.totalDuration / 60)}h ${
-                course.totalDuration % 60
-              }m`
-            : "0h 0m",
+          ? course.totalDuration < 3600
+          ? `${Math.floor(course.totalDuration / 60)}m`
+          : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor((course.totalDuration % 3600) / 60)}m`
+            : "0m",
           enrollments: course.purchaseCount || 0,
         };
       })

@@ -474,6 +474,9 @@ export const getInstructorFromURLWithWholeCourses = async (
         access_type: 1,
         enrollments: 1,
         category: 1,
+        totalDuration: 1,
+        level: 1,
+        totalVideos: 1,
         instructor: {
           _id: 1,
           firstName: 1,

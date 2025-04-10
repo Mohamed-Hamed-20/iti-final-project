@@ -90,13 +90,6 @@ export const addCourse = async (
     cache.delete(`course:${savedCourse._id.toString()}`);
   }
 
-  categoryModel
-    .findByIdAndUpdate(categoryId, {
-      $inc: { courseCount: 1 },
-    })
-    .then((data) => {
-    });
-
   // Create notification after course creation
   await createNotification(
     req.user?._id.toString()!,
@@ -221,12 +214,32 @@ export const getAllCourses = async (
       );
     }
 
-    return course;
+    return{
+    ...course,
+    duration: course.totalDuration
+    ? course.totalDuration < 3600
+    ? `${Math.floor(course.totalDuration / 60)}m`
+    : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor((course.totalDuration % 3600) / 60)}m`
+    : "0m"
+  }
+    
+    // ${
+    //     course.totalDuration % 60
+    //   }m
   });
+
+  // return {
+  //   ...course,
+  //   duration: course.totalDuration
+  //     ? course.totalDuration < 3600
+  //       ? `${Math.floor(course.totalDuration / 60)}m`
+  //       : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor((course.totalDuration % 3600) / 60)}m`
+  //     : "0m"
+  // };
 
   const updatedCourses = await Promise.all(updatePromises);
 
-  // add cacheing
+  // add caching
   if (JSON.stringify(req.query) == String(CACHE_TTL.courseBathCaching)) {
     if (updatedCourses && updateCourse.length > 0) {
       cache
