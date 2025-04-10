@@ -5,6 +5,7 @@ import { CustomError } from "../../../utils/errorHandling";
 import { Types } from "mongoose";
 import ApiPipeline from "../../../utils/apiFeacture";
 import { Iuser } from "../../../DB/interfaces/user.interface";
+import SocketManager from "../../../socket/socket";
 
 export const allowfieldMessages = [
   "conversationId",
@@ -151,7 +152,11 @@ export const sendMessage = async (
   };
 
   await conversation.save();
-
+  SocketManager.broadcastExceptUser(
+    String(conversationId),
+    "newMessage",
+    newMessage
+  );
   return res.status(200).json({
     message: "Message created successfully",
     success: true,

@@ -14,31 +14,14 @@ class SocketManager {
     string,
     { socket: Socket; userId: string }
   >();
+
   private static connectListeners: SocketCallback[] = [];
 
   static initialize(ioInstance: Server) {
     this.io = ioInstance;
 
     ioInstance.on("connection", (socket: Socket) => {
-      const userId = this.extractUserIdFromSocket(socket);
-
-      if (!userId) {
-        console.warn("Socket connected without valid token.");
-        socket.disconnect();
-        return;
-      }
-
-      console.log(`Socket connected: ${socket.id}, user: ${userId}`);
-
-      this.connectedSockets.set(socket.id, { socket, userId });
-
-      // join room with userId
-      socket.join(`room-${userId}`);
-
       this.handleDefaultEvents(socket);
-
-      // run all listeners
-      this.connectListeners.forEach((cb) => cb(socket, userId));
     });
   }
 
@@ -59,17 +42,21 @@ class SocketManager {
     });
   }
 
-  static emitToUser(userId: string, event: string, data: any) {
-    const room = this.io.sockets.adapter.rooms.get(`room-${userId}`);
+  static emitToUser(conversationId: string, event: string, data: any) {
+    const room = this.io.sockets.adapter.rooms.get(
+      `conversation-${conversationId}`
+    );
     if (room && room.size > 0) {
-      this.io.to(`room-${userId}`).emit(event, data);
+      this.io.to(`conversation-${conversationId}`).emit(event, data);
     } else {
-      console.log(`User ${userId} not in room, event "${event}" not emitted.`);
+      console.log(
+        `User ${conversationId} not in conversation, event "${event}" not emitted.`
+      );
     }
   }
 
-  static broadcastExceptUser(userId: string, event: string, data: any) {
-    const targetRoom = `room-${userId}`;
+  static broadcastExceptUser(conversationId: string, event: string, data: any) {
+    const targetRoom = `conversation-${conversationId}`;
     this.io.except(targetRoom).emit(event, data);
   }
 

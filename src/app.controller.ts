@@ -19,28 +19,11 @@ app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
 app.use(express.json());
 
-const io = new SocketIOServer(server, { cors: { origin: "*" } });
-// SocketManager.initialize(io);
-
-io.on("connection", (socket) => {
-  console.log("new user connected ", socket.id);
-
-  socket.on("joinConversation", (conversationId: string) => {
-    socket.join(`conversation-${conversationId}`);
-    console.log(`Socket ${socket.id} joined conversation-${conversationId}`);
-  });
-
-  socket.on("leaveConversation", (conversationId: string) => {
-    socket.leave(`conversation-${conversationId}`);
-    console.log(`Socket ${socket.id} left conversation-${conversationId}`);
-  });
-
-  socket.on("sendMessage", (data) => {
-    const { conversationId, message } = data;
-    io.to(`conversation-${conversationId}`).emit("newMessage", message);
-    console.log(`Message sent in conversation-${conversationId}`);
-  });
-});
+const allowedOrigins = [
+  "http://127.0.0.1:5500",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
 
 app.use(
   cors({
@@ -76,5 +59,40 @@ app.all("*", (req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(errorHandler);
+
+// Socket.io Setup
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+// Initialize socket manager
+SocketManager.initialize(io);
+
+// Example of socket event logic (can be in a separate file/module too)
+SocketManager.on(
+  "joinConversation",
+  (socket, conversationId: string, userId) => {
+    socket.join(`conversation-${conversationId}`);
+    console.log(`User ${userId} joined conversation-${conversationId}`);
+  }
+);
+//socket.id
+
+SocketManager.on(
+  "leaveConversation",
+  (socket, conversationId: string, userId) => {
+    socket.leave(`conversation-${conversationId}`);
+    console.log(`User ${userId} left conversation-${conversationId}`);
+  }
+);
+
 
 export default server;

@@ -102,12 +102,12 @@
   </div>
 
   <!-- استدعاء Socket.IO client من CDN -->
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/socket.io@4.6.1/client-dist/socket.io.min.js"></script>
 
   <script>
     // إعداد الاتصال بالـ socket
     // تأكد من تغيير عنوان السيرفر (http://localhost:3000) ليتوافق مع بيئتك
-    const socket = io("http://localhost:3000", {
+    const socket = io("http://localhost:5000", {
       withCredentials: true,
       // يمكنك تمرير التوكن هنا إذا مش عايز استخراج من الكوكيز
       // auth: { token: 'YOUR_ACCESS_TOKEN' }
