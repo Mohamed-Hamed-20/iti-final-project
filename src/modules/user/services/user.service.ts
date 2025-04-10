@@ -93,8 +93,20 @@ export const instructors = async (
         purchaseCount: 1,
         instructorId: 1,
         totalDuration: 1,
+        status: 1,
       }
     )
+    .addStage({
+      $addFields: {
+        courses: {
+          $filter: {
+            input: "$courses",
+            as: "course",
+            cond: { $eq: ["$$course.status", "approved"] },
+          },
+        },
+      },
+    })    
     .match({
       fields: allowSearchFields,
       search: search?.toString() || "",

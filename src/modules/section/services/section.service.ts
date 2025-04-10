@@ -21,32 +21,42 @@ export const addSection = async (
   const { title, courseId } = req.body;
   const user = req.user;
 
-  const course = await courseModel.findById(courseId);
+    const course = await courseModel
+    .findOne({ _id: courseId })
+      .lean();
+  
+    if (!course) {
+      return next(new CustomError("Course not found", 404));
+    }
 
-  if (!course) {
-    return next(new CustomError("Course not found", 404));
-  }
-
-  if (course.instructorId.toString() !== user?._id.toString()) {
+    if (course.instructorId.toString() !== user?._id.toString()) {
     return next(
       new CustomError("You are not allowed to add section to this course", 403)
     );
-  }
+    }
 
-  const lastSection = await sectionModel
+    // Determine the section status based on course status
+    let sectionStatus: "approved" | "none" = "none";
+    const courseStatus = course.status;
+      
+    if (courseStatus === "approved") {
+      sectionStatus = "approved";
+    }
+
+    const lastSection = await sectionModel
     .findOne({ courseId })
     .sort({ order: -1 });
-  const nextOrder = (lastSection?.order || 0) + 1;
+    const nextOrder = (lastSection?.order || 0) + 1;
 
-  const [section] = await Promise.all([
-    sectionModel.create({ title, courseId, order: nextOrder }),
+    const [section] = await Promise.all([
+    sectionModel.create({ title, courseId, order: nextOrder, status: sectionStatus }),
     courseModel.updateOne({ _id: courseId }, { $inc: { totalSections: 1 } }),
-  ]);
+    ]);
 
-  return res.status(201).json({
+    return res.status(201).json({
     message: "Section created successfully",
     section,
-  });
+    });
 };
 
 export const updateSection = async (
