@@ -121,11 +121,21 @@ export const updateCourseTransaction = async (
       throw new CustomError("Invalid video data", 400);
     }
 
+    //I just added till line 130 سامحنى يا حامد
+    const course = await courseModel.findById(courseId).select('status').lean();
+    if (!course) {
+      throw new CustomError("Course not found", 404);
+    }
+
+    const videoStatus = course.status === "approved" ? "approved" : "none";
+
+
     const videoDoc = new videoModel({
       title: video.title,
       sectionId,
       courseId,
-      status: "pending",
+      // status: "pending",
+      status: videoStatus,
       process: "processing",
       duration: video.duration,
       publicView: video.publicView,
