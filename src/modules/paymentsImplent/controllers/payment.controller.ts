@@ -291,7 +291,9 @@ export class PaymentController {
     await addNewconversation(
       updatedEnrollment?.courseId.instructorId,
       updatedEnrollment?.userId._id,
-      process.env.welcome_message as string
+      (process.env.welcome_message +
+        "/n" +
+        `course : ${updatedEnrollment.courseId.title}`) as string
     );
 
     return res.redirect(stripePayment.SUCCESS_URL);

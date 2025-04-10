@@ -644,7 +644,6 @@ export const getPendingVerifications = async (
       // Clear cache
       const cache = new CacheService();
       cache.delete("courses").then(() => {
-        console.log("Cached Data: deleted");
       });
       cache.delete(`course:${id}`);
   

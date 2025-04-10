@@ -2,6 +2,7 @@ import Queue from "bull";
 import { Types } from "mongoose";
 import { REDIS } from "../config/env";
 import conversationModel from "../DB/models/conversation.model";
+import messageModel from "../DB/models/message.model";
 
 export const addNewconversation = async (
   instructorId: Types.ObjectId,
@@ -25,27 +26,52 @@ const conversationQueue = new Queue("create-conversation", {
 
 conversationQueue.process(async (job) => {
   const { userId, instructorId, message } = job.data;
-  let conversation = await conversationModel.findOne({
-    $and: [
-      { participants: { $all: [userId, instructorId] } },
-      { $expr: { $eq: [{ $size: "$participants" }, 2] } },
-    ],
-  });
+
+  // Validate: prevent user from messaging themselves
+  if (userId.toString() === instructorId.toString()) {
+    console.warn("User cannot message themselves.");
+    return;
+  }
+
+  let conversation = await conversationModel.findOneAndUpdate(
+    {
+      participants: { $all: [userId, instructorId] },
+      // This ensures it's a private conversation (exactly 2 people)
+      $expr: { $eq: [{ $size: "$participants" }, 2] },
+    },
+    {
+      $set: {
+        "lastMessage.sender": instructorId,
+        "lastMessage.content": message,
+        "lastMessage.createdAt": new Date(),
+      },
+    },
+    {
+      new: true,
+    }
+  );
 
   if (!conversation) {
-    conversation = new conversationModel({
+    conversation = await conversationModel.create({
       participants: [userId, instructorId],
       lastMessage: {
         sender: instructorId,
         content: message,
-        createdAt: Date.now(),
+        createdAt: new Date(),
       },
     });
-
-    await conversation.save();
-    console.log(conversation, "conversation created success");
+    await messageModel.create({
+      conversationId: conversation._id,
+      sender: instructorId,
+      content: message,
+      type: "text",
+      isdelivered: false,
+      isRead: false,
+    });
+    console.log("Conversation created successfully:", conversation);
   }
 
-  //   const io = getSocketIO();
-  //   io.to("").emit("send-msg", {...conversation, });
+  // TODO: emit event if needed
+  // const io = getSocketIO();
+  // io.to(`room-${conversation._id}`).emit("send-msg", conversation);
 });

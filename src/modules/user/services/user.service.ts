@@ -106,7 +106,7 @@ export const instructors = async (
           },
         },
       },
-    })    
+    })
     .match({
       fields: allowSearchFields,
       search: search?.toString() || "",
@@ -230,12 +230,12 @@ export const getInstructorById = async (
 
   const pipeline = [
     {
-      $match: { instructor: new mongoose.Types.ObjectId(user._id) } 
+      $match: { instructor: new mongoose.Types.ObjectId(user._id) },
     },
     {
       $lookup: {
         from: "users",
-        localField: "instructor", 
+        localField: "instructor",
         foreignField: "_id",
         as: "instructor",
       },
@@ -248,14 +248,14 @@ export const getInstructorById = async (
     },
     {
       $lookup: {
-        from: "courses", 
+        from: "courses",
         localField: "_id",
-        foreignField: "instructorId", 
+        foreignField: "instructorId",
         as: "courses",
         pipeline: [
           {
             $match: {
-              status: "approved", 
+              status: "approved",
             },
           },
         ],
@@ -280,7 +280,7 @@ export const getInstructorById = async (
           lastName: 1,
           avatar: 1,
         },
-        courses: 1, 
+        courses: 1,
       },
     },
   ];
@@ -357,7 +357,7 @@ export const getInstructorFromURL = async (
     },
     {
       $match: {
-        status: "approved", 
+        status: "approved",
       },
     },
     {
@@ -807,13 +807,6 @@ export const instructorVerification = async (
       )
     : null;
 
-  console.log("Generated File Keys:", {
-    frontId: fileKeys[0],
-    backId: fileKeys[1],
-    requiredVideo: fileKeys[2],
-    optionalVideo: optionalFileKey || "No optional video provided",
-  });
-
   // Upload files to S3
   const uploadPromises = requiredFiles.map((file, index) =>
     new S3Instance().uploadMulipleLargeFile(
@@ -870,8 +863,6 @@ export const instructorVerification = async (
   );
 
   if (!updatedUser) return next(new CustomError("User not found", 404));
-
-  console.log("User Updated:", updatedUser);
 
   return res.status(200).json({
     message:
@@ -957,16 +948,14 @@ export const getMyFollowings = async (
 
   if (!user) return next(new CustomError("Unauthorized", 401));
 
-  const followings = await followModel.find({ follower: user._id }).select("following");
+  const followings = await followModel
+    .find({ follower: user._id })
+    .select("following");
 
-  const followingIds = followings.map(f => f.following);
+  const followingIds = followings.map((f) => f.following);
 
   res.status(200).json({
     success: true,
     data: followingIds,
   });
 };
-
-
-
-

@@ -23,7 +23,6 @@ export const addVideo2 = async (
     return next(new CustomError("No video file found", 400));
   }
 
-  console.log({ sectionId });
 
   // Validate sectionId
   const chkSection = await sectionModel
@@ -35,7 +34,6 @@ export const addVideo2 = async (
       select: "instructorId",
     });
 
-  console.log(chkSection);
 
   if (
     !chkSection ||
@@ -186,7 +184,6 @@ export const getVideo = async (
   if (!video) return next(new CustomError("Video not found", 404));
 
   const { video_key } = video;
-  console.log(video.status);
 
   if (video.status !== "approved") {
     return next(

@@ -86,7 +86,6 @@ export const addCourse = async (
   if (savedCourse) {
     const cache = new CacheService();
     cache.delete("courses").then((data) => {
-      console.log("Cached Data: deleted");
     });
     cache.delete(`course:${savedCourse._id.toString()}`);
   }
@@ -96,7 +95,6 @@ export const addCourse = async (
       $inc: { courseCount: 1 },
     })
     .then((data) => {
-      console.log("updateded categorys:", data);
     });
 
   // Create notification after course creation
@@ -238,7 +236,6 @@ export const getAllCourses = async (
           CACHE_TTL.Maincourses
         )
         .then(() => {
-          console.log("Courses Catched successfully");
         });
     }
   }
@@ -355,7 +352,6 @@ export const getAllPendingCourses = async (
           CACHE_TTL.Maincourses
         )
         .then(() => {
-          console.log("Courses Catched successfully");
         });
     }
   }
@@ -451,7 +447,6 @@ export const getPendingCourseById = async (
 
   // const cached = new CacheService();
   // const cachedCourse = await cached.get(`course:${id}`);
-  // console.log(cachedCourse);
 
   // if (cachedCourse) {
   //   return res.status(200).json({
@@ -643,7 +638,6 @@ export const getCourseById = async (
   const { id } = req.params;
   const cached = new CacheService();
   const cachedCourse = await cached.get(`course:${id}`);
-  console.log(cachedCourse);
 
   if (cachedCourse) {
     return res.status(200).json({
@@ -816,7 +810,6 @@ export const getCourseById = async (
 
   if (course) {
     cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
-      console.log("Course Cached successfully");
     });
   }
 
@@ -877,7 +870,6 @@ export const updateCourse = async (
     if (updated) {
       const cache = new CacheService();
       cache.delete("courses").then((data) => {
-        console.log("Cached Data: deleted");
       });
       cache.delete(`course:${updated._id.toString()}`);
     }
@@ -1198,7 +1190,6 @@ export const filerCourses = async (
 export const checkLogin = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const { accessToken, refreshToken } = req.cookies;
-    console.log({ accessToken, refreshToken });
 
     if (accessToken && refreshToken) {
       return isAuth([Roles.Admin, Roles.Instructor, Roles.User])(
@@ -1223,7 +1214,6 @@ export const isPurchased = () => {
         courseId: id,
         paymentStatus: "completed",
       });
-      console.log({ isEnrolement });
 
       if (isEnrolement) {
         req.purchased = true;

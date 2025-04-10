@@ -42,8 +42,6 @@ videoQueue.process(async (job) => {
     `${file.filename}`
   );
 
-  console.log({ outputPath });
-
   try {
     // Compress the video file using Ffmpeg
     await new FfmpegService().compressVideo(file.path, outputPath);
@@ -77,9 +75,6 @@ videoQueue.on("completed", async (job) => {
   );
 
   console.log(`Video processing completed for: ${job.data.videoId}`);
-  console.log(
-    `modifiedCount: ${modifiedCount} , acknowledged : ${acknowledged}`
-  );
 });
 
 // Export the queue instance for use in other modules

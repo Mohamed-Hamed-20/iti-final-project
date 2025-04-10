@@ -72,7 +72,6 @@ export class FfmpegService {
    */
 
   async compressVideo(inputPath: string, outputPath: string): Promise<string> {
-    console.log({ inputPath, outputPath });
 
     if (!fs.existsSync(inputPath)) {
       console.log(`not found url ${inputPath}`);

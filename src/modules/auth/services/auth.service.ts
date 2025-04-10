@@ -310,7 +310,6 @@ export const clearUnusedCodes = async () => {
       { $unset: { code: "" } }
     );
 
-    console.log(`Cleared ${result.modifiedCount} unused codes`);
   } catch (error) {
     console.error("Error clearing unused codes:", error);
   }

@@ -232,9 +232,7 @@ export const getAllCategories = async (
   if (categoriesWithUrls) {
     cache
       .set("categories", categoriesWithUrls, CACHE_TTL.Categories)
-      .then(() => {
-        console.log("Cached Data:");
-      });
+      .then(() => {});
   }
 
   return res.status(200).json({

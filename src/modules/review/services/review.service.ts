@@ -173,7 +173,6 @@ class ReviewService {
       if (review && review.user && review.user.avatar) {
         review.user.url = await s3Instance.getFile(review.user.avatar);
       }
-      console.log(review.rating);
 
       TotalRating = TotalRating + review.rating;
 

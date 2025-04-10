@@ -52,9 +52,6 @@ export const videoKey = async (
 //   const session = await mongoose.startSession();
 //   await session.startTransaction();
 
-//   console.log(session);
-//   console.log({ courseId, sectionId, video });
-
 //   try {
 //     if (!video.title || typeof video.duration !== "number") {
 //       throw new CustomError("Invalid video data", 400);
@@ -74,7 +71,6 @@ export const videoKey = async (
 //       videoDoc._id,
 //       video.title
 //     );
-//     console.log({videoDoc});
 
 //     const [savedVideo, updatedSection, updatedCourse] = await Promise.all([
 //       videoDoc.save({ session }),
@@ -93,7 +89,6 @@ export const videoKey = async (
 //     if (!savedVideo || !updatedSection || !updatedCourse) {
 //       throw new CustomError("Transaction failed: Missing data", 500);
 //     }
-//     console.log({ savedVideo, updatedSection, updatedCourse });
 
 //     await session.commitTransaction();
 //     return { savedVideo, updatedSection, updatedCourse };

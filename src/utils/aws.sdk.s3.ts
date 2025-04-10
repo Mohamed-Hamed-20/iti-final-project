@@ -54,7 +54,6 @@ export default class S3Instance {
       }),
       { expiresIn: expireIn }
     );
-    console.log(`🔗 Signed URL: ${url}`);
     return url;
   }
 
@@ -230,7 +229,6 @@ export default class S3Instance {
       { expiresIn: 5 * 60 } // 5 m
     );
 
-    // console.log("✅ Signed URL generated successfully!");
     return url;
   }
 
@@ -244,7 +242,6 @@ export default class S3Instance {
       { expiresIn: 60 * 5 } // 10 sec
     );
 
-    // console.log("✅ Signed URL generated successfully!");
     return url;
   }
 

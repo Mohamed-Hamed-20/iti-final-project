@@ -114,7 +114,6 @@ export default class ApiPipeline {
     if (!searchValue || !field) {
       return this;
     }
-    console.log(searchValue);
 
     this.addStage({
       $match: {
