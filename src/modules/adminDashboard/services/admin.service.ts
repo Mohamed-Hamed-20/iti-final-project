@@ -6,6 +6,7 @@ import {sectionModel} from "../../../DB/models/videos.model";
 import {videoModel} from "../../../DB/models/videos.model";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import { CacheService } from "../../../utils/redis.services";
+import categoryModel from "../../../DB/models/category.model";
 
 export const getPendingVerifications = async (
     req: Request,
@@ -379,6 +380,7 @@ export const getPendingVerifications = async (
           statusCode: 200,
         });
       }
+      const categoryId = course.categoryId;
   
       const [updatedCourse] = await Promise.all([
         courseModel.findByIdAndUpdate(
@@ -395,6 +397,12 @@ export const getPendingVerifications = async (
           { status: "approved" }
         )
       ]);
+
+      if (categoryId) {
+        await categoryModel.findByIdAndUpdate(categoryId, {
+          $inc: { courseCount: 1 },
+        });
+      }
   
       return res.status(200).json({
         message: "Course approved successfully",

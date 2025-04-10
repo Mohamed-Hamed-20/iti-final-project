@@ -198,7 +198,7 @@ export const getAllCategories = async (
 ) => {
   const cache = new CacheService();
 
-  // check for cacheing
+  // check for caching
   const cachedCategories = await cache.get(`categories`);
 
   // add redis
@@ -228,7 +228,7 @@ export const getAllCategories = async (
 
   const categoriesWithUrls = await Promise.all(updatedPromise);
 
-  // add cacheing
+  // add caching
   if (categoriesWithUrls) {
     cache
       .set("categories", categoriesWithUrls, CACHE_TTL.Categories)
