@@ -117,7 +117,7 @@ export const addVideo = async (
     .findOne({ _id: sectionId, courseId: courseId })
     .populate<{ courseId: { _id: string; instructorId: string } }>({
       path: "courseId",
-      select: "title instructorId",
+      select: "title instructorId status",
     })
     .lean();
 

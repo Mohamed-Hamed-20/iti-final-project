@@ -94,7 +94,7 @@ export const searchConversations = async (
   res: Response,
   next: NextFunction
 ) => {
-  const userId = req.user?._id;
+  const userId = new Types.ObjectId(req.user?._id);
   const { search, select, sort, page, size } = req.query;
   console.log("fk you mohamed beshbishi");
 
@@ -123,21 +123,7 @@ export const searchConversations = async (
         },
       },
     })
-    .lookUp(
-      {
-        from: "users",
-        localField: "otherParticipant",
-        foreignField: "_id",
-        as: "otherParticipant",
-        isArray: false,
-      },
-      {
-        firstName: 1,
-        lastName: 1,
-        email: 1,
-        avatar: 1,
-      }
-    )
+
     .build();
 
   const conversations = await conversationModel.aggregate(pipeline);

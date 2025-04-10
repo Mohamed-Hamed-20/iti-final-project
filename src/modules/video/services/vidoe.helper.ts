@@ -114,7 +114,6 @@ export const updateCourseTransaction = async (
   updatedSection: any;
   updatedCourse: any;
 }> => {
-  console.log({ courseId, sectionId, video });
 
   try {
     if (!video.title || typeof video.duration !== "number") {
@@ -137,9 +136,6 @@ export const updateCourseTransaction = async (
       video.title
     );
 
-    console.log({
-      fromated: new FfmpegService().formatDuration(video.duration),
-    });
 
     const [savedVideo, updatedSection, updatedCourse] = await Promise.all([
       videoDoc.save(),
@@ -158,7 +154,6 @@ export const updateCourseTransaction = async (
     if (!savedVideo || !updatedSection || !updatedCourse) {
       throw new CustomError("Transaction failed: Missing data", 500);
     }
-    console.log({ savedVideo, updatedSection, updatedCourse });
 
     return { savedVideo, updatedSection, updatedCourse };
   } catch (error) {
