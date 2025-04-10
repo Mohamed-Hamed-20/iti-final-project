@@ -99,6 +99,7 @@ export const getMessages = async (
     message: "messages in conversation fetched success",
     success: true,
     StatusCode: 200,
+    userLoggdIn: req.user._id,
     messages: messages,
   });
 };
