@@ -21,5 +21,5 @@ export interface Isection extends Document {
   totalDuration: number;
   title: string;
   order?: number;
-  status?: "pending" | "approved" | "rejected" | "none";
+  status: "pending" | "approved" | "rejected" | "none";
 }
