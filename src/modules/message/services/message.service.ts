@@ -98,12 +98,22 @@ export const getMessages = async (
 
   const userId = req.user._id;
 
-  const conversation = await conversationModel.findById(conversationId);
+  const conversation = await conversationModel
+    .findById(conversationId)
+    .lean()
+    .select("participants");
+  console.log(conversation);
+  console.log({ userId });
+
   if (!conversation) {
     return next(new CustomError("Invaild conversation Id", 400));
   }
 
-  if (!conversation.participants.includes(userId)) {
+  if (
+    !conversation.participants.some(
+      (id: string) => id.toString() === userId.toString()
+    )
+  ) {
     return next(new CustomError("not allow to view this conversation", 401));
   }
 
@@ -123,6 +133,7 @@ export const getMessages = async (
       localField: "sender",
       foreignField: "_id",
       as: "sender",
+      isArray: false,
     })
     .addStage({
       $project: {
@@ -149,9 +160,12 @@ export const getMessages = async (
 
   const messages = await messageModel.aggregate(pipeline);
 
-  return res
-    .status(200)
-    .json({ message: "returned success", success: 200, data: messages });
+  return res.status(200).json({
+    message: "messages in conversation fetched success",
+    success: true,
+    StatusCode: 200,
+    messages: messages,
+  });
 };
 
 export const lastconversations = async (

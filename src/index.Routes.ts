@@ -17,6 +17,7 @@ import videoRouter from "./modules/video/video.routes";
 import wishlistRoutes from "./modules/wishlist/wishlist.routes";
 import paymentRoutes from "./modules/paymentsImplent/routes/payment.routes";
 import conversationRoutes from "./modules/conversation/conversation.routes";
+import messageRoutes from "./modules/message/message.routes";
 
 const router = Router();
 router.use("/user", userRouter);
@@ -37,5 +38,6 @@ router.use("/review", reviewRoutes);
 router.use("/enrollments", enrollmentRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/conversation", conversationRoutes);
+router.use("/message", messageRoutes);
 
 export default router;
