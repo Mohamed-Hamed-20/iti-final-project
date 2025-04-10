@@ -25,18 +25,26 @@ const conversationQueue = new Queue("create-conversation", {
 
 conversationQueue.process(async (job) => {
   const { userId, instructorId, message } = job.data;
-
-  const conversation = new conversationModel({
-    participants: [userId, instructorId],
-    lastMessage: {
-      sender: instructorId,
-      content: message,
-      createdAt: Date.now(),
-    },
+  let conversation = await conversationModel.findOne({
+    $and: [
+      { participants: { $all: [userId, instructorId] } },
+      { $expr: { $eq: [{ $size: "$participants" }, 2] } },
+    ],
   });
 
-  await conversation.save();
-  console.log(conversation, "conversation created success");
+  if (!conversation) {
+    conversation = new conversationModel({
+      participants: [userId, instructorId],
+      lastMessage: {
+        sender: instructorId,
+        content: message,
+        createdAt: Date.now(),
+      },
+    });
+
+    await conversation.save();
+    console.log(conversation, "conversation created success");
+  }
 
   //   const io = getSocketIO();
   //   io.to("").emit("send-msg", {...conversation, });

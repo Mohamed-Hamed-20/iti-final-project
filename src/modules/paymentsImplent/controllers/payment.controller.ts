@@ -30,7 +30,7 @@ export class PaymentController {
     this.paymentService = new PaymentService();
   }
 
-  async createPaymentLink(req: Request, res: Response) {
+  async createPaymentLink(req: Request, res: Response, next: NextFunction) {
     const { courseId } = req.body;
     const userId = req.user?._id;
 
@@ -58,10 +58,9 @@ export class PaymentController {
     });
 
     if (existingEnrollment) {
-      return res.status(400).json({
-        success: false,
-        message: "You are already enrolled in this course",
-      });
+      return next(
+        new CustomError("You are already enrolled in this course", 400)
+      );
     }
 
     // For free courses, create enrollment directly
@@ -92,6 +91,7 @@ export class PaymentController {
       paymentStatus: "pending",
     });
 
+    course.url = await new S3Instance().getFile(course.thumbnail);
     const token = new TokenService(
       TokenConfigration.PAYMENT_TOKEN_SECRET as string,
       "1d"
@@ -257,7 +257,6 @@ export class PaymentController {
     const imgUrl = await new S3Instance().getFile(
       updatedEnrollment.courseId.thumbnail as string
     );
-    console.log({ updatedEnrollment });
 
     // Prepare and send email to queue
     await emailQueue.add(

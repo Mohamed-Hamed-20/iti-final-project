@@ -90,7 +90,12 @@ export class FfmpegService {
         .videoCodec("libx264")
         .audioCodec("aac")
         .videoFilters("scale=trunc(iw/2)*2:trunc(ih/2)*2")
-        .outputOptions(["-preset fast", "-crf 28", "-b:a 128k", "-threads 4"])
+        .outputOptions([
+          "-preset ultrafast", 
+          "-crf 28", 
+          "-b:a 128k",
+          "-threads 4",
+        ])
         .on("start", (commandLine) => {
           console.log("🎬 Starting ffmpeg process:", commandLine);
         })

@@ -96,7 +96,6 @@ export const searchConversations = async (
 ) => {
   const userId = new Types.ObjectId(req.user?._id);
   const { search, select, sort, page, size } = req.query;
-  console.log("fk you mohamed beshbishi");
 
   const pipeline = new ApiPipeline()
     .matchId({
@@ -123,7 +122,19 @@ export const searchConversations = async (
         },
       },
     })
-
+    .lookUp(
+      {
+        from: "users",
+        localField: "otherParticipant",
+        foreignField: "_id",
+        as: "otherParticipant",
+      },
+      {
+        firstName: 1,
+        lastName: 1,
+        avatar: 1,
+      }
+    )
     .build();
 
   const conversations = await conversationModel.aggregate(pipeline);
