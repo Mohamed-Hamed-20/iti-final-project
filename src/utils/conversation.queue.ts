@@ -60,17 +60,17 @@ conversationQueue.process(async (job) => {
         createdAt: new Date(),
       },
     });
-    await messageModel.create({
-      conversationId: conversation._id,
-      sender: instructorId,
-      content: message,
-      type: "text",
-      isdelivered: false,
-      isRead: false,
-    });
     console.log("Conversation created successfully:", conversation);
   }
 
+  await messageModel.create({
+    conversationId: conversation._id,
+    sender: instructorId,
+    content: message,
+    type: "text",
+    isdelivered: false,
+    isRead: false,
+  });
   // TODO: emit event if needed
   // const io = getSocketIO();
   // io.to(`room-${conversation._id}`).emit("send-msg", conversation);
