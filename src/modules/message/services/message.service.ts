@@ -158,12 +158,19 @@ export const sendMessage = async (
 
   await conversation.save();
 
-  // Get sender's socket
-  const roomName = `user:${receiverId}`;
-  const { exists } = SocketManager.checkRoom(roomName);
-  if (exists) {
-    SocketManager.emitToUser(roomName, "newMessage", newMessage);
-  }
+  // في sendMessage controller (الجزء الخاص بالإرسال)
+// إرسال عبر WebSocket
+const receiverRoom = `user:${receiverId}`;
+SocketManager.emitToUser(receiverRoom, "newMessage", newMessage);
+
+// إرسال نسخة للمرسل (مهم!)
+const senderRoom = `user:${userId}`;
+SocketManager.emitToUser(senderRoom, "newMessage", newMessage);
+
+// // إرسال إشعار HTTP إذا فشل WebSocket
+// if (!SocketManager.checkRoom(receiverRoom).exists) {
+//   await sendPushNotification(receiverId, "You have a new message");
+// }
 
   return res.status(200).json({
     message: "Message created successfully",
