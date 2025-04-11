@@ -7,12 +7,15 @@ type Payload = {
   userId?: mongoose.Types.ObjectId | any;
   enrollmentId?: mongoose.Types.ObjectId | any;
   courseId?: mongoose.Types.ObjectId | any;
+  courseIds?: mongoose.Types.ObjectId[] | any;
   role?: string;
   iat?: number;
   exp?: number;
   aud?: string;
   iss?: string;
   sub?: string;
+  isCartOrder?: boolean;
+  cartCourses?: mongoose.Types.ObjectId[] | any;
 };
 
 export class TokenService {

@@ -17,6 +17,13 @@ router.post(
   asyncHandler(paymentController.createPaymentLink.bind(paymentController))
 );
 
+// router.post(
+//   "/createCartLink",
+//   valid(cokkiesSchema) as RequestHandler,
+//   isAuth([Roles.User]),
+//   asyncHandler(paymentController.createCartPaymentLink.bind(paymentController))
+// );
+
 router.post(
   "/stripe",
   valid(cokkiesSchema) as RequestHandler,

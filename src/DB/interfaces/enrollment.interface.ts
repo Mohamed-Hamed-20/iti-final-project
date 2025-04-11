@@ -5,6 +5,8 @@ export interface IEnrollment {
   userId: Types.ObjectId;
   courseId: Types.ObjectId;
   enrollmentDate?: Date;
+  isCartOrder?: boolean;
+  cartCourses?: Types.ObjectId[];
   status: 'active' | 'completed' | 'cancelled';
   progress?: number;
   lastAccessedAt?: Date;

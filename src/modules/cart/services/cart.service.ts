@@ -4,6 +4,7 @@ import { CustomError } from "../../../utils/errorHandling";
 import courseModel from "../../../DB/models/courses.model";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import { Iuser } from "../../../DB/interfaces/user.interface";
+import { Types } from "mongoose";
 
 interface Category {
   _id: string;
@@ -16,6 +17,41 @@ interface Course {
   categoryId?: Category | null;
 }
 
+// export const cart = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void | any> => {
+//   const { courseId } = req.params;
+//   const { user } = req;
+
+//   if (!user) throw new Error("User is undefined!");
+
+//   const isCourseExist = await cartModel.findOne({ userId: user._id, courseId });
+
+//   if (isCourseExist) {
+//     return next(new CustomError("Course already exists", 400));
+//   }
+
+//   const courseAdded = new cartModel({
+//     userId: user._id,
+//     courseId,
+//     isCartAdded: true,
+//   });
+//   const courseSaved = await courseAdded.save();
+
+//   if (!courseSaved) {
+//     return next(
+//       new CustomError("Something went wrong during saving course", 400)
+//     );
+//   }
+//   res.status(200).json({
+//     message: "Course added successfully in cart",
+//     statusCode: 200,
+//     success: true,
+//   });
+// };
+
 export const cart = async (
   req: Request,
   res: Response,
@@ -24,32 +60,166 @@ export const cart = async (
   const { courseId } = req.params;
   const { user } = req;
 
-  if (!user) throw new Error("User is undefined!");
-
-  const isCourseExist = await cartModel.findOne({ userId: user._id, courseId });
-
-  if (isCourseExist) {
-    return next(new CustomError("Course already exists", 400));
+  if (!user) {
+    return next(new CustomError("User not authenticated", 401));
   }
 
-  const courseAdded = new cartModel({
-    userId: user._id,
-    courseId,
-    isCartAdded: true,
-  });
-  const courseSaved = await courseAdded.save();
-
-  if (!courseSaved) {
-    return next(
-      new CustomError("Something went wrong during saving course", 400)
-    );
+  if (!Types.ObjectId.isValid(courseId)) {
+    return next(new CustomError("Invalid course ID", 400));
   }
-  res.status(200).json({
-    message: "Course added successfully in cart",
-    statusCode: 200,
-    success: true,
-  });
+
+  try {
+    let userCart = await cartModel.findOne({ userId: user._id });
+
+    if (!userCart) {
+      userCart = new cartModel({
+        userId: user._id,
+        courses: [new Types.ObjectId(courseId)],
+        isCartAdded: true,
+      });
+      await userCart.save();
+      
+      return res.status(200).json({
+        message: "Course added to cart successfully",
+        success: true,
+        cartId: userCart._id,
+        courseCount: userCart.courses.length,
+        inCart: true
+      });
+    }
+
+    // Check if course already exists
+    const courseExists = userCart.courses.some(id => id.equals(courseId));
+    
+    if (!courseExists) {
+      userCart.courses.push(new Types.ObjectId(courseId));
+      await userCart.save();
+    }
+
+    return res.status(200).json({
+      message: courseExists 
+        ? "Course already in cart" 
+        : "Course added to cart successfully",
+      success: true,
+      cartId: userCart._id,
+      courseCount: userCart.courses.length,
+      inCart: true
+    });
+
+  } catch (error) {
+    return next(new CustomError("Failed to update cart", 500));
+  }
 };
+
+// export const getCartCourses = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const { user } = req as { user: Iuser };
+
+//   if (!user) {
+//     return next(new CustomError("User not found", 404));
+//   }
+
+//   try {
+//     const cartItems = await cartModel.find({ userId: user._id }).lean();
+
+//     if (!cartItems || cartItems.length === 0) {
+//       return res.status(200).json({
+//         message: "No courses found in your cart",
+//         statusCode: 200,
+//         success: true,
+//         data: [],
+//       });
+//     }
+
+//     const courseIds = cartItems.map((item) => item.courseId);
+
+//     const pipeline = [
+//       {
+//         $match: {
+//           _id: { $in: courseIds },
+//         },
+//       },
+//       {
+//         $lookup: {
+//           from: "users",
+//           localField: "instructorId",
+//           foreignField: "_id",
+//           as: "instructorId",
+//           pipeline: [
+//             {
+//               $project: {
+//                 firstName: 1,
+//                 lastName: 1,
+//                 avatar: 1,
+//               },
+//             },
+//           ],
+//         },
+//       },
+//       {
+//         $unwind: "$instructorId",
+//       },
+//       {
+//         $lookup: {
+//           from: "categories",
+//           localField: "categoryId",
+//           foreignField: "_id",
+//           as: "categoryId",
+//           pipeline: [
+//             {
+//               $project: {
+//                 title: 1,
+//                 thumbnail: 1,
+//               },
+//             },
+//           ],
+//         },
+//       },
+//       {
+//         $unwind: "$categoryId",
+//       },
+//     ];
+
+//     // Get courses with populated data
+//     const courses = await courseModel.aggregate(pipeline).exec();
+
+//     // Add URLs to courses and merge with cart info
+//     const cartCourses = await Promise.all(
+//       courses.map(async (course) => {
+//         const cartItem = cartItems.find(
+//           (item) => item.courseId.toString() === course._id.toString()
+//         );
+
+//         let url = "";
+//         if (course?.thumbnail) {
+//           url = await new S3Instance().getFile(course.thumbnail);
+//         }
+
+//         return {
+//           ...cartItem,
+//           courseId: {
+//             ...course,
+//             url,
+//             instructorId: course.instructorId,
+//             categoryId: course.categoryId,
+//           },
+//         };
+//       })
+//     );
+
+//     return res.status(200).json({
+//       message: "Cart courses fetched successfully",
+//       statusCode: 200,
+//       success: true,
+//       data: cartCourses,
+//     });
+//   } catch (error) {
+//     next(new CustomError("Failed to fetch cart courses", 500));
+//   }
+// };
 
 export const getCartCourses = async (
   req: Request,
@@ -62,10 +232,9 @@ export const getCartCourses = async (
     return next(new CustomError("User not found", 404));
   }
 
-  try {
-    const cartItems = await cartModel.find({ userId: user._id }).lean();
+  const cart = await cartModel.findOne({ userId: user._id }).lean();
 
-    if (!cartItems || cartItems.length === 0) {
+    if (!cart || cart.courses.length === 0) {
       return res.status(200).json({
         message: "No courses found in your cart",
         statusCode: 200,
@@ -74,12 +243,10 @@ export const getCartCourses = async (
       });
     }
 
-    const courseIds = cartItems.map((item) => item.courseId);
-
     const pipeline = [
       {
         $match: {
-          _id: { $in: courseIds },
+          _id: { $in: cart.courses },
         },
       },
       {
@@ -129,17 +296,16 @@ export const getCartCourses = async (
     // Add URLs to courses and merge with cart info
     const cartCourses = await Promise.all(
       courses.map(async (course) => {
-        const cartItem = cartItems.find(
-          (item) => item.courseId.toString() === course._id.toString()
-        );
-
         let url = "";
         if (course?.thumbnail) {
           url = await new S3Instance().getFile(course.thumbnail);
         }
 
         return {
-          ...cartItem,
+          _id: cart._id,
+          userId: cart.userId,
+          isCartAdded: cart.isCartAdded,
+          createdAt: cart.createdAt,
           courseId: {
             ...course,
             url,
@@ -156,40 +322,90 @@ export const getCartCourses = async (
       success: true,
       data: cartCourses,
     });
-  } catch (error) {
-    next(new CustomError("Failed to fetch cart courses", 500));
-  }
+
 };
+
+// export const removeCourse = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void | any> => {
+//   const { user } = req;
+//   const { courseId } = req.params;
+
+//   if (!user) throw new Error("User is not found!");
+
+//   const isCourseExist = await cartModel.find({ userId: user._id, courseId });
+//   if (!isCourseExist) {
+//     return next(new CustomError("Course is not found", 400));
+//   }
+
+//   const deleteCourse = await cartModel.findOneAndDelete({
+//     userId: user._id,
+//     courseId,
+//   });
+
+//   if (!deleteCourse) {
+//     return next(new CustomError("course id is not found", 400));
+//   }
+
+//   res.status(200).json({
+//     message: "Course deleted successfully",
+//     statusCode: 200,
+//     success: true,
+//   });
+// };
 
 export const removeCourse = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void | any> => {
-  const { user } = req;
   const { courseId } = req.params;
+  const { user } = req;
 
-  if (!user) throw new Error("User is not found!");
-
-  const isCourseExist = await cartModel.find({ userId: user._id, courseId });
-  if (!isCourseExist) {
-    return next(new CustomError("Course is not found", 400));
+  if (!user) {
+    return next(new CustomError("User not authenticated", 401));
   }
 
-  const deleteCourse = await cartModel.findOneAndDelete({
-    userId: user._id,
-    courseId,
-  });
-
-  if (!deleteCourse) {
-    return next(new CustomError("course id is not found", 400));
+  if (!Types.ObjectId.isValid(courseId)) {
+    return next(new CustomError("Invalid course ID", 400));
   }
 
-  res.status(200).json({
-    message: "Course deleted successfully",
-    statusCode: 200,
-    success: true,
-  });
+  try {
+    const userCart = await cartModel.findOne({ userId: user._id });
+
+    if (!userCart) {
+      return res.status(200).json({
+        message: "Cart is empty",
+        success: true,
+        courseCount: 0,
+        inCart: false
+      });
+    }
+
+    // Filter out the course to remove
+    const initialCount = userCart.courses.length;
+    userCart.courses = userCart.courses.filter(
+      id => !id.equals(courseId)
+    );
+
+    // Only save if course was actually removed
+    if (userCart.courses.length !== initialCount) {
+      await userCart.save();
+    }
+
+    return res.status(200).json({
+      message: "Course removed from cart successfully",
+      success: true,
+      cartId: userCart._id,
+      courseCount: userCart.courses.length,
+      inCart: false
+    });
+
+  } catch (error) {
+    return next(new CustomError("Failed to update cart", 500));
+  }
 };
 
 export const getCourseById = async (

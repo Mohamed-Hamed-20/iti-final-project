@@ -18,6 +18,8 @@ import { ICourse } from "../../../DB/interfaces/courses.interface";
 import { IEnrollment } from "../../../DB/interfaces/enrollment.interface";
 import { Iuser } from "../../../DB/interfaces/user.interface";
 import { addNewconversation } from "../../../utils/conversation.queue";
+import { cartModel } from "../../../DB/models/cart.model";
+import { Types } from "mongoose";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -134,6 +136,146 @@ export class PaymentController {
       message: "Payment link created successfully",
     });
   }
+
+  // async createCartPaymentLink(req: Request, res: Response, next: NextFunction) {
+  //   const userId = req.user?._id;
+  
+  //   if (!userId) {
+  //     return res.status(401).json({
+  //       success: false,
+  //       message: "User not authenticated",
+  //     });
+  //   }
+  
+  //   interface PopulatedCourse {
+  //     _id: Types.ObjectId;
+  //     title: string;
+  //     subTitle?: string;
+  //     thumbnail?: string;
+  //     price: number;
+  //     access_type: string;
+  //   }
+  
+  //   // Get user's cart with populated courses
+  //   const cart = await cartModel.findOne({ userId }).populate<{ courses: PopulatedCourse[] }>('courses');
+    
+  //   if (!cart || cart.courses.length === 0) {
+  //     return res.status(400).json({
+  //       success: false,
+  //       message: "Cart is empty",
+  //     });
+  //   }
+  
+  //   // Check for existing enrollments
+  //   const existingEnrollments = await EnrollmentModel.find({
+  //     userId,
+  //     courseId: { $in: cart.courses.map(c => c._id) },
+  //     paymentStatus: "completed",
+  //   });
+  
+  //   if (existingEnrollments.length > 0) {
+  //     const enrolledCourseIds = existingEnrollments.map(e => e.courseId);
+  //     return next(
+  //       new CustomError(
+  //         `You are already enrolled in these courses: ${enrolledCourseIds.join(', ')}`,
+  //         400
+  //       )
+  //     );
+  //   }
+  
+  //   // Separate free and paid courses
+  //   const paidCourses = cart.courses.filter(course => course.access_type !== "free");
+  //   const freeCourses = cart.courses.filter(course => course.access_type === "free");
+  
+  //   // Create enrollments for free courses
+  //   if (freeCourses.length > 0) {
+  //     await EnrollmentModel.insertMany(
+  //       freeCourses.map(course => ({
+  //         userId,
+  //         courseId: course._id,
+  //         enrollmentDate: new Date(),
+  //         status: "active",
+  //         progress: 0,
+  //         paymentStatus: "completed",
+  //       }))
+  //     );
+  //   }
+  
+  //   // If only free courses, return success
+  //   if (paidCourses.length === 0) {
+  //     return res.status(200).json({
+  //       success: true,
+  //       message: "Successfully enrolled in free courses",
+  //     });
+  //   }
+  
+  //   // Create a SINGLE enrollment record for all paid courses
+  //   const enrollment = await EnrollmentModel.create({
+  //     userId,
+  //     courseId: paidCourses[0]._id, // Store first course ID (we'll handle multiple in metadata)
+  //     enrollmentDate: new Date(),
+  //     status: "active",
+  //     progress: 0,
+  //     paymentStatus: "pending",
+  //     isCartOrder: true, // Add this new field to your Enrollment schema
+  //     cartCourses: paidCourses.map(c => c._id), // Add this array field to your Enrollment schema
+  //   });
+  
+  //   // Generate token with all course IDs
+  //   const token = new TokenService(
+  //     TokenConfigration.PAYMENT_TOKEN_SECRET as string,
+  //     "1d"
+  //   ).generateToken({
+  //     enrollmentId: enrollment._id,
+  //     userId,
+  //     courseIds: paidCourses.map(c => c._id),
+  //     isCartOrder: true,
+  //   });
+  
+  //   // Prepare line items
+  //   const lineItems = await Promise.all(paidCourses.map(async (course) => {
+  //     let imageUrl: string[] = [];
+  //     if (course.thumbnail) {
+  //       imageUrl = [await new S3Instance().getFile(course.thumbnail)];
+  //     }
+  
+  //     return {
+  //       price_data: {
+  //         currency: "usd",
+  //         product_data: {
+  //           name: course.title,
+  //           description: course.subTitle || `Enrollment for ${course.title}`,
+  //           images: imageUrl,
+  //         },
+  //         unit_amount: Math.round(course.price * 100),
+  //       },
+  //       quantity: 1,
+  //     };
+  //   }));
+  
+  //   // Create Stripe session
+  //   const session = await stripe.checkout.sessions.create({
+  //     payment_method_types: ["card"],
+  //     customer_email: req.user?.email,
+  //     line_items: lineItems,
+  //     mode: "payment",
+  //     success_url: `${req.protocol}://${req.headers.host}/api/v1/payment/success-payment/${token}`,
+  //     cancel_url: `${req.protocol}://${req.headers.host}/api/v1/payment/cancel-payment/${token}`,
+  //     metadata: {
+  //       courseIds: paidCourses.map(c => c._id.toString()).join(','),
+  //       userId: userId.toString(),
+  //       isCartPayment: "true",
+  //       enrollmentId: enrollment._id.toString(), // Single enrollment ID
+  //       totalAmount: paidCourses.reduce((sum, course) => sum + course.price, 0).toString(),
+  //     },
+  //   });
+  
+  //   return res.status(200).json({
+  //     success: true,
+  //     url: session.url,
+  //     message: "Cart payment link created successfully",
+  //   });
+  // }
 
   async handleSuccessfulPayment(session: Stripe.Checkout.Session) {
     const metadata = session.metadata;

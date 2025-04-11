@@ -364,7 +364,7 @@ export const getInstructorFromURL = async (
       $project: {
         title: 1,
         thumbnail: 1,
-        duration: 1,
+        totalDuration: 1,
         price: 1,
         originalPrice: 1,
         access_type: 1,
@@ -415,6 +415,11 @@ export const getInstructorFromURL = async (
     return {
       ...course,
       url: courseUrl,
+      duration: course.totalDuration
+      ? course.totalDuration < 3600
+      ? `${Math.floor(course.totalDuration / 60)}m`
+      : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor((course.totalDuration % 3600) / 60)}m`
+      : "0m"
     };
   });
 
