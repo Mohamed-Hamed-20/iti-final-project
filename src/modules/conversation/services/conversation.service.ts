@@ -182,6 +182,7 @@ export const deleteConversation = async (
     message: "conversation delete successfully",
     success: true,
     statusCode: 200,
+    userLoggedIn : req.user?._id,
     conversation,
   });
 };
