@@ -14,6 +14,7 @@ import mongoose, { Types } from "mongoose";
 import { userFileKey2 } from "./user.helper";
 import courseModel from "../../../DB/models/courses.model";
 import followModel from "../../../DB/models/follow.model";
+import { CacheService } from "../../../utils/redis.services";
 
 export const profile = async (
   req: Request,
@@ -583,6 +584,8 @@ export const uploadImage = async (
     return next(new CustomError("SERVER ERROR !", 500));
   }
 
+  await new CacheService().delete(`user:${userId}`);
+
   res.status(200).json({
     message: "Image uploaded successfully",
     statusCode: 200,
@@ -687,6 +690,8 @@ export const instructorData = async (
     return next(new CustomError("User not found during update", 404));
   }
 
+  await new CacheService().delete(`user:${req.user?._id}`);
+
   res.status(200).json({
     message: "Instructor data updated successfully",
     statusCode: 200,
@@ -723,6 +728,8 @@ export const deleteAccount = async (
 
   res.clearCookie("accessToken");
   res.clearCookie("refreshToken");
+
+  await new CacheService().delete(`user:${userId}`);
 
   res
     .status(200)
@@ -768,6 +775,7 @@ export const logout = async (
 ): Promise<void | any> => {
   res.clearCookie("accessToken");
   res.clearCookie("refreshToken");
+  await new CacheService().delete(`user:${req.user?._id}`);
 
   return res.status(200).json({
     message: "Logout successful",
@@ -866,6 +874,7 @@ export const instructorVerification = async (
   );
 
   if (!updatedUser) return next(new CustomError("User not found", 404));
+  await new CacheService().delete(`user:${user._id}`);
 
   return res.status(200).json({
     message:
@@ -909,6 +918,7 @@ export const followInstructor = async (
   if (!saved) {
     return next(new CustomError("Failed to follow instructor", 500));
   }
+  await new CacheService().delete(`user:${user._id}`);
 
   res.status(200).json({
     message: "Instructor followed successfully",
@@ -935,6 +945,8 @@ export const unfollowInstructor = async (
   if (!deleted) {
     return next(new CustomError("You are not following this instructor", 400));
   }
+
+  await new CacheService().delete(`user:${user._id}`);
 
   res.status(200).json({
     message: "Instructor unfollowed successfully",

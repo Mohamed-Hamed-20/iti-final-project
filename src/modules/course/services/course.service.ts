@@ -85,8 +85,7 @@ export const addCourse = async (
 
   if (savedCourse) {
     const cache = new CacheService();
-    cache.delete("courses").then((data) => {
-    });
+    cache.delete("courses").then((data) => {});
     cache.delete(`course:${savedCourse._id.toString()}`);
   }
 
@@ -214,15 +213,17 @@ export const getAllCourses = async (
       );
     }
 
-    return{
-    ...course,
-    duration: course.totalDuration
-    ? course.totalDuration < 3600
-    ? `${Math.floor(course.totalDuration / 60)}m`
-    : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor((course.totalDuration % 3600) / 60)}m`
-    : "0m"
-  }
-    
+    return {
+      ...course,
+      duration: course.totalDuration
+        ? course.totalDuration < 3600
+          ? `${Math.floor(course.totalDuration / 60)}m`
+          : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor(
+              (course.totalDuration % 3600) / 60
+            )}m`
+        : "0m",
+    };
+
     // ${
     //     course.totalDuration % 60
     //   }m
@@ -248,8 +249,7 @@ export const getAllCourses = async (
           { total, updatedCourses },
           CACHE_TTL.Maincourses
         )
-        .then(() => {
-        });
+        .then(() => {});
     }
   }
 
@@ -364,8 +364,7 @@ export const getAllPendingCourses = async (
           { total, updatedCourses },
           CACHE_TTL.Maincourses
         )
-        .then(() => {
-        });
+        .then(() => {});
     }
   }
 
@@ -822,8 +821,7 @@ export const getCourseById = async (
   await Promise.all(promises);
 
   if (course) {
-    cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {
-    });
+    cached.set(`course:${id}`, course, CACHE_TTL.singleCourse).then(() => {});
   }
 
   return res.status(200).json({
@@ -882,10 +880,10 @@ export const updateCourse = async (
 
     if (updated) {
       const cache = new CacheService();
-      cache.delete("courses").then((data) => {
-      });
+      cache.delete("courses").then((data) => {});
       cache.delete(`course:${updated._id.toString()}`);
     }
+    await new CacheService().delete(`course:${course._id}`);
 
     return res.status(200).json({
       message: "Course updated successfully",
@@ -921,6 +919,8 @@ export const deleteCourse = async (
 
   if (hasApproved) {
     await courseModel.updateOne({ _id: id }, { status: "delete" });
+
+    await new CacheService().delete(`course:${Course._id}`);
 
     return res.status(200).json({
       message: "Course marked as deleted (has approved content)",
