@@ -188,6 +188,276 @@ export const successTemplet = () => {
 </html>`;
 };
 
+export const approveInstructorTemplate = () => {
+  return `
+  <!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Approval</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 48px 16px;
+  }
+
+  .container {
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .icon-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .success-icon {
+    font-size: 96px;
+    color: #22c55e;
+    margin-bottom: 24px;
+  }
+
+  .title {
+    margin-top: 24px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #111827;
+  }
+
+  .subtitle {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  .extra-info {
+    margin-top: 32px;
+  }
+
+  .email-info {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 16px;
+  }
+
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .button-group {
+      flex-direction: row;
+      justify-content: center;
+    }
+  }
+
+  .btn {
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+  }
+
+  .btn-primary {
+    background-color: #410445;
+    color: white;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background-color: #5b21b6;
+  }
+
+  .btn-secondary {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .btn-secondary:hover {
+    background-color: #f9fafb;
+  }
+</style>
+
+<body>
+  <div class="container">
+    <div class="content">
+      <div class="icon-section">
+        <i class="fas fa-check-circle success-icon"></i>
+        <h2 class="title">Congratulations!</h2>
+        <p class="subtitle">
+          You've officially been approved as an instructor on <strong>Mentora</strong>.
+        </p>
+      </div>
+      <div class="extra-info">
+        <p class="email-info">
+          We’re thrilled to have you on board, ready to share your knowledge and empower learners around the world.
+        </p>
+        <div class="button-group">
+          <a href="/dashboard/main" class="btn btn-primary">Go to Dashboard</a>
+          <a href="/courses" class="btn btn-secondary">Browse More Courses</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>`;
+};
+
+export const approveCourseTemplate = () => {
+  return `
+  <!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Course Approved</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 48px 16px;
+  }
+
+  .container {
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .icon-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .success-icon {
+    font-size: 96px;
+    color: #22c55e;
+    margin-bottom: 24px;
+  }
+
+  .title {
+    margin-top: 24px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #111827;
+  }
+
+  .subtitle {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  .extra-info {
+    margin-top: 32px;
+  }
+
+  .email-info {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 16px;
+  }
+
+  .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .button-group {
+      flex-direction: row;
+      justify-content: center;
+    }
+  }
+
+  .btn {
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+  }
+
+  .btn-primary {
+    background-color: #410445;
+    color: white;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background-color: #5b21b6;
+  }
+
+  .btn-secondary {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+  }
+
+  .btn-secondary:hover {
+    background-color: #f9fafb;
+  }
+</style>
+
+<body>
+  <div class="container">
+    <div class="content">
+      <div class="icon-section">
+        <i class="fas fa-check-circle success-icon"></i>
+        <h2 class="title">Course Approved!</h2>
+        <p class="subtitle">
+          Great news! Your course has been successfully reviewed and approved on <strong>Mentora</strong>.
+        </p>
+      </div>
+      <div class="extra-info">
+        <p class="email-info">
+          Your course is now live and accessible to learners across the platform. Get ready to make an impact and inspire others with your knowledge!
+        </p>
+        <div class="button-group">
+          <a href="/dashboard/main" class="btn btn-primary">Go to Dashboard</a>
+          <a href="/courses" class="btn btn-secondary">Browse More Courses</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>`;
+};
+
 export const canceledTemplet = () => {
   return `
   <!DOCTYPE html>
