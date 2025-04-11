@@ -17,6 +17,14 @@ const enrollmentSchema = new Schema<IEnrollment>(
       type: Date,
       default: Date.now
     },
+    isCartOrder: {
+      type: Boolean,
+      default: false
+    },
+    cartCourses: [{
+      type: Schema.Types.ObjectId,
+      ref: 'course'
+    }],
     status: {
       type: String,
       enum: ['active', 'completed', 'cancelled'],
