@@ -14,4 +14,9 @@ router.get(
   asyncHandler(MC.getMessages)
 );
 
+router.post(
+  "/",
+  isAuth([Roles.Instructor, Roles.User]),
+  asyncHandler(MC.sendMessage)
+);
 export default router;

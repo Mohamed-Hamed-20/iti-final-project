@@ -9,17 +9,21 @@ import cors from "cors";
 import path from "path";
 import morgan from "morgan";
 import compression from "compression";
-import http from "http";
-import { initSocket } from "./socket/socket";
+import http, { Server } from "http";
+import SocketManager from "./socket/socket";
+import { Server as SocketIOServer } from "socket.io";
 
 const app: Application = express();
 const server = http.createServer(app);
-
-// initSocket(server);
-
 app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
 app.use(express.json());
+
+const allowedOrigins = [
+  "http://127.0.0.1:5500",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
 
 app.use(
   cors({
@@ -55,5 +59,21 @@ app.all("*", (req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(errorHandler);
+
+// Socket.io Setup
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+// Initialize socket manager
+SocketManager.initialize(io);
 
 export default server;
