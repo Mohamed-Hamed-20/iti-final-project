@@ -7,6 +7,8 @@ import {videoModel} from "../../../DB/models/videos.model";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import { CacheService } from "../../../utils/redis.services";
 import categoryModel from "../../../DB/models/category.model";
+import emailQueue from "../../../utils/email.Queue";
+import { approveCourseTemplate, approveInstructorTemplate, successTemplet } from "../../../utils/htmlTemplet";
 
 export const getPendingVerifications = async (
     req: Request,
@@ -244,6 +246,23 @@ export const getPendingVerifications = async (
     }
     instructor.verificationStatus = "approved";
     await instructor.save();
+
+        await emailQueue.add(
+          {
+            to: instructor?.email,
+            subject:
+              "Congratulations, your account has been successfully approved.",
+            text: "Welcome to Mentora! 🎉",
+            html: approveInstructorTemplate(),
+            message: "Mentora",
+          },
+          {
+            attempts: 1,
+            backoff: 5000,
+            removeOnComplete: true,
+            removeOnFail: true,
+          }
+        );
   
     return res.status(200).json({
       message: "Instructor approved successfully",
@@ -367,7 +386,7 @@ export const getPendingVerifications = async (
   ): Promise<void | any> => {
     const { courseId } = req.params;
   
-      const course = await courseModel.findById(courseId);
+      const course = await courseModel.findById(courseId).populate("instructorId", "email");
   
       if (!course) {
         return next(new CustomError("Course not found", 404));
@@ -403,6 +422,24 @@ export const getPendingVerifications = async (
           $inc: { courseCount: 1 },
         });
       }
+      const instructorEmail = (course.instructorId as any)?.email;
+
+      await emailQueue.add(
+        {
+          to: instructorEmail,
+          subject:
+            "Congratulations, your course has been successfully approved.",
+          text: "Welcome to Mentora! 🎉",
+          html: approveCourseTemplate(),
+          message: "Mentora",
+        },
+        {
+          attempts: 1,
+          backoff: 5000,
+          removeOnComplete: true,
+          removeOnFail: true,
+        }
+      );
   
       return res.status(200).json({
         message: "Course approved successfully",
