@@ -76,23 +76,4 @@ const io = new SocketIOServer(server, {
 // Initialize socket manager
 SocketManager.initialize(io);
 
-// Example of socket event logic (can be in a separate file/module too)
-SocketManager.on(
-  "joinConversation",
-  (socket, conversationId: string, userId) => {
-    socket.join(`conversation-${conversationId}`);
-    console.log(`User ${userId} joined conversation-${conversationId}`);
-  }
-);
-//socket.id
-
-SocketManager.on(
-  "leaveConversation",
-  (socket, conversationId: string, userId) => {
-    socket.leave(`conversation-${conversationId}`);
-    console.log(`User ${userId} left conversation-${conversationId}`);
-  }
-);
-
-
 export default server;

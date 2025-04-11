@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 import handleToken from "../utils/hadleToken";
 import { TokenService } from "../utils/tokens";
 import { TokenConfigration } from "../config/env";
-import cookie from "cookie";
-
+// import { parse as parseCookie } from "cookie";
+import * as cookie from "cookie";
+import { Types } from "mongoose";
 type SocketCallback = (socket: Socket, userId: string) => void;
 type SocketEventHandler = (socket: Socket, data: any, userId: string) => void;
 
@@ -20,8 +21,49 @@ class SocketManager {
   static initialize(ioInstance: Server) {
     this.io = ioInstance;
 
-    ioInstance.on("connection", (socket: Socket) => {
-      this.handleDefaultEvents(socket);
+    ioInstance.on("connection", async (socket: Socket) => {
+      console.log("Socket connected:", socket.id);
+      const cookies = socket.handshake.headers.cookie;
+
+      if (!cookies) {
+        console.log("No cookies found in handshake.");
+        return;
+      }
+
+      const parsedCookies = cookie.parse(cookies);
+      const accessToken = parsedCookies.accessToken?.replace("Bearer ", "");
+
+      if (!accessToken) {
+        console.log("No access token found in cookies");
+        return;
+      }
+
+      const userId = this.extractUserIdFromSocket(socket, accessToken);
+      if (!userId) {
+        console.log("No userId found in the token");
+        return;
+      }
+
+      // Store socket with userId
+      this.connectedSockets.set(socket.id, { socket, userId });
+
+      // Handle conversation events
+      socket.on("joinConversation", (conversationId: string) => {
+        const roomName = `conversation-${conversationId}`;
+        socket.join(roomName);
+        console.log(`User ${userId} joined conversation-${conversationId}`);
+      });
+
+      socket.on("leaveConversation", (conversationId: string) => {
+        const roomName = `conversation-${conversationId}`;
+        socket.leave(roomName);
+        console.log(`User ${userId} left conversation-${conversationId}`);
+      });
+
+      socket.on("disconnect", () => {
+        console.log(`Socket disconnected: ${socket.id}`);
+        this.connectedSockets.delete(socket.id);
+      });
     });
   }
 
@@ -35,52 +77,38 @@ class SocketManager {
     });
   }
 
-  private static handleDefaultEvents(socket: Socket) {
-    socket.on("disconnect", () => {
-      console.log(`Socket disconnected: ${socket.id}`);
-      this.connectedSockets.delete(socket.id);
-    });
-  }
-
   static emitToUser(conversationId: string, event: string, data: any) {
-    const room = this.io.sockets.adapter.rooms.get(
-      `conversation-${conversationId}`
-    );
-    if (room && room.size > 0) {
-      this.io.to(`conversation-${conversationId}`).emit(event, data);
-    } else {
-      console.log(
-        `User ${conversationId} not in conversation, event "${event}" not emitted.`
-      );
-    }
+    const roomName = `conversation-${conversationId}`;
+    console.log(`Emitting to room ${roomName}:`, { event, data });
+    this.io.to(roomName).emit(event, data);
   }
 
-  static broadcastExceptUser(conversationId: string, event: string, data: any) {
-    const targetRoom = `conversation-${conversationId}`;
-    this.io.except(targetRoom).emit(event, data);
+  static broadcastExceptUser(
+    conversationId: string,
+    event: string,
+    data: any,
+    senderSocket: Socket
+  ) {
+    const roomName = `conversation-${conversationId}`;
+    console.log(`Broadcasting to room ${roomName} except ${senderSocket.id}:`, {
+      event,
+      data,
+    });
+    senderSocket.to(roomName).emit(event, data);
   }
 
-  static extractUserIdFromSocket(socket: Socket): string | null {
-    let token: string | undefined;
+  static getSocketById(userId: string | Types.ObjectId): Socket | undefined {
+    return Array.from(this.connectedSockets.values()).find(
+      (entry) => entry.userId === userId.toString()
+    )?.socket;
+  }
 
-    if (socket.handshake.headers.cookie) {
-      const cookies = cookie.parse(socket.handshake.headers.cookie);
-      token = cookies.accessToken;
-    }
-
-    if (!token && socket.handshake.auth?.token) {
-      token = socket.handshake.auth.token;
-    }
-
-    if (!token) {
-      return null;
-    }
-
+  static extractUserIdFromSocket(socket: Socket, token: string): string | null {
+    if (!token) return null;
     try {
       const decoded = new TokenService(
         TokenConfigration.ACCESS_TOKEN_SECRET as string
-      ).verifyToken(token as string);
-
+      ).verifyToken(token);
       return decoded.userId;
     } catch {
       return null;

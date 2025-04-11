@@ -6,6 +6,7 @@ import { Types } from "mongoose";
 import ApiPipeline from "../../../utils/apiFeacture";
 import { Iuser } from "../../../DB/interfaces/user.interface";
 import SocketManager from "../../../socket/socket";
+import { Socket } from "socket.io";
 
 export const allowfieldMessages = [
   "conversationId",
@@ -113,6 +114,10 @@ export const sendMessage = async (
   const { receiverId, content, conversationId } = req.body;
   const userId = req.user?._id;
 
+  if (!userId) {
+    return next(new CustomError("Unauthntated", 400));
+  }
+
   if (!receiverId || !content || !conversationId) {
     return next(new CustomError("Missing required fields", 400));
   }
@@ -152,11 +157,18 @@ export const sendMessage = async (
   };
 
   await conversation.save();
+
+  // Get sender's socket
+  const senderSocket = SocketManager.getSocketById(userId);
+
+  // Emit to all participants in the conversation room
   SocketManager.broadcastExceptUser(
     String(conversationId),
     "newMessage",
-    newMessage
+    newMessage,
+    senderSocket as Socket
   );
+
   return res.status(200).json({
     message: "Message created successfully",
     success: true,
