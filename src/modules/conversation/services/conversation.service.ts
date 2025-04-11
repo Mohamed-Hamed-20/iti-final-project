@@ -154,6 +154,7 @@ export const searchConversations = async (
 
   return res.status(200).json({
     message: "Conversation returned success",
+    userLoggedIn: req.user?._id,
     success: true,
     conversations: resolvedConversations,
   });

@@ -49,9 +49,15 @@ class SocketManager {
 
       // Handle conversation events
       socket.on("joinRoom", (userId: string) => {
+        if (!userId) {
+          return;
+        }
+
         const roomName = `user:${userId}`;
         socket.join(roomName);
         console.log(`User ${userId} joined room ${roomName}`);
+
+        socket.emit("joinedSuccess", userId);
       });
 
       socket.on("leaveRoom", (userId: string) => {
