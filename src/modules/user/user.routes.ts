@@ -43,6 +43,12 @@ router.get(
 );
 
 router.get(
+  "/allEnrolledStudents",
+  isAuth([Roles.Instructor]),
+  asyncHandler(userServices.allEnrolledStudents)
+);
+
+router.get(
   "/instructor-profile",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),

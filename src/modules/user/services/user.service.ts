@@ -222,6 +222,62 @@ export const allInstructors = async (
   });
 };
 
+
+export const allEnrolledStudents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  const { user } = req;
+
+  if (!user) {
+    return next(new CustomError("User not authenticated", 401));
+  }
+
+  const students = await courseModel.aggregate([
+    { $match: { instructorId: new mongoose.Types.ObjectId(user._id) } },
+    {
+      $lookup: {
+        from: "enrollments",
+        localField: "_id",
+        foreignField: "courseId",
+        pipeline: [
+          { $match: { paymentStatus: "completed" } }
+        ],
+        as: "enrollments"
+      }
+    },
+    { $unwind: "$enrollments" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "enrollments.userId",
+        foreignField: "_id",
+        as: "student"
+      }
+    },
+    { $unwind: "$student" },
+    {
+      $group: {
+        _id: "$student._id",
+        firstName: { $first: "$student.firstName" },
+        lastName: { $first: "$student.lastName" },
+        email: { $first: "$student.email" },
+        avatar: { $first: "$student.avatar" },
+      }
+    }
+  ]);
+  
+  return res.status(200).json({
+    message: "instructors fetched successfully",
+    success: true,
+    statusCode: 200,
+    data: students,
+  });
+};
+
+
+
 export const getInstructorById = async (
   req: Request,
   res: Response,
