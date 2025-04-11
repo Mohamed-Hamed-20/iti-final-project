@@ -52,6 +52,8 @@ class SocketManager {
         const roomName = `user:${userId}`;
         socket.join(roomName);
         console.log(`User ${userId} joined room ${roomName}`);
+
+        socket.emit("joinedSuccess", userId);
       });
 
       socket.on("leaveRoom", (userId: string) => {
