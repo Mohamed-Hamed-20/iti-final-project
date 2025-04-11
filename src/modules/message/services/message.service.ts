@@ -159,15 +159,11 @@ export const sendMessage = async (
   await conversation.save();
 
   // Get sender's socket
-  const senderSocket = SocketManager.getSocketById(userId);
-
-  // Emit to all participants in the conversation room
-  SocketManager.broadcastExceptUser(
-    String(conversationId),
-    "newMessage",
-    newMessage,
-    senderSocket as Socket
-  );
+  const roomName = `user:${receiverId}`;
+  const { exists } = SocketManager.checkRoom(roomName);
+  if (exists) {
+    SocketManager.emitToUser(roomName, "newMessage", newMessage);
+  }
 
   return res.status(200).json({
     message: "Message created successfully",

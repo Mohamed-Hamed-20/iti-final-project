@@ -48,16 +48,16 @@ class SocketManager {
       this.connectedSockets.set(socket.id, { socket, userId });
 
       // Handle conversation events
-      socket.on("joinConversation", (conversationId: string) => {
-        const roomName = `conversation-${conversationId}`;
+      socket.on("joinRoom", (userId: string) => {
+        const roomName = `user:${userId}`;
         socket.join(roomName);
-        console.log(`User ${userId} joined conversation-${conversationId}`);
+        console.log(`User ${userId} joined room ${roomName}`);
       });
 
-      socket.on("leaveConversation", (conversationId: string) => {
-        const roomName = `conversation-${conversationId}`;
+      socket.on("leaveRoom", (userId: string) => {
+        const roomName = `user:${userId}`;
         socket.leave(roomName);
-        console.log(`User ${userId} left conversation-${conversationId}`);
+        console.log(`User ${userId} left ${roomName}`);
       });
 
       socket.on("disconnect", () => {
@@ -77,10 +77,17 @@ class SocketManager {
     });
   }
 
-  static emitToUser(conversationId: string, event: string, data: any) {
-    const roomName = `conversation-${conversationId}`;
+  static emitToUser(roomName: string, event: string, data: any) {
     console.log(`Emitting to room ${roomName}:`, { event, data });
     this.io.to(roomName).emit(event, data);
+  }
+
+  static checkRoom(roomName: string): { exists: boolean; size?: number } {
+    if (this.io.sockets.adapter.rooms.has(roomName)) {
+      const room = this.io.sockets.adapter.rooms.get(roomName);
+      return { exists: true, size: room?.size };
+    }
+    return { exists: false };
   }
 
   static broadcastExceptUser(
@@ -94,6 +101,8 @@ class SocketManager {
       event,
       data,
     });
+
+    // Broadcast to all sockets in the room except the sender
     senderSocket.to(roomName).emit(event, data);
   }
 
