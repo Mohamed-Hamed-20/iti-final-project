@@ -102,6 +102,7 @@ export const searchConversations = async (
       Id: userId as Types.ObjectId,
       field: "participants",
     })
+    .sort(sort as string)
     .addStage({
       $project: {
         _id: 1,
