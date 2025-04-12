@@ -43,6 +43,25 @@ router.get(
 );
 
 router.get(
+  "/allEnrolledStudents",
+  isAuth([Roles.Instructor]),
+  asyncHandler(userServices.allEnrolledStudents)
+);
+
+router.post(
+  "/sendMeetingLink",
+  isAuth([Roles.Instructor]),
+  asyncHandler(userServices.createMeeting)
+);
+
+router.get(
+  "/getMeetingLink/:meetingId",
+  valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.User]),
+  asyncHandler(userServices.getMeetingLink)
+);
+
+router.get(
   "/instructor-profile",
   valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),

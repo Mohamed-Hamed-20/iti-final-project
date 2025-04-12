@@ -15,6 +15,22 @@ import { userFileKey2 } from "./user.helper";
 import courseModel from "../../../DB/models/courses.model";
 import followModel from "../../../DB/models/follow.model";
 import { CacheService } from "../../../utils/redis.services";
+import { meetingModel } from "../../../DB/models/meeting.model";
+import emailQueue from "../../../utils/email.Queue";
+
+// interface MeetingRequest extends Request {
+//   body: {
+//     studentId: string;
+//     meetingLink: string;
+//     courseId?: string;
+//   };
+//   user: {
+//     _id: Types.ObjectId;
+//     firstName: string;
+//     lastName: string;
+//     email: string;
+//   };
+// }
 
 export const profile = async (
   req: Request,
@@ -221,6 +237,156 @@ export const allInstructors = async (
     data: updatedUsers,
   });
 };
+
+
+export const allEnrolledStudents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  const { user } = req;
+
+  if (!user) {
+    return next(new CustomError("User not authenticated", 401));
+  }
+
+  const students = await courseModel.aggregate([
+    { $match: { instructorId: new mongoose.Types.ObjectId(user._id) } },
+    {
+      $lookup: {
+        from: "enrollments",
+        localField: "_id",
+        foreignField: "courseId",
+        pipeline: [
+          { $match: { paymentStatus: "completed" } }
+        ],
+        as: "enrollments"
+      }
+    },
+    { $unwind: "$enrollments" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "enrollments.userId",
+        foreignField: "_id",
+        as: "student"
+      }
+    },
+    { $unwind: "$student" },
+    {
+      $group: {
+        _id: "$student._id",
+        firstName: { $first: "$student.firstName" },
+        lastName: { $first: "$student.lastName" },
+        email: { $first: "$student.email" },
+        avatar: { $first: "$student.avatar" },
+      }
+    }
+  ]);
+  
+  return res.status(200).json({
+    message: "instructors fetched successfully",
+    success: true,
+    statusCode: 200,
+    data: students,
+  });
+};
+
+
+
+const baseUrl = `http://localhost:5173`;
+
+export const createMeeting = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { studentId, meetingLink } = req.body;
+    const { user: instructor } = req;
+
+    if (!instructor) {
+      return next(new CustomError("Unauthenticated instructor", 401));
+    }
+
+    if (!studentId || !meetingLink) {
+      return next(
+        new CustomError("studentId and meetingLink are required", 400)
+      );
+    }
+
+    const student = await userModel.findById(studentId);
+    if (!student) {
+      return next(new CustomError("Student not found", 404));
+    }
+
+    const meeting = await meetingModel.create({
+      instructorId: instructor._id,
+      userId: studentId,
+      meetingLink,
+    });
+
+    await emailQueue.add(
+        {
+          to: student.email,
+          subject: `New Meeting Invitation from ${instructor.firstName} ${instructor.lastName}`,
+          text: "Welcome to Mentora! 🎉",
+          html: `
+            <p>Hello ${student.firstName},</p>
+            <p>You have a new meeting from your instructor <strong>${instructor.firstName} ${instructor.lastName}</strong>.</p>
+            <p>Join using this link: <a href="${baseUrl}/meeting/${meeting._id}" target="_blank" style="padding:10px 20px; background:#A5158C; color:white; border-radius:5px; text-decoration:none;">Join Meeting</a></p>
+            <p>Thanks,</p>
+            <p>Course Platform Team</p>
+          `,
+          message: "Mentora",
+        },
+        { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+      );
+
+    return res.status(201).json({
+      success: true,
+      message: "Meeting sent successfully to student",
+      data: meeting,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getMeetingLink = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { meetingId } = req.params;
+    const { user } = req;
+
+    if (!user) {
+      return next(new CustomError("Unauthenticated student", 401));
+    }
+
+    const student = await userModel.findById(user._id);
+    if (!student) {
+      return next(new CustomError("Student not found", 404));
+    }
+
+    const meeting = await meetingModel.findOne({
+      _id: meetingId,
+      userId: user._id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "fetch Meeting link",
+      data: meeting,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+
 
 export const getInstructorById = async (
   req: Request,
