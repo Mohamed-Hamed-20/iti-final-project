@@ -51,22 +51,34 @@ class EnrollmentService {
 
     const processedEnrollments = await Promise.all(
       enrollments.map(async (enrollment) => {
-        if (enrollment.course?.thumbnail) {
-          const url = await s3Instance.getFile(enrollment.course.thumbnail);
-          return {
-            ...enrollment,
-            course: {
-              ...enrollment.course,
-              url
-            }
-          };
+        if (!enrollment.course) return enrollment;
+
+        let url = null;
+        if (enrollment.course.thumbnail) {
+          url = await s3Instance.getFile(enrollment.course.thumbnail);
         }
-        return enrollment;
+
+        const formattedDuration = enrollment.course.totalDuration
+          ? enrollment.course.totalDuration < 3600
+            ? `${Math.floor(enrollment.course.totalDuration / 60)}m`
+            : `${Math.floor(enrollment.course.totalDuration / 3600)}h ${Math.floor((enrollment.course.totalDuration % 3600) / 60)}m`
+          : "0m";
+
+        return {
+          ...enrollment,
+          course: {
+            ...enrollment.course,
+            url,
+            totalDuration: formattedDuration
+          }
+        };
       })
     );
 
     return processedEnrollments;
   }
+
+
   async getEnrollmentById(userId: string, enrollmentId: string) {
     const enrollment = await EnrollmentModel.findOne({
       _id: enrollmentId,
