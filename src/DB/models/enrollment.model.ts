@@ -52,7 +52,9 @@ const enrollmentSchema = new Schema<IEnrollment>(
       enum: ['pending', 'completed', 'refunded'],
       required: [true, 'Payment status is required'],
       default: 'pending'
-    }
+    },
+ 
+
   },
   {
     timestamps: true,

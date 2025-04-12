@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 import { IEnrollment } from '../../../DB/interfaces/enrollment.interface';
 import courseModel from '../../../DB/models/courses.model';
 import EnrollmentModel from '../../../DB/models/enrollment.model';
+import { ICourse } from '../../../DB/interfaces/courses.interface';
+import S3Instance from '../../../utils/aws.sdk.s3';
 
 class EnrollmentService {
   async enrollInCourse(userId: string, courseId: string) {
@@ -41,12 +43,30 @@ class EnrollmentService {
       userId,
       ...filters
     })
-      .populate('course', 'title thumbnail description totalVideos totalDuration')
-      .sort({ createdAt: -1 });
+      .populate<{ course: ICourse }>('course', 'title thumbnail description totalVideos totalDuration')
+      .sort({ createdAt: -1 })
+      .lean(); 
 
-    return enrollments;
+    const s3Instance = new S3Instance();
+
+    const processedEnrollments = await Promise.all(
+      enrollments.map(async (enrollment) => {
+        if (enrollment.course?.thumbnail) {
+          const url = await s3Instance.getFile(enrollment.course.thumbnail);
+          return {
+            ...enrollment,
+            course: {
+              ...enrollment.course,
+              url
+            }
+          };
+        }
+        return enrollment;
+      })
+    );
+
+    return processedEnrollments;
   }
-
   async getEnrollmentById(userId: string, enrollmentId: string) {
     const enrollment = await EnrollmentModel.findOne({
       _id: enrollmentId,

@@ -1,4 +1,5 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { ICourse } from './courses.interface';
 
 export interface IEnrollment {
   _id?: Types.ObjectId;
@@ -15,4 +16,5 @@ export interface IEnrollment {
   paymentStatus: 'pending' | 'completed' | 'refunded';
   createdAt?: Date;
   updatedAt?: Date;
+  course?: ICourse | mongoose.Types.ObjectId;
 }
