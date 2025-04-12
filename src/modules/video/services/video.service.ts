@@ -197,9 +197,9 @@ export const getVideo = async (
     }
 
     const isEnrollMent = await enrollmentModel.findOne({
-      studentId: req?.user?._id,
+      userId: req?.user?._id,
       courseId: video.courseId,
-      paymentStatus: "completeds",
+      paymentStatus: "completed",
     });
 
     if (!isEnrollMent) {

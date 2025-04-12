@@ -9,6 +9,7 @@ import { isAuth } from "../../middleware/auth";
 import { valid } from "../../middleware/validation";
 import { cokkiesSchema } from "../auth/auth.validation";
 import { addvideoSchema } from "./video.validation";
+import { checkLogin } from "../course/services/course.service";
 const router = Router();
 
 router.post(
@@ -27,6 +28,7 @@ router.post(
 router.get("/signed-url", asyncHandler(videoService.addVideo));
 router.get(
   "/",
+  checkLogin() as RequestHandler,
   asyncHandler(videoService.getVideo)
 );
 
