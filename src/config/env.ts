@@ -65,3 +65,7 @@ export const stripePayment = {
   CANCELED_URL:
     process.env.CANCELED_URL || "http://localhost:5173/cancel-payment",
 };
+export const EARNING_PERCENTAGE = {
+  INSTRUCTOR: Number(process.env.EARNING_PERCENTAGE_INSTRUCTOR),
+  ADMIN: Number(process.env.EARNING_PERCENTAGE_ADMIN),
+};

@@ -73,8 +73,7 @@ router.get(
   // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.getMyFollowings)
-  );
-
+);
 
 router.get(
   "/whole/:id",
@@ -100,14 +99,14 @@ router.post(
   // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.followInstructor)
-  );
+);
 
 router.delete(
   "/unfollow/:instructorId",
   // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.unfollowInstructor)
-  );
+);
 
 router.put(
   "/verification",
@@ -161,6 +160,12 @@ router.post(
   "/logout",
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.logout)
+);
+
+router.get(
+  "/summary/instructor",
+  isAuth([Roles.Instructor]),
+  asyncHandler(userServices.instructorSummary)
 );
 
 export default router;

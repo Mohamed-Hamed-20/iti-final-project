@@ -12,6 +12,8 @@ import compression from "compression";
 import http, { Server } from "http";
 import SocketManager from "./socket/socket";
 import { Server as SocketIOServer } from "socket.io";
+import userModel from "./DB/models/user.model";
+import courseModel from "./DB/models/courses.model";
 
 const app: Application = express();
 const server = http.createServer(app);

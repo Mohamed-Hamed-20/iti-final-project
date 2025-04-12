@@ -20,6 +20,7 @@ import { Iuser } from "../../../DB/interfaces/user.interface";
 import { addNewconversation } from "../../../utils/conversation.queue";
 import { cartModel } from "../../../DB/models/cart.model";
 import { Types } from "mongoose";
+import { bulkUpdateInstructorEarnings } from "../../earning/services/earning.service";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -44,7 +45,9 @@ export class PaymentController {
     }
 
     // Check if course exists and get its details
-    const course = await courseModel.findById(courseId);
+    const course = await courseModel
+      .findById(courseId)
+      .select("instructorId title thumbnail price access_type");
     if (!course) {
       return res.status(404).json({
         success: false,
@@ -70,6 +73,7 @@ export class PaymentController {
       const enrollment = await EnrollmentModel.create({
         userId,
         courseId,
+        instructorId: course.instructorId,
         enrollmentDate: new Date(),
         status: "active",
         progress: 0,
@@ -87,6 +91,7 @@ export class PaymentController {
     const enrollment = await EnrollmentModel.create({
       userId,
       courseId,
+      instructorId: course.instructorId,
       enrollmentDate: new Date(),
       status: "active",
       progress: 0,
@@ -139,14 +144,14 @@ export class PaymentController {
 
   // async createCartPaymentLink(req: Request, res: Response, next: NextFunction) {
   //   const userId = req.user?._id;
-  
+
   //   if (!userId) {
   //     return res.status(401).json({
   //       success: false,
   //       message: "User not authenticated",
   //     });
   //   }
-  
+
   //   interface PopulatedCourse {
   //     _id: Types.ObjectId;
   //     title: string;
@@ -155,24 +160,24 @@ export class PaymentController {
   //     price: number;
   //     access_type: string;
   //   }
-  
+
   //   // Get user's cart with populated courses
   //   const cart = await cartModel.findOne({ userId }).populate<{ courses: PopulatedCourse[] }>('courses');
-    
+
   //   if (!cart || cart.courses.length === 0) {
   //     return res.status(400).json({
   //       success: false,
   //       message: "Cart is empty",
   //     });
   //   }
-  
+
   //   // Check for existing enrollments
   //   const existingEnrollments = await EnrollmentModel.find({
   //     userId,
   //     courseId: { $in: cart.courses.map(c => c._id) },
   //     paymentStatus: "completed",
   //   });
-  
+
   //   if (existingEnrollments.length > 0) {
   //     const enrolledCourseIds = existingEnrollments.map(e => e.courseId);
   //     return next(
@@ -182,11 +187,11 @@ export class PaymentController {
   //       )
   //     );
   //   }
-  
+
   //   // Separate free and paid courses
   //   const paidCourses = cart.courses.filter(course => course.access_type !== "free");
   //   const freeCourses = cart.courses.filter(course => course.access_type === "free");
-  
+
   //   // Create enrollments for free courses
   //   if (freeCourses.length > 0) {
   //     await EnrollmentModel.insertMany(
@@ -200,7 +205,7 @@ export class PaymentController {
   //       }))
   //     );
   //   }
-  
+
   //   // If only free courses, return success
   //   if (paidCourses.length === 0) {
   //     return res.status(200).json({
@@ -208,7 +213,7 @@ export class PaymentController {
   //       message: "Successfully enrolled in free courses",
   //     });
   //   }
-  
+
   //   // Create a SINGLE enrollment record for all paid courses
   //   const enrollment = await EnrollmentModel.create({
   //     userId,
@@ -220,7 +225,7 @@ export class PaymentController {
   //     isCartOrder: true, // Add this new field to your Enrollment schema
   //     cartCourses: paidCourses.map(c => c._id), // Add this array field to your Enrollment schema
   //   });
-  
+
   //   // Generate token with all course IDs
   //   const token = new TokenService(
   //     TokenConfigration.PAYMENT_TOKEN_SECRET as string,
@@ -231,14 +236,14 @@ export class PaymentController {
   //     courseIds: paidCourses.map(c => c._id),
   //     isCartOrder: true,
   //   });
-  
+
   //   // Prepare line items
   //   const lineItems = await Promise.all(paidCourses.map(async (course) => {
   //     let imageUrl: string[] = [];
   //     if (course.thumbnail) {
   //       imageUrl = [await new S3Instance().getFile(course.thumbnail)];
   //     }
-  
+
   //     return {
   //       price_data: {
   //         currency: "usd",
@@ -252,7 +257,7 @@ export class PaymentController {
   //       quantity: 1,
   //     };
   //   }));
-  
+
   //   // Create Stripe session
   //   const session = await stripe.checkout.sessions.create({
   //     payment_method_types: ["card"],
@@ -269,7 +274,7 @@ export class PaymentController {
   //       totalAmount: paidCourses.reduce((sum, course) => sum + course.price, 0).toString(),
   //     },
   //   });
-  
+
   //   return res.status(200).json({
   //     success: true,
   //     url: session.url,
@@ -436,6 +441,14 @@ export class PaymentController {
       (process.env.welcome_message +
         "/n" +
         `course : ${updatedEnrollment.courseId.title}`) as string
+    );
+    console.log(updatedEnrollment.courseId.instructorId);
+    console.log(updatedEnrollment.courseId.price);
+
+    //  update instructor earnings
+    await bulkUpdateInstructorEarnings(
+      updatedEnrollment.courseId.instructorId as Types.ObjectId,
+      updatedEnrollment?.courseId?.price || 0
     );
 
     return res.redirect(stripePayment.SUCCESS_URL);

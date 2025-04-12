@@ -4,78 +4,70 @@ import { generalFields } from "../../../middleware/validation";
 export const createReviewSchema = {
   body: joi
     .object({
-      referenceId: generalFields._id.required(),
-      referenceType: joi
-        .string()
-        .valid('course', 'instructor')
-        .required()
-        .messages({
-          'string.empty': 'Reference type is required',
-          'any.required': 'Reference type is required',
-          'any.only': 'Reference type must be either course or instructor'
-        }),
-      rating: joi
-        .number()
-        .min(1)
-        .max(5)
-        .required()
-        .messages({
-          'number.base': 'Rating must be a number',
-          'number.min': 'Rating must be at least 1',
-          'number.max': 'Rating cannot be more than 5',
-          'any.required': 'Rating is required'
-        }),
-      comment: joi
-        .string()
-        .min(3)
-        .required()
-        .messages({
-          'string.empty': 'Review comment is required',
-          'string.min': 'Comment must be at least 3 characters long',
-          'any.required': 'Review comment is required'
-        })
+      instructorId: generalFields._id.required(),
+      referenceType: joi.string().trim().valid("instructor").required(),
+      rating: joi.number().min(1).max(5).required(),
+      comment: joi.string().trim().min(3).max(4000).required(),
     })
-    .required()
+    .required(),
+};
+
+export const createReviewForCourseSchema = {
+  body: joi
+    .object({
+      courseId: generalFields._id.required(),
+      referenceType: joi.string().trim().valid("course").required(),
+      rating: joi.number().min(1).max(5).required(),
+      comment: joi.string().trim().min(3).max(4000).required(),
+    })
+    .required(),
 };
 
 export const updateReviewSchema = {
   body: joi
     .object({
-      rating: joi
-        .number()
-        .min(1)
-        .max(5)
-        .messages({
-          'number.base': 'Rating must be a number',
-          'number.min': 'Rating must be at least 1',
-          'number.max': 'Rating cannot be more than 5'
-        }),
-      comment: joi
-        .string()
-        .min(3)
-        .messages({
-          'string.min': 'Comment must be at least 3 characters long'
-        })
+      rating: joi.number().min(1).max(5),
+      comment: joi.string().min(3).max(1000),
     })
-    .required()
+    .required(),
 };
 
 export const reviewIdSchema = {
   params: joi
     .object({
-      id: generalFields._id.required()
+      id: generalFields._id.required(),
     })
-    .required()
+    .required(),
 };
 
-export const reviewStatsSchema = {
+export const updateReviewForCourseSchema = {
+  body: joi
+    .object({
+      referenceType: joi.string().valid("course").required(),
+      rating: joi.number().min(1).max(5),
+      comment: joi.string().min(3).max(1000),
+    })
+    .required(),
+
   params: joi
     .object({
-      referenceId: generalFields._id.required(),
-      referenceType: joi
-        .string()
-        .valid('course', 'instructor')
-        .required()
+      id: generalFields._id.required(),
     })
-    .required()
-}; 
+    .required(),
+};
+
+export const updateReviewForInstructorSchema = {
+  body: joi
+    .object({
+      referenceType: joi.string().valid("instructor").required(),
+      rating: joi.number().min(1).max(5),
+      comment: joi.string().min(3).max(1000),
+    })
+    .required(),
+
+  params: joi
+    .object({
+      id: generalFields._id.required(),
+    })
+    .required(),
+};

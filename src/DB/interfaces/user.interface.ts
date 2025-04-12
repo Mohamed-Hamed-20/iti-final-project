@@ -38,5 +38,7 @@ export interface Iuser extends Document {
   socialLinks?: ISocialLinks;
   url?: string;
   socketId?: string | null;
-  wishlist: Types.ObjectId[]; 
+  wishlist: Types.ObjectId[];
+  rating?: number;
+  totalRating?: number;
 }

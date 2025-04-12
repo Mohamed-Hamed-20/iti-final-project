@@ -97,6 +97,15 @@ const userSchema = new Schema<Iuser>(
       portfolio: { type: String },
     },
     wishlist: [{ type: Schema.Types.ObjectId, ref: "course" }],
+
+    totalRating: {
+      type: Number,
+      default: 0,
+    },
+    rating: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

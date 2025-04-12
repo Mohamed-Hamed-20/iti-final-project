@@ -8,13 +8,14 @@ export interface IEnrollment {
   enrollmentDate?: Date;
   isCartOrder?: boolean;
   cartCourses?: Types.ObjectId[];
-  status: 'active' | 'completed' | 'cancelled';
+  status: "active" | "completed" | "cancelled";
   progress?: number;
   lastAccessedAt?: Date;
   completedAt?: Date;
   certificateIssued?: boolean;
-  paymentStatus: 'pending' | 'completed' | 'refunded';
+  paymentStatus: "pending" | "completed" | "refunded";
   createdAt?: Date;
   updatedAt?: Date;
   course?: ICourse | mongoose.Types.ObjectId;
+  instructorId: Types.ObjectId;
 }

@@ -80,6 +80,9 @@ class ReviewService {
       userId: userId,
     });
 
+    if (reviewData.referenceType === "course") {
+    }
+
     return review;
   }
 

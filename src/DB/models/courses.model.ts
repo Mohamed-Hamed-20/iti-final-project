@@ -29,6 +29,10 @@ const CourseSchema = new Schema<ICourse>(
       type: Number,
       default: 0,
     },
+    totalRating: {
+      type: Number,
+      default: 0,
+    },
     totalSections: {
       type: Number,
       default: 0,

@@ -17,6 +17,7 @@ import followModel from "../../../DB/models/follow.model";
 import { CacheService } from "../../../utils/redis.services";
 import { meetingModel } from "../../../DB/models/meeting.model";
 import emailQueue from "../../../utils/email.Queue";
+import EarningsModel from "../../../DB/models/earning.model";
 
 // interface MeetingRequest extends Request {
 //   body: {
@@ -238,7 +239,6 @@ export const allInstructors = async (
   });
 };
 
-
 export const allEnrolledStudents = async (
   req: Request,
   res: Response,
@@ -257,11 +257,9 @@ export const allEnrolledStudents = async (
         from: "enrollments",
         localField: "_id",
         foreignField: "courseId",
-        pipeline: [
-          { $match: { paymentStatus: "completed" } }
-        ],
-        as: "enrollments"
-      }
+        pipeline: [{ $match: { paymentStatus: "completed" } }],
+        as: "enrollments",
+      },
     },
     { $unwind: "$enrollments" },
     {
@@ -269,8 +267,8 @@ export const allEnrolledStudents = async (
         from: "users",
         localField: "enrollments.userId",
         foreignField: "_id",
-        as: "student"
-      }
+        as: "student",
+      },
     },
     { $unwind: "$student" },
     {
@@ -280,10 +278,10 @@ export const allEnrolledStudents = async (
         lastName: { $first: "$student.lastName" },
         email: { $first: "$student.email" },
         avatar: { $first: "$student.avatar" },
-      }
-    }
+      },
+    },
   ]);
-  
+
   return res.status(200).json({
     message: "instructors fetched successfully",
     success: true,
@@ -291,8 +289,6 @@ export const allEnrolledStudents = async (
     data: students,
   });
 };
-
-
 
 const baseUrl = `http://localhost:5173`;
 
@@ -327,21 +323,21 @@ export const createMeeting = async (
     });
 
     await emailQueue.add(
-        {
-          to: student.email,
-          subject: `New Meeting Invitation from ${instructor.firstName} ${instructor.lastName}`,
-          text: "Welcome to Mentora! 🎉",
-          html: `
+      {
+        to: student.email,
+        subject: `New Meeting Invitation from ${instructor.firstName} ${instructor.lastName}`,
+        text: "Welcome to Mentora! 🎉",
+        html: `
             <p>Hello ${student.firstName},</p>
             <p>You have a new meeting from your instructor <strong>${instructor.firstName} ${instructor.lastName}</strong>.</p>
             <p>Join using this link: <a href="${baseUrl}/meeting/${meeting._id}" target="_blank" style="padding:10px 20px; background:#A5158C; color:white; border-radius:5px; text-decoration:none;">Join Meeting</a></p>
             <p>Thanks,</p>
             <p>Course Platform Team</p>
           `,
-          message: "Mentora",
-        },
-        { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
-      );
+        message: "Mentora",
+      },
+      { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
+    );
 
     return res.status(201).json({
       success: true,
@@ -385,8 +381,6 @@ export const getMeetingLink = async (
     return next(error);
   }
 };
-
-
 
 export const getInstructorById = async (
   req: Request,
@@ -583,10 +577,12 @@ export const getInstructorFromURL = async (
       ...course,
       url: courseUrl,
       duration: course.totalDuration
-      ? course.totalDuration < 3600
-      ? `${Math.floor(course.totalDuration / 60)}m`
-      : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor((course.totalDuration % 3600) / 60)}m`
-      : "0m"
+        ? course.totalDuration < 3600
+          ? `${Math.floor(course.totalDuration / 60)}m`
+          : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor(
+              (course.totalDuration % 3600) / 60
+            )}m`
+        : "0m",
     };
   });
 
@@ -1143,5 +1139,96 @@ export const getMyFollowings = async (
   res.status(200).json({
     success: true,
     data: followingIds,
+  });
+};
+
+export const instructorSummary = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const instructorId = req.user?._id;
+
+  if (!instructorId) {
+    return next(new CustomError("Unauthorized", 401));
+  }
+
+  const pipline = new ApiPipeline()
+    .matchId({
+      field: "instructorId",
+      Id: instructorId,
+    })
+    .lookUp(
+      {
+        from: "reviews",
+        localField: "_id",
+        foreignField: "referenceId",
+        as: "courseReviews",
+        matchFields: {
+          referenceType: "course",
+        },
+        isArray: true,
+      },
+      {
+        userId: 1,
+        referenceId: 1,
+        referenceType: 1,
+        rating: 1,
+        comment: 1,
+      }
+    )
+    .lookUp(
+      {
+        from: "reviews",
+        localField: "instructorId",
+        foreignField: "referenceId",
+        as: "instructorReviews",
+        matchFields: {
+          referenceType: "instructor",
+        },
+        isArray: true,
+      },
+      {
+        userId: 1,
+        referenceId: 1,
+        referenceType: 1,
+        rating: 1,
+        comment: 1,
+      }
+    )
+    .lookUp(
+      {
+        from: "enrollments",
+        localField: "_id",
+        foreignField: "courseId",
+        as: "enrollments",
+        isArray: true,
+        matchFields: {
+          paymentStatus: "completed",
+        },
+      },
+      {
+        userId: 1,
+        courseId: 1,
+        status: 1,
+        paymentStatus: 1,
+        comment: 1,
+      }
+    )
+    .build();
+
+  const [summary, earnings] = await Promise.all([
+    courseModel.aggregate(pipline),
+    EarningsModel.findOne({ instructorId })
+      .select("totalInstructorEarnings totalAdminEarnings")
+      .exec(),
+  ]);
+
+  return res.status(200).json({
+    message: "Instructor summary fetched successfully",
+    statusCode: 200,
+    success: true,
+    data: summary,
+    earnings,
   });
 };
