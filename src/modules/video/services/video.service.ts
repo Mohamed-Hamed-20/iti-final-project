@@ -23,7 +23,6 @@ export const addVideo2 = async (
     return next(new CustomError("No video file found", 400));
   }
 
-
   // Validate sectionId
   const chkSection = await sectionModel
     .findOne({
@@ -33,7 +32,6 @@ export const addVideo2 = async (
       path: "courseId",
       select: "instructorId",
     });
-
 
   if (
     !chkSection ||
@@ -113,7 +111,9 @@ export const addVideo = async (
   // Find the section by sectionId and courseId and populate course data (instructorId, title)
   const section = await sectionModel
     .findOne({ _id: sectionId, courseId: courseId })
-    .populate<{ courseId: { _id: string; instructorId: string; status: string } }>({
+    .populate<{
+      courseId: { _id: string; instructorId: string; status: string };
+    }>({
       path: "courseId",
       select: "title instructorId status",
     })
@@ -123,8 +123,7 @@ export const addVideo = async (
     return next(new CustomError("Invalid sectionId or courseId", 404));
   }
 
-    // Determine the video status based on course status
-
+  // Determine the video status based on course status
 
   // Validate that the section's courseId matches the provided courseId
   if (String(section.courseId?._id) !== String(courseId)) {
@@ -151,7 +150,8 @@ export const addVideo = async (
 
   // Update the course and section documents within a transaction.
   // This function saves the video document and updates the related course and section.
-  const videoStatus = section.courseId.status === "approved" ? "approved" : "none";
+  const videoStatus =
+    section.courseId.status === "approved" ? "approved" : "none";
 
   // And make sure it's passed to updateCourseTransaction:
   const { savedVideo, updatedCourse, updatedSection } =
@@ -159,7 +159,7 @@ export const addVideo = async (
       title,
       duration: durationInSecound,
       publicView,
-      status: videoStatus  // This will be either "approved" or "none"
+      status: videoStatus, // This will be either "approved" or "none"
     });
 
   // add upload video to queue
@@ -192,6 +192,10 @@ export const getVideo = async (
   }
 
   if (video?.publicView == false) {
+    if (!req.user) {
+      return next(new CustomError("please login first", 400));
+    }
+
     const isEnrollMent = await enrollmentModel.findOne({
       studentId: req?.user?._id,
       courseId: video.courseId,
