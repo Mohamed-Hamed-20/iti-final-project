@@ -158,7 +158,6 @@ export const sendMessage = async (
 
   await conversation.save();
 
-  // إعداد بيانات الرسالة للإرسال
   const messageData = {
     ...newMessage.toObject(),
     type: "newMessage",
@@ -173,14 +172,13 @@ export const sendMessage = async (
     SocketManager.emitToUser(receiverRoom, "newMessage", messageData);
   }
 
-  // إرسال الرسالة للمرسل
-  const senderRoom = `user:${userId}`;
-  const isSenderOnline = SocketManager.checkRoom(senderRoom);
-  console.log("Sender online status:", isSenderOnline);
+  // const senderRoom = `user:${userId}`;
+  // const isSenderOnline = SocketManager.checkRoom(senderRoom);
+  // console.log("Sender online status:", isSenderOnline);
 
-  if (isSenderOnline.exists) {
-    SocketManager.emitToUser(senderRoom, "newMessage", messageData);
-  }
+  // if (isSenderOnline.exists) {
+  //   SocketManager.emitToUser(senderRoom, "newMessage", messageData);
+  // }
 
   // Add socket event listener for sendMessage
   SocketManager.on("sendMessage", (socket, data) => {
