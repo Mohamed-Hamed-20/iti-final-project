@@ -47,7 +47,7 @@ class SocketManager {
       // Store socket with userId
       this.connectedSockets.set(socket.id, { socket, userId });
 
-      // Handle conversation events
+      // Handle room events
       socket.on("joinRoom", (userId: string) => {
         if (!userId) {
           return;
@@ -57,7 +57,8 @@ class SocketManager {
         socket.join(roomName);
         console.log(`User ${userId} joined room ${roomName}`);
 
-        socket.emit("joinedSuccess", userId);
+        // Send confirmation
+        socket.emit("joinedSuccess", { userId, roomName });
       });
 
       socket.on("leaveRoom", (userId: string) => {
@@ -89,11 +90,11 @@ class SocketManager {
   }
 
   static checkRoom(roomName: string): { exists: boolean; size?: number } {
-    if (this.io.sockets.adapter.rooms.has(roomName)) {
-      const room = this.io.sockets.adapter.rooms.get(roomName);
-      return { exists: true, size: room?.size };
-    }
-    return { exists: false };
+    const room = this.io.sockets.adapter.rooms.get(roomName);
+    return {
+      exists: room !== undefined,
+      size: room?.size,
+    };
   }
 
   static broadcastExceptUser(
