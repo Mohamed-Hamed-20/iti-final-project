@@ -25,7 +25,7 @@ const upload = configureMulter();
 
 router.get(
   "/profile",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
   asyncHandler(userServices.profile)
 );
@@ -56,21 +56,21 @@ router.post(
 
 router.get(
   "/getMeetingLink/:meetingId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User]),
   asyncHandler(userServices.getMeetingLink)
 );
 
 router.get(
   "/instructor-profile",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.getInstructorById)
 );
 
 router.get(
   "/followings",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.getMyFollowings)
   );
@@ -97,14 +97,14 @@ router.post(
 
 router.post(
   "/follow/:instructorId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.followInstructor)
   );
 
 router.delete(
   "/unfollow/:instructorId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(userServices.unfollowInstructor)
   );
@@ -121,7 +121,7 @@ router.put(
     { name: "requiredVideo", maxCount: 1 },
     { name: "optionalVideo", maxCount: 1 },
   ]),
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   asyncHandler(userServices.instructorVerification)
 );
 

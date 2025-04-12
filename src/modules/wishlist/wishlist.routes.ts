@@ -10,21 +10,21 @@ const wishlistRoutes = Router();
 
 wishlistRoutes.post(
   "/add/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(wishlistService.wishList)
 );
 
 wishlistRoutes.get(
   "/allCourses",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(wishlistService.getWishListCourses)
 );
 
 wishlistRoutes.get(
   "/getCourse/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(wishlistService.getCourseById)
 );
@@ -32,28 +32,28 @@ wishlistRoutes.get(
 
 wishlistRoutes.get(
   "/getCourseAddedCart/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(wishlistService.getCourseAddedCart)
 );
 
 wishlistRoutes.get(
   "/wishlistCheckCourse/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(wishlistService.wishlistCheckCourse)
 );
 
 wishlistRoutes.patch(
   "/addCartIcon/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(wishlistService.addToCartIcon)
 );
 
 wishlistRoutes.delete(
   "/remove/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(wishlistService.removeCourse)
 );

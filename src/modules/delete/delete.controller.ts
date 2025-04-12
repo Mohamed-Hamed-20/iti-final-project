@@ -13,7 +13,7 @@ const router = Router();
 
 router.post(
   "/send",
-  valid(cokkiesSchema) as RequestHandler,
+ // valid(cokkiesSchema) as RequestHandler,
   valid(sendRequestToDeleteSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(deleteRequestServices.requestToDelete)
@@ -21,7 +21,7 @@ router.post(
 
 router.delete(
   "/cancel",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   valid(cancelMyrequestSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(deleteRequestServices.deleteMyrequest)

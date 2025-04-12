@@ -20,7 +20,7 @@ const router = Router();
 // Add Post (Only Instructors)
 router.post(
   "/add/:categoryId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   valid(addPostSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(postServices.addPost)
@@ -43,7 +43,7 @@ router.get(
 // Update Post (Only Instructors, must be the author)
 router.put(
   "/:id",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   valid(updatePostSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(postServices.updatePost)
@@ -52,7 +52,7 @@ router.put(
 // Delete Post (Only Instructors, must be the author)
 router.delete(
   "/:id",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(postServices.deletePost)
 );
@@ -60,7 +60,7 @@ router.delete(
 // Like Post (Any authenticated user)
 router.post(
   "/like/:id",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   valid(likePostSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
   asyncHandler(postServices.likePost)
@@ -69,7 +69,7 @@ router.post(
 // Unlike Post (Any authenticated user who liked it)
 router.post(
   "/unlike/:id",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   valid(likePostSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
   asyncHandler(postServices.unlikePost)
@@ -78,7 +78,7 @@ router.post(
 // Add Comment (Any authenticated user, including the author)
 router.post(
   "/comment/:id",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   valid(addCommentSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
   asyncHandler(postServices.addComment)
@@ -86,7 +86,7 @@ router.post(
 // Delete Comment
 router.delete(
     "/comment/:postId/:commentId",
-    valid(cokkiesSchema) as RequestHandler,
+    // valid(cokkiesSchema) as RequestHandler,
     isAuth([Roles.User, Roles.Instructor, Roles.Admin]),
     asyncHandler(postServices.deleteComment)
 )

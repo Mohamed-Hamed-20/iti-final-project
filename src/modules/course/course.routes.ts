@@ -23,7 +23,7 @@ const upload = multerMemory(5 * 1024 * 1024, FileType.Images);
 router.post(
   "/add",
   upload.single("thumbnail"),
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   valid(addCourseSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(courseServices.addCourse)
@@ -45,7 +45,7 @@ router.get(
 router.get(
   "/instructor/courses",
   valid(searchCoursesInstructorScheam) as RequestHandler,
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(courseServices.getAllCoursesForInstructor)
 );
@@ -54,7 +54,7 @@ router.get(
 router.get(
   "/pend/:id",
   valid(getCourseByIdSchema) as RequestHandler,
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(courseServices.getPendingCourseById)
 );
@@ -71,7 +71,7 @@ router.get(
 // Update Course (Only Instructors & Admins)
 router.put(
   "/:id",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   valid(updateCourseSchema) as RequestHandler,
   multerMemory().single("image"),
   isAuth([Roles.Instructor]),
@@ -80,7 +80,7 @@ router.put(
 
 router.patch(
   "/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor]),
   asyncHandler(courseServices.requestCourseVerification)
 );
@@ -88,7 +88,7 @@ router.patch(
 // Delete Course (Only Instructors & Admins)
 router.delete(
   "/:id",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(courseServices.deleteCourse)
 );

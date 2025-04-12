@@ -10,7 +10,7 @@ const router = Router();
 
 router.post(
   "/add",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   valid(addsectionSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(sectionService.addSection)
@@ -18,14 +18,14 @@ router.post(
 
 router.put(
   "/:sectionId",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(sectionService.updateSection)
 );
 
 router.put(
   "/reorder",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(sectionService.reorderSections)
 );
@@ -33,21 +33,21 @@ router.put(
 
 router.delete(
   "/:sectionId",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(sectionService.deleteSection)
 );
 
 router.get(
   "/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(sectionService.getSections)
 );
 
 router.get(
   "/search",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor, Roles.User]),
   asyncHandler(sectionService.searchSectionBycourse)
 );

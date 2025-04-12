@@ -18,7 +18,7 @@ router.post(
     [...FileType.Videos],
     "uploads/original"
   ).single("video"),
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   valid(addvideoSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(videoService.addVideo)
@@ -32,7 +32,7 @@ router.get(
 
 router.delete(
   "/:videoId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(videoService.deleteVideo)
 );

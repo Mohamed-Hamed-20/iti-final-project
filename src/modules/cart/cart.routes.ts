@@ -10,34 +10,34 @@ const cartRoutes = Router();
 
 cartRoutes.post(
   "/add/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(cartService.cart)
 );
 
 cartRoutes.get(
   "/allCourses",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(cartService.getCartCourses)
 );
 
 cartRoutes.get(
   "/getCourse/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(cartService.getCourseById)
 );
 cartRoutes.get(
   "/getCoursesBasedCategory",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(cartService.getCoursesByCategory)
 );
 
 cartRoutes.delete(
   "/remove/:courseId",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User , Roles.Instructor]),
   asyncHandler(cartService.removeCourse)
 );

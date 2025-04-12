@@ -17,7 +17,7 @@ const upload = configureMulter();
 router.post(
   "/add",
   upload.single("thumbnail"),
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(categoryServices.addCategory)
 );
@@ -31,14 +31,14 @@ router.get(
 router.put(
   '/:categoryId',
   upload.single('thumbnail'),
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(categoryServices.updateCategory)
 );
 
 router.delete(
   '/:categoryId',
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
    asyncHandler(categoryServices.deleteCategory)
 );

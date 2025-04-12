@@ -12,7 +12,7 @@ const paymentController = new PaymentController();
 
 router.post(
   "/createLink",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.User]),
   asyncHandler(paymentController.createPaymentLink.bind(paymentController))
 );
@@ -26,7 +26,7 @@ router.post(
 
 router.post(
   "/stripe",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   valid(paymentRequestSchema) as RequestHandler,
   isAuth([Roles.User]),
   asyncHandler(paymentController.processStripePayment.bind(paymentController))
@@ -34,7 +34,7 @@ router.post(
 
 router.post(
   "/paypal",
-  valid(cokkiesSchema) as RequestHandler,
+  // valid(cokkiesSchema) as RequestHandler,
   valid(paymentRequestSchema) as RequestHandler,
   isAuth([Roles.User]),
   asyncHandler(paymentController.processPayPalPayment.bind(paymentController))
@@ -42,7 +42,7 @@ router.post(
 
 router.post(
   "/googlepay",
-  valid(cokkiesSchema) as RequestHandler,
+  //valid(cokkiesSchema) as RequestHandler,
   valid(paymentRequestSchema) as RequestHandler,
   isAuth([Roles.User]),
   asyncHandler(
