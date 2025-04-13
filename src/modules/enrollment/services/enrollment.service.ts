@@ -9,7 +9,7 @@ class EnrollmentService {
   async enrollInCourse(userId: string, courseId: string) {
     // Run course check and enrollment check in parallel
     const [course, existingEnrollment] = await Promise.all([
-      courseModel.findById(courseId).select("access_type").lean(),
+      courseModel.findById(courseId).select("access_type price ").lean(),
       EnrollmentModel.findOne({
         userId,
         courseId,

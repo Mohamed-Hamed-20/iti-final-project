@@ -226,7 +226,7 @@ export default class S3Instance {
         Bucket: AWS_S3Keys.BUCKET_NAME,
         Key: key,
       }),
-      { expiresIn: 5 * 60 } // 5 m
+      { expiresIn: 10 * 60 } // 10 min
     );
 
     return url;
@@ -239,7 +239,7 @@ export default class S3Instance {
         Bucket: AWS_S3Keys.BUCKET_NAME,
         Key: key,
       }),
-      { expiresIn: 60 * 5 } // 10 sec
+      { expiresIn: 60 * 10 } // 10 min
     );
 
     return url;

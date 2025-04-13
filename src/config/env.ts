@@ -69,3 +69,5 @@ export const EARNING_PERCENTAGE = {
   INSTRUCTOR: Number(process.env.EARNING_PERCENTAGE_INSTRUCTOR),
   ADMIN: Number(process.env.EARNING_PERCENTAGE_ADMIN),
 };
+
+export const welcome_message = process.env.welcome_message;

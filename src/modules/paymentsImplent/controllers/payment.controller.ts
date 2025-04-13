@@ -5,7 +5,11 @@ import courseModel from "../../../DB/models/courses.model";
 import EnrollmentModel from "../../../DB/models/enrollment.model";
 import { PaymentService } from "../services/payment.service";
 import { TokenService } from "../../../utils/tokens";
-import { stripePayment, TokenConfigration } from "../../../config/env";
+import {
+  stripePayment,
+  TokenConfigration,
+  welcome_message,
+} from "../../../config/env";
 import { CustomError } from "../../../utils/errorHandling";
 import {
   canceledTemplet,
@@ -20,7 +24,7 @@ import { Iuser } from "../../../DB/interfaces/user.interface";
 import { addNewconversation } from "../../../utils/conversation.queue";
 import { cartModel } from "../../../DB/models/cart.model";
 import { Types } from "mongoose";
-import { bulkUpdateInstructorEarnings } from "../../earning/services/earning.service";
+import { bulkUpdateInstructorEarnings } from "../../../utils/payment.queue";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2023-10-16",
@@ -38,21 +42,16 @@ export class PaymentController {
     const userId = req.user?._id;
 
     if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated",
-      });
+      return next(new CustomError("User not authenticated", 401));
     }
 
     // Check if course exists and get its details
     const course = await courseModel
       .findById(courseId)
       .select("instructorId title thumbnail price access_type");
+
     if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
+      return next(new CustomError("Course not found", 404));
     }
 
     // Check if user is already enrolled
@@ -76,13 +75,15 @@ export class PaymentController {
         instructorId: course.instructorId,
         enrollmentDate: new Date(),
         status: "active",
+        amount: 0,
         progress: 0,
         paymentStatus: "completed",
       });
 
       return res.status(200).json({
-        success: true,
         message: "Successfully enrolled in free course",
+        statusCode: 200,
+        success: true,
         enrollment,
       });
     }
@@ -95,6 +96,7 @@ export class PaymentController {
       enrollmentDate: new Date(),
       status: "active",
       progress: 0,
+      amount: course.price,
       paymentStatus: "pending",
     });
 
@@ -135,10 +137,11 @@ export class PaymentController {
       },
     });
 
-    res.status(200).json({
+    return res.status(200).json({
+      message: "Payment link created successfully",
+      statusCode: 200,
       success: true,
       url: session.url,
-      message: "Payment link created successfully",
     });
   }
 
@@ -396,7 +399,12 @@ export class PaymentController {
       .populate<{ userId: Iuser }>("userId")
       .lean<IEnrollment & { courseId: ICourse; userId: Iuser }>();
 
-    if (!updatedEnrollment || !updatedEnrollment.courseId) {
+    if (
+      !updatedEnrollment ||
+      !updatedEnrollment.courseId ||
+      typeof updatedEnrollment.amount !== "number"
+    ) {
+      await EnrollmentModel.findByIdAndDelete(enrollmentId);
       return res.redirect(stripePayment.CANCELED_URL);
     }
 
@@ -415,7 +423,7 @@ export class PaymentController {
         html: purchaseEmail({
           transactionId: updatedEnrollment._id,
           name: `${updatedEnrollment.userId?.firstName} ${updatedEnrollment.userId?.lastName}`,
-          amountPaid: updatedEnrollment.courseId.price,
+          amountPaid: updatedEnrollment?.amount,
           paymentDate: updatedEnrollment.updatedAt,
           contactLink: "https://mentora.com/contact",
           courseImage: imgUrl,
@@ -438,17 +446,14 @@ export class PaymentController {
     await addNewconversation(
       updatedEnrollment?.courseId.instructorId,
       updatedEnrollment?.userId._id,
-      (process.env.welcome_message +
-        "/n" +
-        `course : ${updatedEnrollment.courseId.title}`) as string
+      (`${welcome_message}\n\n` +
+        `🧑‍🎓 Course: ${updatedEnrollment.courseId.title}`) as string
     );
-    console.log(updatedEnrollment.courseId.instructorId);
-    console.log(updatedEnrollment.courseId.price);
 
     //  update instructor earnings
     await bulkUpdateInstructorEarnings(
       updatedEnrollment.courseId.instructorId as Types.ObjectId,
-      updatedEnrollment?.courseId?.price || 0
+      updatedEnrollment?.amount || 0
     );
 
     return res.redirect(stripePayment.SUCCESS_URL);
