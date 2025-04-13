@@ -6,14 +6,8 @@ import ReviewModel from "../../../DB/models/review.model";
 import userModel from "../../../DB/models/user.model";
 import ApiPipeline from "../../../utils/apiFeacture";
 import S3Instance from "../../../utils/aws.sdk.s3";
-const reviewfields = [
-  "referenceId",
-  "referenceType",
-  "user",
-  "rating",
-  "comment",
-  "createdAt",
-];
+import { CustomError } from "@paypal/paypal-server-sdk";
+
 class ReviewService {
   async createReview(userId: string, reviewData: Partial<IReview>) {
     // Check if user exists and is a regular user
@@ -136,60 +130,12 @@ class ReviewService {
     return review;
   }
 
-  async getReviewStats(
-    referenceId: string,
-    referenceType: "course" | "instructor"
-  ) {
-    const pipeline = new ApiPipeline()
-      .addStage({
-        $match: { referenceId: new Types.ObjectId(referenceId), referenceType },
-      })
-      .lookUp(
-        {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "user",
-          isArray: false,
-        },
-        {
-          firstName: 1,
-          lastName: 1,
-          email: 1,
-          bio: 1,
-          avatar: 1,
-        }
-      )
-      .projection({
-        defaultFields: reviewfields,
-        allowFields: reviewfields,
-        select: undefined,
-      })
-      .build();
 
-    const reviews = await ReviewModel.aggregate(pipeline);
+  async getReviewsInsturctor(referenceId: string, referenceType: "instructor") {
 
-    const s3Instance = new S3Instance();
-    let totalUsersReviews = reviews.length;
-    let TotalRating = 0;
-    const updatePromises = reviews.map(async (review: IReview) => {
-      if (review && review.user && review.user.avatar) {
-        review.user.url = await s3Instance.getFile(review.user.avatar);
-      }
-
-      TotalRating = TotalRating + review.rating;
-
-      return review;
-    });
-    const updatedReviews = await Promise.all(updatePromises);
-    let avarageReviews = TotalRating / totalUsersReviews;
-
-    return {
-      totalReviews: totalUsersReviews,
-      avarageReviews,
-      reviews: updatedReviews,
-    };
   }
+
+  async getReviewsCourse(referenceId: string, referenceType: "course") {}
 }
 
 export default new ReviewService();

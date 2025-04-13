@@ -71,3 +71,11 @@ export const updateReviewForInstructorSchema = {
     })
     .required(),
 };
+export const getReviewStatsSchema = {
+  params: joi
+    .object({
+      referenceType: joi.string().valid("course", "instructor").required(),
+      referenceId: generalFields._id.required(),
+    })
+    .required(),
+};

@@ -5,6 +5,19 @@ import { CustomError } from "../../../utils/errorHandling";
 import EnrollmentModel from "../../../DB/models/enrollment.model";
 import courseModel from "../../../DB/models/courses.model";
 import userModel from "../../../DB/models/user.model";
+import S3Instance from "../../../utils/aws.sdk.s3";
+import { IReview } from "../../../DB/interfaces/review.interface";
+import ApiPipeline from "../../../utils/apiFeacture";
+import { Types } from "mongoose";
+
+const reviewfields = [
+  "referenceId",
+  "referenceType",
+  "user",
+  "rating",
+  "comment",
+  "createdAt",
+];
 
 class ReviewController {
   // async createReview(req: Request, res: Response, next: NextFunction) {
@@ -393,6 +406,7 @@ class ReviewController {
       data: reviews,
     });
   }
+
   async getReviewById(req: Request, res: Response) {
     const { id } = req.params;
     const review = await ReviewModel.findById(id).populate(
@@ -406,17 +420,138 @@ class ReviewController {
       data: review,
     });
   }
+
   async getReviewStats(req: Request, res: Response) {
     const { referenceId, referenceType } = req.params;
-    const stats = await reviewService.getReviewStats(
-      referenceId,
-      referenceType as "course" | "instructor"
-    );
 
-    res.status(200).json({
-      status: "success",
-      message: "Review statistics retrieved successfully",
-      data: stats,
+    let response;
+    if (referenceType === "instructor") {
+      const instructor = await userModel
+        .findById(referenceId)
+        .select("rating totalRating firstName lastName avatar bio");
+      if (!instructor) {
+        throw new CustomError("Instructor not found", 404);
+      }
+
+      const pipeline = new ApiPipeline()
+        .addStage({
+          $match: {
+            referenceId: new Types.ObjectId(referenceId),
+            referenceType,
+          },
+        })
+        .lookUp(
+          {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+            isArray: false,
+          },
+          {
+            firstName: 1,
+            lastName: 1,
+            email: 1,
+            bio: 1,
+            avatar: 1,
+          }
+        )
+        .projection({
+          defaultFields: reviewfields,
+          allowFields: reviewfields,
+          select: undefined,
+        })
+        .build();
+
+      const reviews = await ReviewModel.aggregate(pipeline);
+
+      const s3Instance = new S3Instance();
+
+      const updatePromises = reviews.map(async (review: IReview) => {
+        if (review && review.user && review.user.avatar) {
+          review.user.url = await s3Instance.getFile(review.user.avatar);
+        }
+
+        return review;
+      });
+
+      const updatedReviews = await Promise.all(updatePromises);
+      let avarageReviews =
+        Number(instructor.rating || 0) / Number(instructor.totalRating || 0);
+
+      response = {
+        totalReviews: updatedReviews.length,
+        avarageReviews,
+        reviews: updatedReviews,
+      };
+    } else {
+      const course = await courseModel
+        .findById(referenceId)
+        .select("title rating totalRating thumbnail instructorId ");
+
+      if (!course) {
+        throw new CustomError("Course not found", 404);
+      }
+
+      const pipeline = new ApiPipeline()
+        .addStage({
+          $match: {
+            referenceId: new Types.ObjectId(referenceId),
+            referenceType,
+          },
+        })
+        .lookUp(
+          {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+            isArray: false,
+          },
+          {
+            firstName: 1,
+            lastName: 1,
+            email: 1,
+            bio: 1,
+            avatar: 1,
+          }
+        )
+        .projection({
+          defaultFields: reviewfields,
+          allowFields: reviewfields,
+          select: undefined,
+        })
+        .build();
+
+      const reviews = await ReviewModel.aggregate(pipeline);
+
+      const s3Instance = new S3Instance();
+
+      const updatePromises = reviews.map(async (review: IReview) => {
+        if (review && review.user && review.user.avatar) {
+          review.user.url = await s3Instance.getFile(review.user.avatar);
+        }
+
+        return review;
+      });
+
+      const updatedReviews = await Promise.all(updatePromises);
+
+      let avarageReviews =
+        Number(course?.rating || 0) / Number(course?.totalRating || 1);
+
+      response = {
+        totalReviews: course?.totalRating || 0,
+        avarageReviews,
+        reviews: updatedReviews,
+      };
+    }
+
+    return res.status(200).json({
+      message: "Review stats retrieved successfully",
+      statusCode: 200,
+      success: true,
+      data: response,
     });
   }
 }

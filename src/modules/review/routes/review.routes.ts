@@ -7,6 +7,7 @@ import reviewController from "../controllers/review.controller";
 import {
   createReviewForCourseSchema,
   createReviewSchema,
+  getReviewStatsSchema,
   reviewIdSchema,
   updateReviewForCourseSchema,
   updateReviewForInstructorSchema,
@@ -31,23 +32,6 @@ router.post(
   asyncHandler(reviewController.createReviewForcourse)
 );
 
-// Get all reviews (accessible by all authenticated users)
-router.get("/", asyncHandler(reviewController.getReviews));
-
-// Get review by ID (accessible by all authenticated users)
-router.get(
-  "/:id",
-  valid(reviewIdSchema) as RequestHandler,
-  asyncHandler(reviewController.getReviewById)
-);
-
-// Get review statistics for a course or instructor
-router.get(
-  "/stats/:referenceType/:referenceId",
-  valid(reviewIdSchema) as RequestHandler,
-  asyncHandler(reviewController.getReviewStats)
-);
-
 // Update review (only the review owner can update)
 router.patch(
   "/course/:id",
@@ -70,6 +54,23 @@ router.delete(
   valid(reviewIdSchema) as RequestHandler,
   isAuth([Roles.User]),
   asyncHandler(reviewController.deleteReview)
+);
+
+// Get all reviews (accessible by all authenticated users)
+router.get("/", asyncHandler(reviewController.getReviews));
+
+// Get review by ID (accessible by all authenticated users)
+router.get(
+  "/:id",
+  valid(reviewIdSchema) as RequestHandler,
+  asyncHandler(reviewController.getReviewById)
+);
+
+// Get review statistics for a course or instructor
+router.get(
+  "/stats/:referenceType/:referenceId",
+  valid(getReviewStatsSchema) as RequestHandler,
+  asyncHandler(reviewController.getReviewStats)
 );
 
 export default router;
