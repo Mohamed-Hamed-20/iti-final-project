@@ -1175,15 +1175,52 @@ export const instructorSummary = async (
     EarningsModel.findOne({ instructorId }).select(
       "totalInstructorEarnings totalAdminEarnings"
     ),
-    courseModel
-      .find({ instructorId })
-      .select("title rating totalRating")
-      .lean(),
+
+    await EnrollmentModel.aggregate([
+      {
+        $match: {
+          instructorId: new mongoose.Types.ObjectId(instructorId),
+        },
+      },
+      {
+        $group: {
+          _id: "$courseId",
+          totalPurchases: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "courses",
+          localField: "_id",
+          foreignField: "_id",
+          as: "courseData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$courseData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: "$courseData._id",
+          title: "$courseData.title",
+          subTitle: "$courseData.subTitle",
+          price: "$courseData.price",
+          status: "$courseData.status",
+          rating: "$courseData.rating",
+          totalRating: "$courseData.totalRating",
+          totalPurchases: 1,
+        },
+      },
+    ]),
   ]);
 
   for (const course of courses) {
     course.purchasePercentage =
-      (Number(course.totalRating) / Number(totalEnrollmentsCount || 1)) * 100;
+      (Number(course.totalPurchases) / Number(totalEnrollmentsCount || 1)) *
+      100;
   }
 
   return res.status(200).json({
@@ -1195,7 +1232,9 @@ export const instructorSummary = async (
       approvedCoursesCount,
       rejectedCoursesCount,
       totalEnrollmentsCount,
-      earningsData,
+      totalInstructorEarnings: Number(
+        (earningsData?.totalInstructorEarnings || 0).toFixed(2)
+      ),
       instructorTotalUserRatingHim: req.user?.totalRating,
       instructorTotalUserReviewsHim: req.user?.rating,
       instructorAvgRatingHim:
