@@ -39,9 +39,15 @@ class EnrollmentService {
   }
 
   async getEnrollments(userId: string, filters: Partial<IEnrollment> = {}) {
+
+    const finalFilters = { 
+      ...filters, 
+      paymentStatus: "completed"
+    };
+
     const enrollments = await EnrollmentModel.find({
       userId,
-      ...filters
+      ...finalFilters
     })
       .populate<{ course: ICourse }>('course', 'title thumbnail description totalVideos totalDuration')
       .sort({ createdAt: -1 })
@@ -77,7 +83,6 @@ class EnrollmentService {
 
     return processedEnrollments;
   }
-
 
   async getEnrollmentById(userId: string, enrollmentId: string) {
     const enrollment = await EnrollmentModel.findOne({

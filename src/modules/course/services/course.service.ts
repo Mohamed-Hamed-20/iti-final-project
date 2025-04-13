@@ -789,6 +789,10 @@ export const getCourseById = async (
 
   let course = courseArray[0];
 
+course.sections = course.sections.filter(
+  (section: any) => section.videos && section.videos.length > 0
+);
+
   const promises: Promise<void>[] = [];
 
   if (course.thumbnail) {
@@ -1147,7 +1151,7 @@ export const requestCourseVerification = async (
     return next(new CustomError("Course not found or unauthorized", 404));
   }
 
-  if (course.status !== "none") {
+  if (course.status !== "none" && course.status !== "rejected") {
     return next(
       new CustomError(`Course verification is already ${course.status}`, 400)
     );

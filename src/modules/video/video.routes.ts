@@ -25,6 +25,13 @@ router.post(
   asyncHandler(videoService.addVideo)
 );
 
+router.put(
+  "/:videoId",
+  //valid(cokkiesSchema) as RequestHandler,
+  isAuth([Roles.Instructor, Roles.Admin]),
+  asyncHandler(videoService.updateVideo)
+);
+
 router.get("/signed-url", asyncHandler(videoService.addVideo));
 router.get(
   "/",

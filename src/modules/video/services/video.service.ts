@@ -75,14 +75,43 @@ export const addVideo2 = async (
   });
 };
 
+
 export const updateVideo = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { title, sectionId } = req.body;
-  const { videoId } = req.query;
+  const { videoId } = req.params;
+  const { title } = req.body;
+  const user = req.user;
+
+  const video = await videoModel.findById(videoId);
+  if (!video) return next(new CustomError("Video not found", 404));
+
+  const section = await sectionModel.findById(video.sectionId);
+  if (!section) return next(new CustomError("Section not found", 404));
+
+  const course = await courseModel.findById(section.courseId);
+  if (!course) return next(new CustomError("Course not found", 404));
+
+  if (course.instructorId.toString() !== user?._id.toString()) {
+    return next(
+      new CustomError("You are not allowed to update this video", 403)
+    );
+  }
+
+  const updatedVideo = await videoModel.findByIdAndUpdate(
+    videoId,
+    { title },
+    { new: true }
+  );
+
+  return res.status(200).json({
+    message: "Video updated successfully",
+    video: updatedVideo,
+  });
 };
+
 
 export const createSignedVideo = async (
   req: Request,
