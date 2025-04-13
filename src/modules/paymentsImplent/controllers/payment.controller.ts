@@ -9,6 +9,7 @@ import {
   stripePayment,
   TokenConfigration,
   welcome_message,
+  FRONTEND,
 } from "../../../config/env";
 import { CustomError } from "../../../utils/errorHandling";
 import {
@@ -423,13 +424,13 @@ export class PaymentController {
         html: purchaseEmail({
           transactionId: updatedEnrollment._id,
           name: `${updatedEnrollment.userId?.firstName} ${updatedEnrollment.userId?.lastName}`,
-          amountPaid: updatedEnrollment?.amount,
+          amountPaid: updatedEnrollment?.amount || 0,
           paymentDate: updatedEnrollment.updatedAt,
-          contactLink: "https://mentora.com/contact",
+          contactLink: `${FRONTEND.BASE_URL}/contact`,
           courseImage: imgUrl,
           courseTitle: updatedEnrollment.courseId.title,
-          dashboardLink: "https://mentora.com/dashboard",
-          year: "2025",
+          dashboardLink: `${FRONTEND.BASE_URL}/dashboard`,
+          year: new Date().getFullYear().toString(),
         }),
         message: "Mentora",
       },
