@@ -18,6 +18,7 @@ import { CacheService } from "../../../utils/redis.services";
 import { meetingModel } from "../../../DB/models/meeting.model";
 import emailQueue from "../../../utils/email.Queue";
 import EarningsModel from "../../../DB/models/earning.model";
+import EnrollmentModel from "../../../DB/models/enrollment.model";
 
 // interface MeetingRequest extends Request {
 //   body: {
@@ -1153,82 +1154,53 @@ export const instructorSummary = async (
     return next(new CustomError("Unauthorized", 401));
   }
 
-  const pipline = new ApiPipeline()
-    .matchId({
-      field: "instructorId",
-      Id: instructorId,
-    })
-    .lookUp(
-      {
-        from: "reviews",
-        localField: "_id",
-        foreignField: "referenceId",
-        as: "courseReviews",
-        matchFields: {
-          referenceType: "course",
-        },
-        isArray: true,
-      },
-      {
-        userId: 1,
-        referenceId: 1,
-        referenceType: 1,
-        rating: 1,
-        comment: 1,
-      }
-    )
-    .lookUp(
-      {
-        from: "reviews",
-        localField: "instructorId",
-        foreignField: "referenceId",
-        as: "instructorReviews",
-        matchFields: {
-          referenceType: "instructor",
-        },
-        isArray: true,
-      },
-      {
-        userId: 1,
-        referenceId: 1,
-        referenceType: 1,
-        rating: 1,
-        comment: 1,
-      }
-    )
-    .lookUp(
-      {
-        from: "enrollments",
-        localField: "_id",
-        foreignField: "courseId",
-        as: "enrollments",
-        isArray: true,
-        matchFields: {
-          paymentStatus: "completed",
-        },
-      },
-      {
-        userId: 1,
-        courseId: 1,
-        status: 1,
-        paymentStatus: 1,
-        comment: 1,
-      }
-    )
-    .build();
-
-  const [summary, earnings] = await Promise.all([
-    courseModel.aggregate(pipline),
-    EarningsModel.findOne({ instructorId })
-      .select("totalInstructorEarnings totalAdminEarnings")
-      .exec(),
+  const [
+    pendingCoursesCount,
+    approvedCoursesCount,
+    rejectedCoursesCount,
+    totalEnrollmentsCount,
+    earningsData,
+    courses,
+  ] = await Promise.all([
+    courseModel.countDocuments({
+      instructorId,
+      status: { $in: ["pending", "none"] },
+    }),
+    courseModel.countDocuments({ instructorId, status: "approved" }),
+    courseModel.countDocuments({ instructorId, status: "rejected" }),
+    EnrollmentModel.countDocuments({
+      instructorId: new mongoose.Types.ObjectId(instructorId),
+      paymentStatus: "completed",
+    }),
+    EarningsModel.findOne({ instructorId }).select(
+      "totalInstructorEarnings totalAdminEarnings"
+    ),
+    courseModel
+      .find({ instructorId })
+      .select("title rating totalRating")
+      .lean(),
   ]);
+
+  for (const course of courses) {
+    course.purchasePercentage =
+      (Number(course.totalRating) / Number(totalEnrollmentsCount || 1)) * 100;
+  }
 
   return res.status(200).json({
     message: "Instructor summary fetched successfully",
     statusCode: 200,
     success: true,
-    data: summary,
-    earnings,
+    data: {
+      pendingCoursesCount,
+      approvedCoursesCount,
+      rejectedCoursesCount,
+      totalEnrollmentsCount,
+      earningsData,
+      instructorTotalUserRatingHim: req.user?.totalRating,
+      instructorTotalUserReviewsHim: req.user?.rating,
+      instructorAvgRatingHim:
+        Number(req.user?.rating || 0) / Number(req.user?.totalRating || 1),
+      courses: courses,
+    },
   });
 };

@@ -23,4 +23,5 @@ export interface ICourse extends Document {
   status: "pending" | "approved" | "rejected" | "none" | "delete";
   featured: boolean;
   totalRating?: number;
+  purchasePercentage?: number;
 }

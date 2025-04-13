@@ -129,13 +129,6 @@ class ReviewService {
     }
     return review;
   }
-
-
-  async getReviewsInsturctor(referenceId: string, referenceType: "instructor") {
-
-  }
-
-  async getReviewsCourse(referenceId: string, referenceType: "course") {}
 }
 
 export default new ReviewService();
