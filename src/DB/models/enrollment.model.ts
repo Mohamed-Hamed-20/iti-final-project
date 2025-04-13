@@ -60,6 +60,7 @@ const enrollmentSchema = new Schema<IEnrollment>(
       required: [true, "Payment status is required"],
       default: "pending",
     },
+    amount: { type: Number, required: false, default: 0 },
   },
   {
     timestamps: true,
@@ -74,39 +75,37 @@ enrollmentSchema.index({ status: 1 });
 enrollmentSchema.index({ paymentStatus: 1 });
 
 // Virtual populate for user
-enrollmentSchema.virtual('user', {
-  ref: 'user',
-  localField: 'userId',
-  foreignField: '_id',
-  justOne: true
+enrollmentSchema.virtual("user", {
+  ref: "user",
+  localField: "userId",
+  foreignField: "_id",
+  justOne: true,
 });
 
 // Virtual populate for course
-enrollmentSchema.virtual('course', {
-  ref: 'course',
-  localField: 'courseId',
-  foreignField: '_id',
-  justOne: true
+enrollmentSchema.virtual("course", {
+  ref: "course",
+  localField: "courseId",
+  foreignField: "_id",
+  justOne: true,
 });
 
 // Pre-save middleware to update lastAccessedAt
-enrollmentSchema.pre('save', function(next) {
-  if (this.isModified('progress')) {
+enrollmentSchema.pre("save", function (next) {
+  if (this.isModified("progress")) {
     this.lastAccessedAt = new Date();
   }
   next();
 });
 
 // Pre-save middleware to check completion
-enrollmentSchema.pre('save', function(next) {
-  if (this.progress === 100 && this.status !== 'completed') {
-    this.status = 'completed';
+enrollmentSchema.pre("save", function (next) {
+  if (this.progress === 100 && this.status !== "completed") {
+    this.status = "completed";
     this.completedAt = new Date();
   }
   next();
 });
-
-
 
 const EnrollmentModel = model<IEnrollment>("enrollment", enrollmentSchema);
 

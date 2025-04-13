@@ -8,8 +8,17 @@ export const addCourseSchema = {
       title: joi.string().trim().min(3).max(200).required(),
       subTitle: joi.string().trim().min(3).max(250).optional(),
       description: joi.string().trim().min(3).max(5000).allow(null, ""),
-      price: joi.number().min(0).required(),
-      access_type: joi.string().valid("free", "paid", "prime").required(),
+      price: joi
+        .number()
+        .min(0)
+        .max(100000)
+        .when("access_type", {
+          is: "free",
+          then: joi.valid(0).required(),
+          otherwise: joi.number().min(1).required(),
+        })
+        .required(),
+      access_type: joi.string().valid("free", "paid").required(),
       level: joi
         .string()
         .valid("beginner", "intermediate", "advanced")
@@ -38,17 +47,25 @@ export const updateCourseSchema = {
       title: joi.string().trim().min(3).max(200),
       subTitle: joi.string().trim().min(3).max(250).optional(),
       description: joi.string().trim().min(3).max(5000).allow(null, ""),
-      price: joi.number().min(0),
-      access_type: joi.string().valid("free", "paid", "prime"),
+      price: joi
+        .number()
+        .min(0)
+        .max(100000)
+        .when("access_type", {
+          is: "free",
+          then: joi.valid(0).required(),
+          otherwise: joi.number().min(1).required(),
+        }),
+      access_type: joi.string().valid("free", "paid"),
       categoryId: generalFields._id,
       requirements: joi
         .array()
-        .items(joi.string().trim().min(2).max(400))
+        .items(joi.string().trim().min(1).max(400))
         .min(1)
         .max(20),
       learningPoints: joi
         .array()
-        .items(joi.string().trim().min(2).max(400))
+        .items(joi.string().trim().min(1).max(400))
         .min(1)
         .max(20),
       level: joi
@@ -91,7 +108,7 @@ export const searchCoursesInstructorScheam = {
       size: generalFields.size,
       select: generalFields.select,
       search: generalFields.search,
-      access_type: joi.string().valid("free", "paid", "prime").optional(),
+      access_type: joi.string().valid("free", "paid").optional(),
     })
     .required(),
 };

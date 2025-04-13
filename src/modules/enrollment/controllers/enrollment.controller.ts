@@ -11,10 +11,11 @@ class EnrollmentController {
       req.body.courseId
     );
 
-    res.status(201).json({
-      status: 'success',
-      message: 'Successfully enrolled in course',
-      data: enrollment
+    return res.status(201).json({
+      message: "Successfully enrolled in course",
+      statusCode: 201,
+      success: true,
+      data: enrollment,
     });
   }
 

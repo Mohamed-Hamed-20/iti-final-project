@@ -47,7 +47,7 @@ export const addCourse = async (
   const newCourse = new courseModel({
     title,
     description,
-    price,
+    price: access_type === "free" ? 0 : price,
     access_type,
     instructorId,
     categoryId,
@@ -789,9 +789,9 @@ export const getCourseById = async (
 
   let course = courseArray[0];
 
-course.sections = course.sections.filter(
-  (section: any) => section.videos && section.videos.length > 0
-);
+  course.sections = course.sections.filter(
+    (section: any) => section.videos && section.videos.length > 0
+  );
 
   const promises: Promise<void>[] = [];
 

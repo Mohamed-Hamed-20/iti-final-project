@@ -18,4 +18,5 @@ export interface IEnrollment {
   updatedAt?: Date;
   course?: ICourse | mongoose.Types.ObjectId;
   instructorId: Types.ObjectId;
+  amount?: number;
 }

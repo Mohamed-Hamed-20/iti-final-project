@@ -1,27 +1,27 @@
-import { Types } from 'mongoose';
-import { IEnrollment } from '../../../DB/interfaces/enrollment.interface';
-import courseModel from '../../../DB/models/courses.model';
-import EnrollmentModel from '../../../DB/models/enrollment.model';
-import { ICourse } from '../../../DB/interfaces/courses.interface';
-import S3Instance from '../../../utils/aws.sdk.s3';
+import { Types } from "mongoose";
+import { IEnrollment } from "../../../DB/interfaces/enrollment.interface";
+import courseModel from "../../../DB/models/courses.model";
+import EnrollmentModel from "../../../DB/models/enrollment.model";
+import { ICourse } from "../../../DB/interfaces/courses.interface";
+import S3Instance from "../../../utils/aws.sdk.s3";
 
 class EnrollmentService {
   async enrollInCourse(userId: string, courseId: string) {
     // Run course check and enrollment check in parallel
     const [course, existingEnrollment] = await Promise.all([
-      courseModel.findById(courseId).select('access_type').lean(),
+      courseModel.findById(courseId).select("access_type").lean(),
       EnrollmentModel.findOne({
         userId,
-        courseId
-      }).lean()
+        courseId,
+      }).lean(),
     ]);
 
     if (!course) {
-      throw new Error('Course not found');
+      throw new Error("Course not found");
     }
 
     if (existingEnrollment) {
-      throw new Error('You are already enrolled in this course');
+      throw new Error("You are already enrolled in this course");
     }
 
     // Create enrollment without population
@@ -29,9 +29,10 @@ class EnrollmentService {
       userId,
       courseId,
       enrollmentDate: new Date(),
-      status: 'active',
+      status: "active",
       progress: 0,
-      paymentStatus: course.access_type === 'free' ? 'completed' : 'pending'
+      paymentStatus: course.access_type === "free" ? "completed" : "pending",
+      amount: course.access_type === "free" ? 0 : course.price,
     });
 
     // Return minimal necessary data without population
@@ -39,19 +40,21 @@ class EnrollmentService {
   }
 
   async getEnrollments(userId: string, filters: Partial<IEnrollment> = {}) {
-
-    const finalFilters = { 
-      ...filters, 
-      paymentStatus: "completed"
+    const finalFilters = {
+      ...filters,
+      paymentStatus: "completed",
     };
 
     const enrollments = await EnrollmentModel.find({
       userId,
-      ...finalFilters
+      ...finalFilters,
     })
-      .populate<{ course: ICourse }>('course', 'title thumbnail description totalVideos totalDuration')
+      .populate<{ course: ICourse }>(
+        "course",
+        "title thumbnail description totalVideos totalDuration"
+      )
       .sort({ createdAt: -1 })
-      .lean(); 
+      .lean();
 
     const s3Instance = new S3Instance();
 
@@ -67,7 +70,9 @@ class EnrollmentService {
         const formattedDuration = enrollment.course.totalDuration
           ? enrollment.course.totalDuration < 3600
             ? `${Math.floor(enrollment.course.totalDuration / 60)}m`
-            : `${Math.floor(enrollment.course.totalDuration / 3600)}h ${Math.floor((enrollment.course.totalDuration % 3600) / 60)}m`
+            : `${Math.floor(
+                enrollment.course.totalDuration / 3600
+              )}h ${Math.floor((enrollment.course.totalDuration % 3600) / 60)}m`
           : "0m";
 
         return {
@@ -75,8 +80,8 @@ class EnrollmentService {
           course: {
             ...enrollment.course,
             url,
-            totalDuration: formattedDuration
-          }
+            totalDuration: formattedDuration,
+          },
         };
       })
     );
@@ -87,11 +92,11 @@ class EnrollmentService {
   async getEnrollmentById(userId: string, enrollmentId: string) {
     const enrollment = await EnrollmentModel.findOne({
       _id: enrollmentId,
-      userId
-    }).populate('course');
+      userId,
+    }).populate("course");
 
     if (!enrollment) {
-      throw new Error('Enrollment not found');
+      throw new Error("Enrollment not found");
     }
 
     return enrollment;
@@ -100,15 +105,15 @@ class EnrollmentService {
   async updateProgress(userId: string, enrollmentId: string, progress: number) {
     const enrollment = await EnrollmentModel.findOne({
       _id: enrollmentId,
-      userId
+      userId,
     });
 
     if (!enrollment) {
-      throw new Error('Enrollment not found');
+      throw new Error("Enrollment not found");
     }
 
-    if (enrollment.status === 'cancelled') {
-      throw new Error('Cannot update progress for cancelled enrollment');
+    if (enrollment.status === "cancelled") {
+      throw new Error("Cannot update progress for cancelled enrollment");
     }
 
     enrollment.progress = Math.min(Math.max(0, progress), 100);
@@ -120,18 +125,20 @@ class EnrollmentService {
   async cancelEnrollment(userId: string, enrollmentId: string) {
     const enrollment = await EnrollmentModel.findOne({
       _id: enrollmentId,
-      userId
+      userId,
     });
 
     if (!enrollment) {
-      throw new Error('Enrollment not found');
+      throw new Error("Enrollment not found");
     }
 
-    if (enrollment.paymentStatus === 'completed') {
-      throw new Error('Cannot cancel paid enrollment. Please request a refund instead.');
+    if (enrollment.paymentStatus === "completed") {
+      throw new Error(
+        "Cannot cancel paid enrollment. Please request a refund instead."
+      );
     }
 
-    enrollment.status = 'cancelled';
+    enrollment.status = "cancelled";
     await enrollment.save();
 
     return enrollment;
@@ -140,7 +147,7 @@ class EnrollmentService {
   async getEnrollmentStats(courseId: string) {
     const stats = await EnrollmentModel.aggregate([
       {
-        $match: { courseId: new Types.ObjectId(courseId) }
+        $match: { courseId: new Types.ObjectId(courseId) },
       },
       {
         $group: {
@@ -148,16 +155,16 @@ class EnrollmentService {
           totalEnrollments: { $sum: 1 },
           activeEnrollments: {
             $sum: {
-              $cond: [{ $eq: ['$status', 'active'] }, 1, 0]
-            }
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
           },
           completedEnrollments: {
             $sum: {
-              $cond: [{ $eq: ['$status', 'completed'] }, 1, 0]
-            }
+              $cond: [{ $eq: ["$status", "completed"] }, 1, 0],
+            },
           },
-          averageProgress: { $avg: '$progress' }
-        }
+          averageProgress: { $avg: "$progress" },
+        },
       },
       {
         $project: {
@@ -165,18 +172,20 @@ class EnrollmentService {
           totalEnrollments: 1,
           activeEnrollments: 1,
           completedEnrollments: 1,
-          averageProgress: { $round: ['$averageProgress', 1] }
-        }
-      }
+          averageProgress: { $round: ["$averageProgress", 1] },
+        },
+      },
     ]);
 
-    return stats[0] || {
-      totalEnrollments: 0,
-      activeEnrollments: 0,
-      completedEnrollments: 0,
-      averageProgress: 0
-    };
+    return (
+      stats[0] || {
+        totalEnrollments: 0,
+        activeEnrollments: 0,
+        completedEnrollments: 0,
+        averageProgress: 0,
+      }
+    );
   }
 }
 
-export default new EnrollmentService(); 
+export default new EnrollmentService();
