@@ -6,8 +6,8 @@ import { generalFields } from "../../middleware/validation";
 export const registerSchema = {
   body: joi
     .object({
-      firstName: joi.string().trim().min(3).max(33).required(),
-      lastName: joi.string().trim().min(3).max(33).required(),
+      firstName: joi.string().trim().min(3).max(33).pattern(/^[A-Za-z]+$/).required(),
+      lastName: joi.string().trim().min(3).max(33).pattern(/^[A-Za-z]+$/).required(),
       email: generalFields.email.required(),
       password: generalFields.password.required(),
       confirmPassword: joi.valid(joi.ref("password")).required(),

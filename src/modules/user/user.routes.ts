@@ -14,8 +14,10 @@ import { isAuth } from "../../middleware/auth";
 import { configureMulter } from "../../utils/multer";
 import {
   changePassSchema,
+  instructorDataSchema,
   instructorIdSchema,
   instructorsserchSchema,
+  updateProfileSchema,
 } from "./user.validation";
 import { multerMemory } from "../../utils/multer";
 import { FileType } from "../../utils/files.allowed";
@@ -133,12 +135,14 @@ router.put(
 
 router.put(
   "/userProfile",
+  valid(updateProfileSchema) as RequestHandler,
   isAuth([Roles.User, Roles.Instructor]),
   asyncHandler(userServices.userProfile)
 );
 
 router.put(
   "/instructorData",
+  valid(instructorDataSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor]),
   asyncHandler(userServices.instructorData)
 );
