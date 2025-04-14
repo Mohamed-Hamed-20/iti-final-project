@@ -17,7 +17,6 @@
     "axios": "^1.8.4",
     "bcryptjs": "^2.4.3",
     "bull": "^4.16.5",
-    "code": "^5.2.4",
     "compression": "^1.8.0",
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.7",
@@ -64,9 +63,6 @@
     "@types/uuid": "^10.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.2"
-  },
-  "engines": {
-    "node": "18.x"
   },
   "keywords": [],
   "author": "",
