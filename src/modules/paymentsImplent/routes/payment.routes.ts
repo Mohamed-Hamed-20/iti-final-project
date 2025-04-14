@@ -17,37 +17,6 @@ router.post(
   asyncHandler(paymentController.createPaymentLink.bind(paymentController))
 );
 
-router.post(
-  "/stripe",
-  //valid(cokkiesSchema) as RequestHandler,
-  valid(paymentRequestSchema) as RequestHandler,
-  isAuth([Roles.User]),
-  asyncHandler(paymentController.processStripePayment.bind(paymentController))
-);
-
-router.post(
-  "/paypal",
-  // valid(cokkiesSchema) as RequestHandler,
-  valid(paymentRequestSchema) as RequestHandler,
-  isAuth([Roles.User]),
-  asyncHandler(paymentController.processPayPalPayment.bind(paymentController))
-);
-
-router.post(
-  "/googlepay",
-  //valid(cokkiesSchema) as RequestHandler,
-  valid(paymentRequestSchema) as RequestHandler,
-  isAuth([Roles.User]),
-  asyncHandler(
-    paymentController.processGooglePayPayment.bind(paymentController)
-  )
-);
-
-router.post(
-  "/webhook",
-  asyncHandler(paymentController.handleStripeWebhook.bind(paymentController))
-);
-
 router.get(
   "/success-payment/:token",
   asyncHandler(paymentController.sucess.bind(paymentController))
