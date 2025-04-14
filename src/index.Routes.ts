@@ -20,6 +20,7 @@ import conversationRoutes from "./modules/conversation/conversation.routes";
 import messageRoutes from "./modules/message/message.routes";
 
 const router = Router();
+
 router.use("/user", userRouter);
 router.use("/auth", authRouter);
 router.use("/category", categoryRouter);

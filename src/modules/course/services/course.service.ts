@@ -123,6 +123,8 @@ const defaultFields = [
   "level",
   "createdAt",
   "updatedAt",
+  "rating",
+  "totalRating",
 ];
 
 // get all courses from
@@ -217,26 +219,14 @@ export const getAllCourses = async (
       ...course,
       duration: course.totalDuration
         ? course.totalDuration < 3600
-          ? `${Math.floor(course.totalDuration / 60)}m`
-          : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor(
+        
+          ? `${Math.floor(course.totalDuration / 60)} m`
+          : `${Math.floor(course.totalDuration / 3600)} h ${Math.floor(
               (course.totalDuration % 3600) / 60
-            )}m`
-        : "0m",
+            )} m`
+        : "0 m",
     };
-
-    // ${
-    //     course.totalDuration % 60
-    //   }m
   });
-
-  // return {
-  //   ...course,
-  //   duration: course.totalDuration
-  //     ? course.totalDuration < 3600
-  //       ? `${Math.floor(course.totalDuration / 60)}m`
-  //       : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor((course.totalDuration % 3600) / 60)}m`
-  //     : "0m"
-  // };
 
   const updatedCourses = await Promise.all(updatePromises);
 
