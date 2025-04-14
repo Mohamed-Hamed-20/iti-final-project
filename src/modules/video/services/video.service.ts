@@ -275,11 +275,13 @@ export const deleteVideo = async (
     );
   }
 
+  const videoDuration = video.duration || 0;
+
   await videoModel.findByIdAndDelete(videoId);
 
   await courseModel.updateOne(
     { _id: video.courseId },
-    { $inc: { totalVideos: -1 } }
+    { $inc: { totalVideos: -1, totalDuration: -videoDuration } }
   );
 
   await sectionModel.updateOne(

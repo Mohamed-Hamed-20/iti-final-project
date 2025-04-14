@@ -207,8 +207,6 @@ export const approveInstructorTemplate = () => {
             <tr>
               <td align="center">
                 <h1 style="color: #410445; margin-bottom: 20px;">Congratulations!</h1>
-                <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
-                  style="margin: 20px 0;" />
                 <p style="font-size: 16px; color: #333; line-height: 1.6;">
                   You've officially been approved as an instructor on <strong>Edrasa</strong>.
                 </p>
@@ -273,8 +271,6 @@ export const approveCourseTemplate = () => {
             <tr>
               <td align="center">
                 <h1 style="color: #410445; margin-bottom: 20px;">Course Approved!</h1>
-                <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
-                  style="margin: 20px 0;" />
                 <p style="font-size: 16px; color: #333; line-height: 1.6;">
                   Great news! Your course has been successfully reviewed and approved on <strong>Edrasa</strong>.
                 </p>
@@ -473,8 +469,6 @@ export const purchaseEmail = (param: PaymentParameter): string => {
             <tr>
               <td align="center">
                 <h1 style="color: #410445;">Thank You for Your Purchase!</h1>
-                <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
-                  style="margin: 20px 0;" />
                 <p style="font-size: 16px; color: #333; line-height: 1.6;">
                   Hello <strong>${param.name}</strong>,<br /><br />
                   Your payment was successful, and you've been enrolled in:<br />
