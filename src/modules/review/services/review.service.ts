@@ -6,7 +6,6 @@ import ReviewModel from "../../../DB/models/review.model";
 import userModel from "../../../DB/models/user.model";
 import ApiPipeline from "../../../utils/apiFeacture";
 import S3Instance from "../../../utils/aws.sdk.s3";
-import { CustomError } from "@paypal/paypal-server-sdk";
 
 class ReviewService {
   async createReview(userId: string, reviewData: Partial<IReview>) {

@@ -2,7 +2,8 @@ import server from "./app.controller";
 import { database } from "./DB/database";
 import { PORT } from "./config/env";
 
-const port = PORT;
+const port = PORT || 5002;
+console.log(port);
 
 // Start the server after database connection
 database

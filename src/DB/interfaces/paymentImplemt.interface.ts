@@ -14,7 +14,6 @@ export interface PaymentRequest {
   paymentMethod: PaymentMethod;
   courseId?: Types.ObjectId;
   userId?: Types.ObjectId;
-
 }
 
 
