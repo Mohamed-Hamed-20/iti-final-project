@@ -327,7 +327,7 @@ export const createMeeting = async (
       {
         to: student.email,
         subject: `New Meeting Invitation from ${instructor.firstName} ${instructor.lastName}`,
-        text: "Welcome to Mentora! 🎉",
+        text: "Welcome to Edrasa! 🎉",
         html: `
             <p>Hello ${student.firstName},</p>
             <p>You have a new meeting from your instructor <strong>${instructor.firstName} ${instructor.lastName}</strong>.</p>
@@ -335,7 +335,7 @@ export const createMeeting = async (
             <p>Thanks,</p>
             <p>Course Platform Team</p>
           `,
-        message: "Mentora",
+        message: "Edrasa",
       },
       { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
     );

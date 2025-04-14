@@ -252,9 +252,9 @@ export const getPendingVerifications = async (
             to: instructor?.email,
             subject:
               "Congratulations, your account has been successfully approved.",
-            text: "Welcome to Mentora! 🎉",
+            text: "Welcome to Edrasa! 🎉",
             html: approveInstructorTemplate(),
-            message: "Mentora",
+            message: "Edrasa",
           },
           {
             attempts: 1,
@@ -429,9 +429,9 @@ export const getPendingVerifications = async (
           to: instructorEmail,
           subject:
             "Congratulations, your course has been successfully approved.",
-          text: "Welcome to Mentora! 🎉",
+          text: "Welcome to Edrasa! 🎉",
           html: approveCourseTemplate(),
-          message: "Mentora",
+          message: "Edrasa",
         },
         {
           attempts: 1,

@@ -420,7 +420,7 @@ export class PaymentController {
         to: updatedEnrollment?.userId?.email,
         subject:
           "Congratulations, your course has been successfully purchased.",
-        text: "Welcome to Mentora! 🎉",
+        text: "Welcome to Edrasa! 🎉",
         html: purchaseEmail({
           transactionId: updatedEnrollment._id,
           name: `${updatedEnrollment.userId?.firstName} ${updatedEnrollment.userId?.lastName}`,
@@ -432,7 +432,7 @@ export class PaymentController {
           dashboardLink: `${FRONTEND.BASE_URL}/dashboard`,
           year: new Date().getFullYear().toString(),
         }),
-        message: "Mentora",
+        message: "Edrasa",
       },
       {
         attempts: 1,

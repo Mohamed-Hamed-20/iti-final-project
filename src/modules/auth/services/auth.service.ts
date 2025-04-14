@@ -60,9 +60,9 @@ export const register = async (
     {
       to: response.email,
       subject: "Verify your email",
-      text: "Welcome to Mentora! 🎉",
+      text: "Welcome to Edrasa! 🎉",
       html: emailTemplate,
-      message: "Mentora",
+      message: "Edrasa",
     },
     { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
   );
@@ -241,7 +241,7 @@ export const sendCode = async (
         subject: "Password Reset Request",
         text: "Here is your password reset code",
         html: emailTemplate,
-        message: "Mentora",
+        message: "Edrasa",
       },
       { attempts: 1, backoff: 5000, removeOnComplete: true, removeOnFail: true }
     );

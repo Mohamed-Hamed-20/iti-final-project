@@ -40,7 +40,7 @@ export const SignUpTemplet = (link: string) => `<!DOCTYPE html>
                   If you did not create an account, no further action is required.
                 </p>
                 <p style="color: #888888; font-size: 12px; margin: 5px 0 0 0;">
-                  © ${new Date().getFullYear()} WOL All rights reserved.
+                  &copy; ${new Date().getFullYear()} <strong>Edrasa</strong>. All rights reserved.
                 </p>
               </td>
             </tr>
@@ -191,271 +191,134 @@ export const successTemplet = () => {
 export const approveInstructorTemplate = () => {
   return `
   <!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Account Approval</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-</head>
-<style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f9fafb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 48px 16px;
-  }
-
-  .container {
-    max-width: 400px;
-    width: 100%;
-    text-align: center;
-  }
-
-  .icon-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .success-icon {
-    font-size: 96px;
-    color: #22c55e;
-    margin-bottom: 24px;
-  }
-
-  .title {
-    margin-top: 24px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #111827;
-  }
-
-  .subtitle {
-    margin-top: 8px;
-    font-size: 14px;
-    color: #6b7280;
-  }
-
-  .extra-info {
-    margin-top: 32px;
-  }
-
-  .email-info {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 16px;
-  }
-
-  .button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  @media (min-width: 640px) {
-    .button-group {
-      flex-direction: row;
-      justify-content: center;
-    }
-  }
-
-  .btn {
-    padding: 12px 20px;
-    font-size: 16px;
-    font-weight: 500;
-    border-radius: 6px;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-  }
-
-  .btn-primary {
-    background-color: #410445;
-    color: white;
-    border: none;
-  }
-
-  .btn-primary:hover {
-    background-color: #5b21b6;
-  }
-
-  .btn-secondary {
-    background-color: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-  }
-
-  .btn-secondary:hover {
-    background-color: #f9fafb;
-  }
-</style>
-
-<body>
-  <div class="container">
-    <div class="content">
-      <div class="icon-section">
-        <i class="fas fa-check-circle success-icon"></i>
-        <h2 class="title">Congratulations!</h2>
-        <p class="subtitle">
-          You've officially been approved as an instructor on <strong>Mentora</strong>.
-        </p>
-      </div>
-      <div class="extra-info">
-        <p class="email-info">
-          We’re thrilled to have you on board, ready to share your knowledge and empower learners around the world.
-        </p>
-        <div class="button-group">
-          <a href="/dashboard/main" class="btn btn-primary">Go to Dashboard</a>
-          <a href="/courses" class="btn btn-secondary">Browse More Courses</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
-
-</html>`;
+  <html lang="en" style="margin: 0; padding: 0;">
+  
+  <head>
+    <meta charset="UTF-8" />
+    <title>Instructor Account Approved</title>
+  </head>
+  
+  <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+    <table width="100%" cellspacing="0" cellpadding="0" style="padding: 40px 0;">
+      <tr>
+        <td align="center">
+          <table width="600"
+            style="background-color: #ffffff; border-radius: 10px; overflow: hidden; padding: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <tr>
+              <td align="center">
+                <h1 style="color: #410445; margin-bottom: 20px;">Congratulations!</h1>
+                <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
+                  style="margin: 20px 0;" />
+                <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                  You've officially been approved as an instructor on <strong>Edrasa</strong>.
+                </p>
+                <p style="font-size: 14px; color: #555; line-height: 1.6; margin-top: 10px;">
+                  We're thrilled to have you on board, ready to share your knowledge and empower learners around the world.
+                </p>
+  
+                <table width="100%" style="margin: 30px 0;">
+                  <tr>
+                    <td align="center">
+                      <table cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td style="padding: 0 8px;">
+                            <a href="/dashboard/main"
+                              style="display: inline-block; padding: 12px 30px; background-color: #410445; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Go
+                              to Dashboard</a>
+                          </td>
+                          <td style="padding: 0 8px;">
+                            <a href="/courses"
+                              style="display: inline-block; padding: 12px 30px; background-color: #fff; color: #410445; text-decoration: none; border-radius: 6px; font-weight: bold; border: 1px solid #410445;">Browse
+                              More Courses</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding-top: 40px;">
+                <p style="font-size: 13px; color: #aaaaaa;">
+                  &copy; ${new Date().getFullYear()} <strong>Edrasa</strong>. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  
+  </html>`;
 };
 
 export const approveCourseTemplate = () => {
   return `
   <!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Course Approved</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-</head>
-<style>
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f9fafb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 48px 16px;
-  }
-
-  .container {
-    max-width: 400px;
-    width: 100%;
-    text-align: center;
-  }
-
-  .icon-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .success-icon {
-    font-size: 96px;
-    color: #22c55e;
-    margin-bottom: 24px;
-  }
-
-  .title {
-    margin-top: 24px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #111827;
-  }
-
-  .subtitle {
-    margin-top: 8px;
-    font-size: 14px;
-    color: #6b7280;
-  }
-
-  .extra-info {
-    margin-top: 32px;
-  }
-
-  .email-info {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 16px;
-  }
-
-  .button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  @media (min-width: 640px) {
-    .button-group {
-      flex-direction: row;
-      justify-content: center;
-    }
-  }
-
-  .btn {
-    padding: 12px 20px;
-    font-size: 16px;
-    font-weight: 500;
-    border-radius: 6px;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-  }
-
-  .btn-primary {
-    background-color: #410445;
-    color: white;
-    border: none;
-  }
-
-  .btn-primary:hover {
-    background-color: #5b21b6;
-  }
-
-  .btn-secondary {
-    background-color: white;
-    color: #374151;
-    border: 1px solid #d1d5db;
-  }
-
-  .btn-secondary:hover {
-    background-color: #f9fafb;
-  }
-</style>
-
-<body>
-  <div class="container">
-    <div class="content">
-      <div class="icon-section">
-        <i class="fas fa-check-circle success-icon"></i>
-        <h2 class="title">Course Approved!</h2>
-        <p class="subtitle">
-          Great news! Your course has been successfully reviewed and approved on <strong>Mentora</strong>.
-        </p>
-      </div>
-      <div class="extra-info">
-        <p class="email-info">
-          Your course is now live and accessible to learners across the platform. Get ready to make an impact and inspire others with your knowledge!
-        </p>
-        <div class="button-group">
-          <a href="/dashboard/main" class="btn btn-primary">Go to Dashboard</a>
-          <a href="/courses" class="btn btn-secondary">Browse More Courses</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</body>
-
-</html>`;
+  <html lang="en" style="margin: 0; padding: 0;">
+  
+  <head>
+    <meta charset="UTF-8" />
+    <title>Course Approved</title>
+  </head>
+  
+  <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; margin: 0; padding: 0;">
+    <table width="100%" cellspacing="0" cellpadding="0" style="padding: 40px 0;">
+      <tr>
+        <td align="center">
+          <table width="600"
+            style="background-color: #ffffff; border-radius: 10px; overflow: hidden; padding: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <tr>
+              <td align="center">
+                <h1 style="color: #410445; margin-bottom: 20px;">Course Approved!</h1>
+                <img src="https://cdn-icons-png.flaticon.com/512/845/845646.png" alt="Success Icon" width="70"
+                  style="margin: 20px 0;" />
+                <p style="font-size: 16px; color: #333; line-height: 1.6;">
+                  Great news! Your course has been successfully reviewed and approved on <strong>Edrasa</strong>.
+                </p>
+                <p style="font-size: 14px; color: #555; line-height: 1.6; margin-top: 20px;">
+                  Your course is now live and accessible to learners across the platform. Get ready to make an impact and inspire others with your knowledge!
+                </p>
+  
+                <table width="100%" style="margin: 30px 0;">
+                  <tr>
+                    <td align="center">
+                      <table cellspacing="0" cellpadding="0">
+                        <tr>
+                          <td style="padding: 0 8px;">
+                            <a href="/dashboard/main"
+                              style="display: inline-block; padding: 12px 30px; background-color: #410445; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Go
+                              to Dashboard</a>
+                          </td>
+                          <td style="padding: 0 8px;">
+                            <a href="/courses"
+                              style="display: inline-block; padding: 12px 30px; background-color: #fff; color: #410445; text-decoration: none; border-radius: 6px; font-weight: bold; border: 1px solid #410445;">Browse
+                              More Courses</a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+  
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding-top: 40px;">
+                <p style="font-size: 13px; color: #aaaaaa;">
+                  &copy; ${new Date().getFullYear()} <strong>Edrasa</strong>. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  
+  </html>`;
 };
 
 export const canceledTemplet = () => {
@@ -573,9 +436,6 @@ export const canceledTemplet = () => {
       <a href="/checkout" class="btn btn-primary">Try Again</a>
       <a href="/cart" class="btn btn-secondary">Return to Cart</a>
     </div>
-    <div class="support-link">
-      <a href="/contact">Need help? Contact our support team</a>
-    </div>
   </div>
 </body>
 </html>
@@ -621,11 +481,6 @@ export const purchaseEmail = (param: PaymentParameter): string => {
                   <strong style="color: #410445;">${param.courseTitle}</strong>
                 </p>
   
-                <img src="${param.courseImage}" alt="${
-    param.courseTitle
-  }" width="100%"
-                  style="margin: 20px 0; border-radius: 8px;" />
-  
                 <table width="100%" style="margin: 20px 0; font-size: 15px; color: #555;">
                   <tr>
                     <td><strong>Transaction ID:</strong></td>
@@ -645,11 +500,6 @@ export const purchaseEmail = (param: PaymentParameter): string => {
                   style="display: inline-block; margin: 25px 0; padding: 12px 30px; background-color: #410445; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Go
                   to Dashboard</a>
   
-                <p style="margin-top: 20px; font-size: 14px; color: #777;">
-                  Need help? <a href="${
-                    param.contactLink
-                  }" style="color: #410445;">Contact our support team</a>.
-                </p>
               </td>
             </tr>
             <tr>
@@ -657,7 +507,7 @@ export const purchaseEmail = (param: PaymentParameter): string => {
                 <p style="font-size: 13px; color: #aaaaaa;">
                   &copy; ${
                     param.year || new Date().getFullYear()
-                  } <strong>Mentora</strong>. All rights reserved.
+                  } <strong>Edrasa</strong>. All rights reserved.
                 </p>
               </td>
             </tr>
