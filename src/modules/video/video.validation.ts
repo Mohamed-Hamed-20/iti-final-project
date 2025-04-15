@@ -14,3 +14,11 @@ export const addvideoSchema = {
     })
     .required(),
 };
+
+export const getVideoStatusSchema = {
+  params: joi
+    .object({
+      videoId: generalFields._id.required(),
+    })
+    .required(),
+};

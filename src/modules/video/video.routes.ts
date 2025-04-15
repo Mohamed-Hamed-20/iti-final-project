@@ -8,7 +8,7 @@ import * as videoService from "./services/video.service";
 import { isAuth } from "../../middleware/auth";
 import { valid } from "../../middleware/validation";
 import { cokkiesSchema } from "../auth/auth.validation";
-import { addvideoSchema } from "./video.validation";
+import { addvideoSchema, getVideoStatusSchema } from "./video.validation";
 import { checkLogin } from "../course/services/course.service";
 const router = Router();
 
@@ -44,6 +44,20 @@ router.delete(
   // valid(cokkiesSchema) as RequestHandler,
   isAuth([Roles.Instructor, Roles.Admin]),
   asyncHandler(videoService.deleteVideo)
+);
+
+router.get(
+  "/status/:videoId",
+  valid(getVideoStatusSchema) as RequestHandler,
+  isAuth([Roles.Instructor]),
+  asyncHandler(videoService.getVideoStatus)
+);
+
+router.get(
+  "/get/instructor/:videoId",
+  valid(getVideoStatusSchema) as RequestHandler,
+  isAuth([Roles.Instructor]),
+  asyncHandler(videoService.getVideoInstructorById)
 );
 
 export default router;

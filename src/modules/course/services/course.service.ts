@@ -715,6 +715,7 @@ export const getCourseById = async (
         pipeline: [
           { $match: { $expr: { $eq: ["$sectionId", "$$sectionId"] } } },
           { $match: { status: "approved" } },
+          { $match: { process: "completed" } },
           {
             $project: {
               _id: 1,

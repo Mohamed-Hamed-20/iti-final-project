@@ -10,6 +10,7 @@ import { FfmpegService } from "../../../utils/ffmpeg.video";
 import { title } from "process";
 import { addVideoToQueue } from "../../../utils/video.queue";
 import enrollmentModel from "../../../DB/models/enrollment.model";
+import { ICourse } from "../../../DB/interfaces/courses.interface";
 
 export const addVideo2 = async (
   req: Request,
@@ -75,7 +76,6 @@ export const addVideo2 = async (
   });
 };
 
-
 export const updateVideo = async (
   req: Request,
   res: Response,
@@ -111,7 +111,6 @@ export const updateVideo = async (
     video: updatedVideo,
   });
 };
-
 
 export const createSignedVideo = async (
   req: Request,
@@ -291,5 +290,78 @@ export const deleteVideo = async (
 
   return res.status(200).json({
     message: "Video deleted successfully",
+  });
+};
+
+export const getVideoStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  const { videoId } = req.params;
+  const user = req.user;
+  try {
+    const video = await videoModel
+      .findById(videoId)
+      .populate<{ courseId: ICourse }>("courseId");
+
+    if (!video) {
+      return next(new CustomError("Video not found", 404));
+    }
+
+    if (video.courseId?.instructorId.toString() !== user?._id.toString()) {
+      return next(
+        new CustomError("You are not allowed to access this video", 403)
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      video: {
+        _id: video._id,
+        process: video.process,
+        status: video.status,
+        title: video.title,
+      },
+    });
+  } catch (error) {
+    return next(new CustomError("Error checking video status", 500));
+  }
+};
+
+export const getVideoInstructorById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { videoId } = req.params;
+  const user = req.user;
+
+  const video = await videoModel
+    .findById(videoId)
+    .populate<{ courseId: ICourse }>("courseId");
+
+  if (!video) {
+    return next(new CustomError("Video not found", 404));
+  }
+
+  if (video.courseId?.instructorId.toString() !== user?._id.toString()) {
+    return next(
+      new CustomError("You are not allowed to access this video", 403)
+    );
+  }
+  if (video.process !== "completed") {
+    return next(new CustomError("Video is not processed yet", 400));
+  }
+
+  // Fetch video and thumbnail URLs in parallel
+  const video_url = await new S3Instance().getVideoFile(
+    video.video_key as string
+  );
+
+  return res.status(200).json({
+    success: true,
+    video,
+    video_url,
   });
 };
