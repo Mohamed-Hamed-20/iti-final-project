@@ -1262,9 +1262,13 @@ export const adminSummary = async (
     courseModel.countDocuments({ status: "approved" }),
     courseModel.countDocuments({ status: "pending" }),
     courseModel.countDocuments({ status: "rejected" }),
-    userModel.countDocuments({ role: "instructor" }),
-    userModel.countDocuments({ role: "user" }),
-    userModel.countDocuments({ role: "admin" }),
+    userModel.countDocuments({
+      role: "instructor",
+      isConfirmed: true,
+      verificationStatus: "approved",
+    }),
+    userModel.countDocuments({ role: "user", isConfirmed: true }),
+    userModel.countDocuments({ role: "admin", isConfirmed: true }),
     EnrollmentModel.countDocuments({ paymentStatus: "completed" }),
     EarningsModel.find({}).select("totalAdminEarnings totalInstructorEarnings"),
   ]);
