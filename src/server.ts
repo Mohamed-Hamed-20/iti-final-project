@@ -3,7 +3,6 @@ import { database } from "./DB/database";
 import { PORT } from "./config/env";
 
 const port = PORT || 5002;
-console.log(port);
 
 // Start the server after database connection
 database

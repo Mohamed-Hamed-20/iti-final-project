@@ -172,4 +172,10 @@ router.get(
   asyncHandler(userServices.instructorSummary)
 );
 
+router.get(
+  "/summary/admin",
+  isAuth([Roles.Admin]),
+  asyncHandler(userServices.adminSummary)
+);
+
 export default router;

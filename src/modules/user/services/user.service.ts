@@ -1243,3 +1243,56 @@ export const instructorSummary = async (
     },
   });
 };
+
+export const adminSummary = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const [
+    approvedCourse,
+    pendingCourse,
+    rejectedCourse,
+    instructorCount,
+    userCount,
+    adminCount,
+    totalEnrollments,
+    totalEarningsData,
+  ] = await Promise.all([
+    courseModel.countDocuments({ status: "approved" }),
+    courseModel.countDocuments({ status: "pending" }),
+    courseModel.countDocuments({ status: "rejected" }),
+    userModel.countDocuments({ role: "instructor" }),
+    userModel.countDocuments({ role: "user" }),
+    userModel.countDocuments({ role: "admin" }),
+    EnrollmentModel.countDocuments({ paymentStatus: "completed" }),
+    EarningsModel.find({}).select("totalAdminEarnings totalInstructorEarnings"),
+  ]);
+
+  const totalEarnings = totalEarningsData.reduce(
+    (acc: number, earning: any) => acc + earning.totalAdminEarnings,
+    0
+  );
+
+  const totalInstructorEarnings = totalEarningsData.reduce(
+    (acc: number, earning: any) => acc + earning.totalInstructorEarnings,
+    0
+  );
+
+  return res.status(200).json({
+    message: "Admin summary fetched successfully",
+    statusCode: 200,
+    success: true,
+    data: {
+      approvedCourse,
+      pendingCourse,
+      rejectedCourse,
+      instructorCount,
+      userCount,
+      adminCount,
+      totalEnrollments,
+      totalAdminEarnings: Number(totalEarnings.toFixed(2)),
+      totalInstructorEarnings: Number(totalInstructorEarnings.toFixed(2)),
+    },
+  });
+};
