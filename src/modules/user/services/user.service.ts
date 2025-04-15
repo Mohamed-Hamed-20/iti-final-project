@@ -80,6 +80,8 @@ const defaultFields = [
   "jobTitle",
   "role",
   "courses",
+  "totalRating",
+  "rating",
 ];
 
 export const instructors = async (
@@ -1175,53 +1177,26 @@ export const instructorSummary = async (
     EarningsModel.findOne({ instructorId }).select(
       "totalInstructorEarnings totalAdminEarnings"
     ),
-
-    await EnrollmentModel.aggregate([
-      {
-        $match: {
-          instructorId: new mongoose.Types.ObjectId(instructorId),
-        },
-      },
-      {
-        $group: {
-          _id: "$courseId",
-          totalPurchases: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: "courses",
-          localField: "_id",
-          foreignField: "_id",
-          as: "courseData",
-        },
-      },
-      {
-        $unwind: {
-          path: "$courseData",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $project: {
-          _id: "$courseData._id",
-          title: "$courseData.title",
-          subTitle: "$courseData.subTitle",
-          price: "$courseData.price",
-          status: "$courseData.status",
-          rating: "$courseData.rating",
-          totalRating: "$courseData.totalRating",
-          totalPurchases: 1,
-        },
-      },
-    ]),
+    courseModel
+      .find({ instructorId })
+      .select("title subTitle price status rating totalRating purchaseCount")
+      .sort({ purchaseCount: -1 })
+      .limit(5),
   ]);
 
-  for (const course of courses) {
-    course.purchasePercentage =
-      (Number(course.totalPurchases) / Number(totalEnrollmentsCount || 1)) *
-      100;
-  }
+  // تحسين حساب النسبة المئوية للشراء
+  const formattedCourses = courses.map((course) => {
+    const purchaseCount = course.purchaseCount || 0;
+    const percentage =
+      totalEnrollmentsCount > 0
+        ? (purchaseCount / totalEnrollmentsCount) * 100
+        : 0;
+
+    return {
+      ...course.toObject(),
+      purchasePercentage: Number(percentage.toFixed(2)),
+    };
+  });
 
   return res.status(200).json({
     message: "Instructor summary fetched successfully",
@@ -1239,7 +1214,7 @@ export const instructorSummary = async (
       instructorTotalUserReviewsHim: req.user?.rating,
       instructorAvgRatingHim:
         Number(req.user?.rating || 0) / Number(req.user?.totalRating || 1),
-      courses: courses,
+      courses: formattedCourses,
     },
   });
 };

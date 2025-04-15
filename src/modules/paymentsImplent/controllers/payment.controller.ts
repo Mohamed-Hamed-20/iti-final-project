@@ -153,11 +153,22 @@ export class PaymentController {
     }
 
     // Update payment status
-    await EnrollmentModel.findByIdAndUpdate(
-      enrollmentId,
-      { paymentStatus: "completed" },
-      { new: true }
-    );
+    await Promise.all([
+      EnrollmentModel.findByIdAndUpdate(
+        enrollmentId,
+        { paymentStatus: "completed" },
+        { new: true }
+      ),
+      courseModel.findByIdAndUpdate(
+        courseId,
+        {
+          $inc: {
+            purchaseCount: 1,
+          },
+        },
+        { new: true }
+      ),
+    ]);
 
     const updatedEnrollment = await EnrollmentModel.findById(enrollmentId)
       .populate<{ courseId: ICourse }>("courseId")

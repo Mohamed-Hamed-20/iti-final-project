@@ -125,6 +125,7 @@ const defaultFields = [
   "updatedAt",
   "rating",
   "totalRating",
+  "purchaseCount",
 ];
 
 // get all courses from
@@ -219,7 +220,6 @@ export const getAllCourses = async (
       ...course,
       duration: course.totalDuration
         ? course.totalDuration < 3600
-        
           ? `${Math.floor(course.totalDuration / 60)} m`
           : `${Math.floor(course.totalDuration / 3600)} h ${Math.floor(
               (course.totalDuration % 3600) / 60
