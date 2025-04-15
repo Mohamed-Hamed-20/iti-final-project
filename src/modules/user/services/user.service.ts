@@ -4,7 +4,7 @@ import { sanatizeUser } from "../../../utils/sanatize.data";
 import { userFileKey } from "../../../utils/fileKeyGenerator";
 import userModel from "../../../DB/models/user.model";
 import bcrypt, { compare } from "bcryptjs";
-import { encrypt } from "../../../utils/crpto";
+import { encrypt, decrypt } from "../../../utils/crpto";
 import S3Instance from "../../../utils/aws.sdk.s3";
 import redis from "../../../utils/redis";
 import { ICourse } from "../../../DB/interfaces/courses.interface";
@@ -838,36 +838,55 @@ export const instructorData = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, phone, jobTitle, socialLinks, bio } = req.body;
+  const { firstName, lastName, countryCode, phoneNumber, jobTitle, socialLinks, bio } = req.body;
   const userId = req.user?._id;
 
   if (!userId) {
     return next(new CustomError("Unauthorized", 401));
   }
 
+  let phone = null;
+  if (countryCode && phoneNumber) {
+    if (!countryCode.match(/^\+\d{1,4}$/)) {
+      return next(new CustomError("Invalid country code format", 400));
+    }
+    if (!phoneNumber.match(/^\d{6,14}$/)) {
+      return next(new CustomError("Phone number must be 6-14 digits", 400));
+    }
+    phone = `${countryCode}${phoneNumber}`;
+  }
+
   const encryptedPhone = phone
     ? encrypt(phone, String(process.env.SECRETKEY_CRYPTO))
     : undefined;
 
-  const updateData: any = { firstName, lastName, jobTitle, socialLinks, bio };
-  if (encryptedPhone) updateData.phone = encryptedPhone;
+  const updateData: any = { 
+    firstName, 
+    lastName, 
+    jobTitle, 
+    socialLinks, 
+    bio,
+    ...(encryptedPhone && { phone: encryptedPhone }) 
+  };
 
-  const updateUser = await userModel.findByIdAndUpdate(userId, updateData, {
-    new: true,
-  });
+    const updateUser = await userModel.findByIdAndUpdate(
+      userId, 
+      updateData,
+      { new: true }
+    );
 
-  if (!updateUser) {
-    return next(new CustomError("User not found during update", 404));
-  }
+    if (!updateUser) {
+      return next(new CustomError("User not found during update", 404));
+    }
 
-  await new CacheService().delete(`user:${req.user?._id}`);
+    await new CacheService().delete(`user:${userId}`);
 
-  res.status(200).json({
-    message: "Instructor data updated successfully",
-    statusCode: 200,
-    success: true,
-    user: sanatizeUser(updateUser),
-  });
+    res.status(200).json({
+      message: "Instructor data updated successfully",
+      statusCode: 200,
+      success: true,
+      user: sanatizeUser(updateUser),
+    });
 };
 
 export const deleteAccount = async (

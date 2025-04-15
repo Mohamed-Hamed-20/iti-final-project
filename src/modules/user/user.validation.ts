@@ -52,34 +52,31 @@ export const instructorDataSchema = {
       .min(3)
       .max(33)
       .pattern(/^[A-Za-z]+$/)
-      .required()
       .messages({
-        "string.empty": "First name is required",
         "string.min": "First name must be at least 3 characters",
         "string.max": "First name must be at most 33 characters",
         "string.pattern.base": "First name must contain only letters",
       }),
-
     lastName: joi.string()
       .trim()
       .min(3)
       .max(33)
       .pattern(/^[A-Za-z]+$/)
-      .required()
       .messages({
-        "string.empty": "Last name is required",
         "string.min": "Last name must be at least 3 characters",
         "string.max": "Last name must be at most 33 characters",
         "string.pattern.base": "Last name must contain only letters",
       }),
-
-    phone: joi.string()
-      .trim()
-      .pattern(/^\+[1-9]\d{1,14}$/)
+    countryCode: joi.string()
+      .pattern(/^\+\d{1,4}$/)
       .messages({
-        "string.pattern.base": "Phone number must be in E.164 format (e.g. +1234567890)",
+        'string.pattern.base': 'Invalid country code format (e.g. +20)'
       }),
-
+    phoneNumber: joi.string()
+      .pattern(/^[0-9]+$/)
+      .messages({
+        'string.pattern.base': 'Phone number must contain only digits'
+      }),
     jobTitle: joi.string()
       .trim()
       .min(2)
@@ -106,5 +103,5 @@ export const instructorDataSchema = {
         "string.min": "Bio must be at least 5 characters",
         "string.max": "Bio must be at most 1000 characters",
       }),
-  }),
-};
+    }).and('countryCode', 'phoneNumber'), 
+  };
