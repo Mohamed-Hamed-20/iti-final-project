@@ -351,16 +351,28 @@ export const getVideoInstructorById = async (
     );
   }
   if (video.process !== "completed") {
-    return next(new CustomError("Video is not processed yet", 400));
+    return next(
+      new CustomError(
+        "The video is being processed, please wait until processing is complete.",
+        400
+      )
+    );
   }
 
   // Fetch video and thumbnail URLs in parallel
   const video_url = await new S3Instance().getVideoFile(
     video.video_key as string
   );
+  if (!video_url) {
+    return next(
+      new CustomError("An error occurred while fetching the video.", 500)
+    );
+  }
 
   return res.status(200).json({
+    message: "Video fetched successfully",
     success: true,
+    statusCode: 200,
     video,
     video_url,
   });

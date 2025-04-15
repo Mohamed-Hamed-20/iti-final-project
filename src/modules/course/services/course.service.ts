@@ -515,6 +515,7 @@ export const getPendingCourseById = async (
         foreignField: "sectionId",
         as: "videos",
         isArray: true,
+        matchFields: { process: "completed" },
       },
       {
         _id: 1,
