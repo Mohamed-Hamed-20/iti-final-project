@@ -44,10 +44,10 @@ videoQueue.process(async (job) => {
 
   try {
     // Compress the video file using Ffmpeg
-    await new FfmpegService().compressVideo(file.path, outputPath);
+    // await new FfmpegService().compressVideo(file.path, outputPath); // Edit compression quality here
 
     // Update file path to the compressed version
-    file.path = outputPath;
+    // file.path = outputPath;
 
     // Upload the compressed video to AWS S3
     await new S3Instance().uploadLargeFileWithPath(file);
