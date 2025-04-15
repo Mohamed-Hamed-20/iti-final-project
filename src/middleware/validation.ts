@@ -32,7 +32,7 @@ export const valid = (schema: Partial<Record<ReqKey, Schema>>) => {
 
     if (validationErrors.length > 0) {
       return res.status(400).json({
-        message: "Validation Error",
+        message: validationErrors[0].message,
         errors: validationErrors,
       });
     }
