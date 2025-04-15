@@ -80,6 +80,7 @@ export class PaymentController {
         message: "Successfully enrolled in free course",
         statusCode: 200,
         success: true,
+        url: `${FRONTEND.BASE_URL}/course/display/${courseId}`,
         enrollment,
       });
     }
