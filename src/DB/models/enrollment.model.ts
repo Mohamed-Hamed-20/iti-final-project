@@ -11,12 +11,12 @@ const enrollmentSchema = new Schema<IEnrollment>(
     instructorId: {
       type: Schema.Types.ObjectId,
       ref: "user",
-      required: [true, "Instructor ID is required"],
+      required: false,
     },
     courseId: {
       type: Schema.Types.ObjectId,
       ref: "course",
-      required: [true, "Course ID is required"],
+      required: false,
     },
     enrollmentDate: {
       type: Date,
@@ -30,6 +30,12 @@ const enrollmentSchema = new Schema<IEnrollment>(
       {
         type: Schema.Types.ObjectId,
         ref: "course",
+      },
+    ],
+    cartInstructorIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "user",
       },
     ],
     status: {
