@@ -47,8 +47,8 @@ app.use(NODE_ENV == "dev" ? morgan("dev") : morgan("combined"));
 
 app.use(
   rateLimit({
-    windowMs: 100 * 60 * 1000,
-    limit: 100,
+    windowMs: 5 * 60 * 1000,
+    limit: 300,
     message: "Too many requests, please try again later.",
   })
 );
