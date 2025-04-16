@@ -28,7 +28,12 @@ app.use(
   })
 );
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 const allowedOrigins = [
   "http://127.0.0.1:5500",
@@ -53,7 +58,7 @@ redis;
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// app.use(NODE_ENV == "dev" ? morgan("dev") : morgan("combined"));
+app.use(NODE_ENV == "dev" ? morgan("dev") : morgan("combined"));
 
 // API routes
 app.use("/api/v1", apiRouter);
