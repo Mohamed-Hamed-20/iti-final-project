@@ -12,14 +12,23 @@ import compression from "compression";
 import http, { Server } from "http";
 import SocketManager from "./socket/socket";
 import { Server as SocketIOServer } from "socket.io";
-import userModel from "./DB/models/user.model";
-import courseModel from "./DB/models/courses.model";
-
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 const app: Application = express();
 const server = http.createServer(app);
 app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
 app.use(express.json());
+
+app.use(
+  rateLimit({
+    windowMs: 100 * 60 * 1000,
+    limit: 100,
+    message: "Too many requests, please try again later.",
+  })
+);
+
+app.use(helmet());
 
 const allowedOrigins = [
   "http://127.0.0.1:5500",
