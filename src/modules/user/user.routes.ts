@@ -142,7 +142,7 @@ router.put(
 
 router.put(
   "/instructorData",
-  valid(instructorDataSchema) as RequestHandler,
+  // valid(instructorDataSchema) as RequestHandler,
   isAuth([Roles.Admin, Roles.Instructor]),
   asyncHandler(userServices.instructorData)
 );
