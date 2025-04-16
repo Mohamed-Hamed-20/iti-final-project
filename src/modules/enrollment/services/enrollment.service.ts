@@ -56,10 +56,41 @@ class EnrollmentService {
       .sort({ createdAt: -1 })
       .lean();
 
+    // cartOrders
+    const cardCoursesEnrollments = enrollments.filter(
+      (enrollment) => enrollment.isCartOrder && enrollment.cartCourses?.length
+    );
+
+    const cartCourseIds = cardCoursesEnrollments
+      .flatMap((enrollment) => enrollment.cartCourses)
+      .filter(Boolean);
+
+    const cartCourses = await courseModel
+      .find({
+        _id: { $in: cartCourseIds },
+      })
+      .select("title thumbnail description totalVideos totalDuration")
+      .lean();
+
+    // دمج الكورسات دي كـ enrollments جديدة وهمية
+    const extraEnrollments = cartCourses.map((course) => ({
+      _id: `cart_${course._id}`, // معرف وهمي عشان مفيش تعارض
+      userId,
+      isCartOrder: true,
+      courseId: course._id,
+      course,
+      paymentStatus: "completed",
+      enrollmentDate: new Date(),
+      status: "active",
+      progress: 0,
+    }));
+
+    const allEnrollments = [...enrollments, ...extraEnrollments];
+
     const s3Instance = new S3Instance();
 
     const processedEnrollments = await Promise.all(
-      enrollments.map(async (enrollment) => {
+      allEnrollments.map(async (enrollment) => {
         if (!enrollment.course) return enrollment;
 
         let url = null;

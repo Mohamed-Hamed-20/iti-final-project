@@ -20,21 +20,6 @@ app.use(compression({ level: 6, memLevel: 8, threshold: 0 }));
 app.use(cookieParser());
 app.use(express.json());
 
-app.use(
-  rateLimit({
-    windowMs: 100 * 60 * 1000,
-    limit: 100,
-    message: "Too many requests, please try again later.",
-  })
-);
-
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  })
-);
-
 const allowedOrigins = [
   "http://127.0.0.1:5500",
   "http://localhost:5173",
@@ -59,6 +44,21 @@ redis;
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use(NODE_ENV == "dev" ? morgan("dev") : morgan("combined"));
+
+app.use(
+  rateLimit({
+    windowMs: 100 * 60 * 1000,
+    limit: 100,
+    message: "Too many requests, please try again later.",
+  })
+);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // API routes
 app.use("/api/v1", apiRouter);
