@@ -27,4 +27,20 @@ router.get(
   asyncHandler(paymentController.cancel.bind(paymentController))
 );
 
+router.post(
+  "/create-payment-card",
+  isAuth([Roles.User, Roles.Instructor]),
+  asyncHandler(paymentController.createPaymentCard.bind(paymentController))
+);
+
+router.get(
+  "/success-payment-card/:token",
+  asyncHandler(paymentController.sucessPaymentCard.bind(paymentController))
+);
+
+router.get(
+  "/cancel-payment-card/:token",
+  asyncHandler(paymentController.cancelPaymentCard.bind(paymentController))
+);
+
 export default router;

@@ -19,4 +19,5 @@ export interface IEnrollment {
   course?: ICourse | mongoose.Types.ObjectId;
   instructorId: Types.ObjectId;
   amount?: number;
+  cartInstructorIds?: Types.ObjectId[];
 }

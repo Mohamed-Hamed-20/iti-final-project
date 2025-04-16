@@ -16,6 +16,8 @@ type Payload = {
   sub?: string;
   isCartOrder?: boolean;
   cartCourses?: mongoose.Types.ObjectId[] | any;
+  cartId?: mongoose.Types.ObjectId | any;
+  data?: any;
 };
 
 export class TokenService {
