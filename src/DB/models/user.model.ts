@@ -96,6 +96,9 @@ const userSchema = new Schema<Iuser>(
       facebook: { type: String },
       portfolio: { type: String },
     },
+    countryCode:{
+      type: String,
+    },
     wishlist: [{ type: Schema.Types.ObjectId, ref: "course" }],
 
     totalRating: {

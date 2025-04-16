@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { PaymentRequest } from "../../../DB/interfaces/paymentImplemt.interface";
 import courseModel from "../../../DB/models/courses.model";
 import EnrollmentModel from "../../../DB/models/enrollment.model";
+import EarningsModel from "../../../DB/models/earning.model";
 import { TokenService } from "../../../utils/tokens";
 import {
   stripePayment,
@@ -31,7 +32,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export class PaymentController {
-  constructor() {}
+  constructor() { }
 
   async createPaymentLink(req: Request, res: Response, next: NextFunction) {
     const { courseId } = req.body;
@@ -85,24 +86,11 @@ export class PaymentController {
       });
     }
 
-    // Create a pending enrollment
-    const enrollment = await EnrollmentModel.create({
-      userId,
-      courseId,
-      instructorId: course.instructorId,
-      enrollmentDate: new Date(),
-      status: "active",
-      progress: 0,
-      amount: course.price,
-      paymentStatus: "pending",
-    });
-
     course.url = await new S3Instance().getFile(course.thumbnail);
     const token = new TokenService(
       TokenConfigration.PAYMENT_TOKEN_SECRET as string,
       "1d"
     ).generateToken({
-      enrollmentId: enrollment._id,
       userId: req.user?._id,
       courseId: course._id,
     });
@@ -145,33 +133,83 @@ export class PaymentController {
   async sucess(req: Request, res: Response, next: NextFunction) {
     const token = req.params.token;
 
-    const { userId, enrollmentId, courseId } = new TokenService(
+    const { userId, courseId } = new TokenService(
       TokenConfigration.PAYMENT_TOKEN_SECRET as string
     ).verifyToken(token);
 
-    if (!userId || !enrollmentId || !courseId) {
+    if (!userId || !courseId) {
       return res.redirect(stripePayment.CANCELED_URL);
     }
 
-    // Update payment status
-    await Promise.all([
-      EnrollmentModel.findByIdAndUpdate(
-        enrollmentId,
-        { paymentStatus: "completed" },
-        { new: true }
-      ),
-      courseModel.findByIdAndUpdate(
-        courseId,
+    // Get course details
+    const course = await courseModel.findById(courseId);
+    if (!course) {
+      return res.redirect(stripePayment.CANCELED_URL);
+    }
+
+    // Create enrollment after successful payment
+    const enrollment = await EnrollmentModel.create({
+      userId,
+      courseId,
+      instructorId: course.instructorId,
+      enrollmentDate: new Date(),
+      status: "active",
+      progress: 0,
+      amount: course.price,
+      paymentStatus: "completed",
+    });
+
+    // Calculate earnings using environment variables
+    const instructorPercentage = Number(process.env.EARNING_PERCENTAGE_INSTRUCTOR) || 90;
+    const adminPercentage = Number(process.env.EARNING_PERCENTAGE_ADMIN) || 10;
+
+    const instructorEarnings = (course.price * instructorPercentage) / 100;
+    const adminEarnings = (course.price * adminPercentage) / 100;
+
+    console.log('Creating earnings record:', {
+      instructorId: course.instructorId,
+      instructorEarnings,
+      adminEarnings,
+      coursePrice: course.price
+    });
+
+    try {
+      // Create or update earnings record
+      const earningsRecord = await EarningsModel.findOneAndUpdate(
+        { instructorId: course.instructorId },
         {
           $inc: {
-            purchaseCount: 1,
-          },
+            totalInstructorEarnings: instructorEarnings,
+            totalAdminEarnings: adminEarnings
+          }
         },
-        { new: true }
-      ),
-    ]);
+        { upsert: true, new: true }
+      );
 
-    const updatedEnrollment = await EnrollmentModel.findById(enrollmentId)
+      console.log('Earnings record created/updated:', earningsRecord);
+
+      if (!earningsRecord) {
+        console.error('Failed to create/update earnings record');
+        throw new Error('Failed to create/update earnings record');
+      }
+    } catch (error) {
+      console.error('Error creating earnings record:', error);
+      // Don't throw the error to prevent breaking the payment flow
+      // But log it for debugging
+    }
+
+    // Update course purchase count
+    await courseModel.findByIdAndUpdate(
+      courseId,
+      {
+        $inc: {
+          purchaseCount: 1,
+        },
+      },
+      { new: true }
+    );
+
+    const updatedEnrollment = await EnrollmentModel.findById(enrollment._id)
       .populate<{ courseId: ICourse }>("courseId")
       .populate<{ userId: Iuser }>("userId")
       .lean<IEnrollment & { courseId: ICourse; userId: Iuser }>();
@@ -181,7 +219,7 @@ export class PaymentController {
       !updatedEnrollment.courseId ||
       typeof updatedEnrollment.amount !== "number"
     ) {
-      await EnrollmentModel.findByIdAndDelete(enrollmentId);
+      await EnrollmentModel.findByIdAndDelete(enrollment._id);
       return res.redirect(stripePayment.CANCELED_URL);
     }
 
