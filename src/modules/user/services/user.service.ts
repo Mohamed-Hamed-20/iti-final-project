@@ -838,34 +838,34 @@ export const instructorData = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, countryCode, phoneNumber, jobTitle, socialLinks, bio } = req.body;
+  const data = req.body;
   const userId = req.user?._id;
 
   if (!userId) {
     return next(new CustomError("Unauthorized", 401));
   }
 
-  let phone = null;
-  if (countryCode && phoneNumber) {
-    if (!countryCode.match(/^\+\d{1,4}$/)) {
-      return next(new CustomError("Invalid country code format", 400));
-    }
-    if (!phoneNumber.match(/^\d{6,14}$/)) {
-      return next(new CustomError("Phone number must be 6-14 digits", 400));
-    }
-    phone = `${countryCode}${phoneNumber}`;
-  }
+  // let phone = null;
+  // if (countryCode && phoneNumber) {
+  //   if (!countryCode.match(/^\+\d{1,4}$/)) {
+  //     return next(new CustomError("Invalid country code format", 400));
+  //   }
+  //   if (!phoneNumber.match(/^\d{6,14}$/)) {
+  //     return next(new CustomError("Phone number must be 6-14 digits", 400));
+  //   }
+  //   phone = `${countryCode}${phoneNumber}`;
+  // }
 
-  const encryptedPhone = phone
-    ? encrypt(phone, String(process.env.SECRETKEY_CRYPTO))
+  const encryptedPhone = data.phone
+    ? encrypt(data.phone, String(process.env.SECRETKEY_CRYPTO))
     : undefined;
 
   const updateData: any = { 
-    firstName, 
-    lastName, 
-    jobTitle, 
-    socialLinks, 
-    bio,
+    firstName: data.firstName || "", 
+    lastName: data.lastName || "", 
+    jobTitle: data.jobTitle || "", 
+    socialLinks: data.socialLinks || {}, 
+    bio: data.bio || "",
     ...(encryptedPhone && { phone: encryptedPhone }) 
   };
 
