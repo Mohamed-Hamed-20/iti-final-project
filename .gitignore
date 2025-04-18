@@ -1,6 +1,6 @@
-/.env
 /dist
 /node_modules
 /uploads
 /npm-cache
 /src/npm-cache  # Ignore npm-cache inside the src folder
+config.bat

@@ -477,7 +477,7 @@ class ReviewController {
 
       const updatedReviews = await Promise.all(updatePromises);
       let avarageReviews =
-        Number(instructor.rating || 0) / Number(instructor.totalRating || 0);
+        Number(instructor.rating || 0) / Number(instructor.totalRating || 1);
 
       response = {
         totalReviews: updatedReviews.length,

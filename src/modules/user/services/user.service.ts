@@ -583,8 +583,8 @@ export const getInstructorFromURL = async (
         ? course.totalDuration < 3600
           ? `${Math.floor(course.totalDuration / 60)}m`
           : `${Math.floor(course.totalDuration / 3600)}h ${Math.floor(
-              (course.totalDuration % 3600) / 60
-            )}m`
+            (course.totalDuration % 3600) / 60
+          )}m`
         : "0m",
     };
   });
@@ -727,6 +727,7 @@ export const uploadImage = async (
   if (!req.file) {
     return next(new CustomError("No file uploaded", 400));
   }
+
   let folder = req.user?.avatar;
 
   if (req.user?.avatar && req.user.avatar.startsWith("users")) {
@@ -754,6 +755,10 @@ export const uploadImage = async (
     return next(new CustomError("SERVER ERROR !", 500));
   }
 
+  // Get the new avatar URL
+  user.url = await new S3Instance().getFile(folder);
+
+  // Clear user cache
   await new CacheService().delete(`user:${userId}`);
 
   res.status(200).json({
@@ -803,19 +808,51 @@ export const userProfile = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, phone } = req.body;
+  const { firstName, lastName, phone, countryCode } = req.body;
   const user = req.user;
 
   if (!user || !user._id) {
     return next(new CustomError("Unauthorized user", 401));
   }
 
-  const encryptedPhone = phone
-    ? encrypt(phone, String(process.env.SECRETKEY_CRYPTO))
-    : undefined;
+  // Get the current user data to preserve existing data
+  const currentUser = await userModel.findById(user._id);
+  if (!currentUser) {
+    return next(new CustomError("User not found", 404));
+  }
 
-  const updateData: any = { firstName, lastName };
-  if (encryptedPhone) updateData.phone = encryptedPhone;
+  const updateData: any = {
+    firstName,
+    lastName,
+    avatar: currentUser.avatar // Preserve existing avatar
+  };
+
+  // Handle phone number update
+  if (phone) {
+    try {
+      // Validate phone format
+      if (!phone.match(/^\+?[1-9]\d{7,14}$/)) {
+        return next(new CustomError("Invalid phone number format", 400));
+      }
+
+      // If countryCode is provided, validate it
+      if (countryCode && !countryCode.match(/^\+\d{1,4}$/)) {
+        return next(new CustomError("Invalid country code format", 400));
+      }
+
+      // Encrypt the phone number
+      const encryptedPhone = encrypt(phone, String(process.env.SECRETKEY_CRYPTO));
+      updateData.phone = encryptedPhone;
+
+      // Update countryCode if provided
+      if (countryCode) {
+        updateData.countryCode = countryCode;
+      }
+    } catch (error) {
+      console.error("Error processing phone number:", error);
+      return next(new CustomError("Error processing phone number", 500));
+    }
+  }
 
   const updateUser = await userModel.findByIdAndUpdate(user._id, updateData, {
     new: true,
@@ -824,6 +861,14 @@ export const userProfile = async (
   if (!updateUser) {
     return next(new CustomError("User not found during update", 404));
   }
+
+  // Get the avatar URL if it exists
+  if (updateUser.avatar) {
+    updateUser.url = await new S3Instance().getFile(updateUser.avatar);
+  }
+
+  // Clear user cache
+  await new CacheService().delete(`user:${user._id}`);
 
   res.status(200).json({
     message: "User data updated successfully",
@@ -860,33 +905,33 @@ export const instructorData = async (
     ? encrypt(data.phone, String(process.env.SECRETKEY_CRYPTO))
     : undefined;
 
-  const updateData: any = { 
-    firstName: data.firstName || "", 
-    lastName: data.lastName || "", 
-    jobTitle: data.jobTitle || "", 
-    socialLinks: data.socialLinks || {}, 
+  const updateData: any = {
+    firstName: data.firstName || "",
+    lastName: data.lastName || "",
+    jobTitle: data.jobTitle || "",
+    socialLinks: data.socialLinks || {},
     bio: data.bio || "",
-    ...(encryptedPhone && { phone: encryptedPhone }) 
+    ...(encryptedPhone && { phone: encryptedPhone })
   };
 
-    const updateUser = await userModel.findByIdAndUpdate(
-      userId, 
-      updateData,
-      { new: true }
-    );
+  const updateUser = await userModel.findByIdAndUpdate(
+    userId,
+    updateData,
+    { new: true }
+  );
 
-    if (!updateUser) {
-      return next(new CustomError("User not found during update", 404));
-    }
+  if (!updateUser) {
+    return next(new CustomError("User not found during update", 404));
+  }
 
-    await new CacheService().delete(`user:${userId}`);
+  await new CacheService().delete(`user:${userId}`);
 
-    res.status(200).json({
-      message: "Instructor data updated successfully",
-      statusCode: 200,
-      success: true,
-      user: sanatizeUser(updateUser),
-    });
+  res.status(200).json({
+    message: "Instructor data updated successfully",
+    statusCode: 200,
+    success: true,
+    user: sanatizeUser(updateUser),
+  });
 };
 
 export const deleteAccount = async (
@@ -1001,10 +1046,10 @@ export const instructorVerification = async (
   const optionalFile = files.optionalVideo?.[0];
   const optionalFileKey = optionalFile
     ? await userFileKey(
-        user._id.toString(),
-        "optionalVideo",
-        optionalFile.originalname
-      )
+      user._id.toString(),
+      "optionalVideo",
+      optionalFile.originalname
+    )
     : null;
 
   // Upload files to S3
