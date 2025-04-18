@@ -19,7 +19,7 @@ const userSchema = new Schema<Iuser>(
       type: String,
       required: true,
       minlength: [6, "email Must be at least 6, got {VALUE}"],
-      maxlength: [30, "email Must be at most 30, got {VALUE}"],
+      maxlength: [70, "email Must be at most 30, got {VALUE}"],
       unique: true,
       match: [
         /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,

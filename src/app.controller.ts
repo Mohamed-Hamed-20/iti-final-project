@@ -45,20 +45,20 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use(NODE_ENV == "dev" ? morgan("dev") : morgan("combined"));
 
-app.use(
-  rateLimit({
-    windowMs: 5 * 60 * 1000,
-    limit: 300,
-    message: "Too many requests, please try again later.",
-  })
-);
+// app.use(
+//   rateLimit({
+//     windowMs: 5 * 60 * 1000,
+//     limit: 300,
+//     message: "Too many requests, please try again later.",
+//   })
+// );
 
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  })
-);
+// app.use(
+//   helmet({
+//     contentSecurityPolicy: false,
+//     crossOriginEmbedderPolicy: false,
+//   })
+// );
 
 // API routes
 app.use("/api/v1", apiRouter);
